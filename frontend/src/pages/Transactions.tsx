@@ -1,0 +1,156 @@
+import React from 'react';
+import { useStore } from '../store/useStore';
+import { useTransactions } from '../hooks/useApi';
+import { PlusCircle } from 'lucide-react';
+
+export const Transactions: React.FC = () => {
+  const { openModal } = useStore();
+  const { data: transactions = [], deleteTransaction, isLoading } = useTransactions();
+
+  const formatNativeMoney = (val: number, ccy: 'THB' | 'USD') => {
+    const isUSD = ccy === 'USD';
+    const decimalLimit = Math.abs(val) < 1000 ? 2 : 0;
+    return (
+      (isUSD ? '$' : '฿') +
+      val.toLocaleString('en-US', {
+        minimumFractionDigits: decimalLimit,
+        maximumFractionDigits: decimalLimit,
+      })
+    );
+  };
+
+  const formatQty = (qty: number, type: string) => {
+    if (type === 'deposit') return `฿${qty.toLocaleString('en-US')}`;
+    const fractionDigits = Math.abs(qty) < 10 ? 4 : 2;
+    return qty.toLocaleString('en-US', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    });
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('คุณต้องการลบรายการธุรกรรมนี้ใช่หรือไม่? (การลบจะอัปเดตต้นทุนเฉลี่ยของสินทรัพย์โดยอัตโนมัติ)')) {
+      try {
+        await deleteTransaction.mutateAsync(id);
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการลบรายการ');
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 rounded-full border-4 border-inputBorder border-t-terracotta animate-spin"></div>
+        <span className="text-sm font-semibold text-muted mt-4">กำลังโหลดรายการธุรกรรม…</span>
+      </div>
+    );
+  }
+
+  const hasTxs = transactions.length > 0;
+
+  return (
+    <div className="flex flex-col py-6 select-none" data-screen-label="Transactions">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 py-4.5 border-b border-inputBorder/20 flex-wrap">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-dark">Transactions</h2>
+          <span className="text-xs.5 text-faint-darker font-bold bg-[#f0e7d8] px-2 py-0.5 rounded-md mt-0.5">
+            {transactions.length} รายการ
+          </span>
+        </div>
+        <button
+          onClick={() => openModal('tx')}
+          className="flex items-center gap-1.5 px-4.5 py-2 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
+          id="btn-add-txn-tx-page"
+        >
+          <PlusCircle size={14} />
+          <span>+ บันทึกรายการ</span>
+        </button>
+      </div>
+
+      {/* Empty State */}
+      {!hasTxs && (
+        <div className="bg-white border border-inputBorder/25 rounded-2.5xl p-10 text-center flex flex-col items-center gap-3 mt-6">
+          <span className="text-sm.5 text-muted">ยังไม่มีรายการบันทึกซื้อ-ขาย</span>
+        </div>
+      )}
+
+      {/* Table List */}
+      {hasTxs && (
+        <div className="bg-white rounded-2.5xl p-4 border border-inputBorder/20 shadow-sm overflow-x-auto mt-6">
+          <table className="min-w-[820px] w-full border-collapse">
+            <thead>
+              <tr className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_44px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
+                <th>วันที่</th>
+                <th>ประเภท</th>
+                <th>สินทรัพย์</th>
+                <th>พอร์ต</th>
+                <th className="text-right">จำนวน</th>
+                <th className="text-right">ราคา</th>
+                <th className="text-right">มูลค่ารวม</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody className="flex flex-col gap-1 mt-1">
+              {transactions.map((t) => {
+                const asset = t.asset || { symbol: '?', type: 'crypto', currency: 'THB', portfolio: { name: '—' } };
+                const isDep = asset.type === 'deposit';
+                const isBuy = t.side === 'buy';
+                const typeLabel = isDep ? (isBuy ? 'ฝาก' : 'ถอน') : (isBuy ? 'ซื้อ' : 'ขาย');
+
+                const totalValue = Number(t.quantity) * Number(t.price) + (isBuy ? Number(t.fee || 0) : -Number(t.fee || 0));
+
+                return (
+                  <tr
+                    key={t.id}
+                    className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_44px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
+                  >
+                    <td className="text-muted text-xs.5 font-medium select-none">{formatDate(t.date)}</td>
+                    <td className="select-none">
+                      <span
+                        className={`text-[11px] font-bold px-3 py-1.5 rounded-full select-none ${
+                          isBuy ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
+                        }`}
+                      >
+                        {typeLabel}
+                      </span>
+                    </td>
+                    <td className="font-bold text-dark">{asset.symbol}</td>
+                    <td className="text-muted text-xs.5 font-medium">{asset.portfolio?.name || '—'}</td>
+                    <td className="text-right font-semibold tabular-nums text-dark/90 text-sm">
+                      {formatQty(Number(t.quantity), asset.type)}
+                    </td>
+                    <td className="text-right font-semibold tabular-nums text-muted text-xs.5">
+                      {isDep ? '—' : formatNativeMoney(Number(t.price), asset.currency as any)}
+                    </td>
+                    <td className="text-right font-bold tabular-nums text-dark text-sm">
+                      {formatNativeMoney(totalValue, asset.currency as any)}
+                    </td>
+                    <td className="text-center">
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};

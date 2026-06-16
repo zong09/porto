@@ -1,0 +1,69 @@
+# Porto — Claude Code Project Instructions
+
+## Commands
+
+```bash
+# Dev
+docker compose up -d                    # start local Postgres (port 5435)
+npm run dev                             # BE (port 3002) + FE (port 5174) concurrently
+npm run dev:fresh                       # docker up + BE + FE (first run / after docker restart)
+
+# Or run separately:
+cd backend && npm run start:dev         # NestJS dev server (port 3002)
+cd frontend && npm run dev              # Vite dev server (port 5174)
+
+# Build
+npm run build:all                       # frontend → backend → copy dist → backend/public/
+
+# Test
+cd backend && npm test                  # Jest unit tests
+cd backend && npm run test:e2e          # e2e tests
+```
+
+## Architecture
+
+Single Railway service: NestJS serves the React SPA from `backend/public/` and exposes all API under `/api`. In dev, frontend hits `http://localhost:3000/api` directly (no Vite proxy).
+
+## Backend Patterns
+
+**TypeORM** — `synchronize: true` in both dev and prod (schema auto-migrates). Numeric columns use `NUMERIC(20,8)` with a `from: parseFloat` transformer — never store JS floats directly.
+
+**JWT Auth** — `JwtAuthGuard` is global; routes opt out with `@Public()`. The `@CurrentUser()` decorator extracts `{ userId, email }` from the token.
+
+**Position Service** (`src/position/position.service.ts`) — pure math, no DB. Takes `Transaction[]` sorted oldest→newest, returns `{ quantity, avgCost, totalCost, realizedPnl }`. Used by net-worth and assets services. Do not add DB calls here.
+
+**Prices Service** (`src/prices/prices.service.ts`) — in-process `Map<string, { data, expiresAt }>` cache (60s crypto, 90s stocks). Yahoo Finance requires crumb auth: try direct → if 401, fetch crumb from `query2.finance.yahoo.com/v1/test/getcrumb` → retry. Thai stocks append `.BK` to symbol. Always include `bitcoin` in CoinGecko calls to derive THB/USD FX rate.
+
+**Demo Seed** — `POST /api/auth/demo` creates an isolated `is_demo=true` user then calls `SeedService.seedDemoUser(userId)`. Each demo call creates a brand-new user (no shared demo account).
+
+## Frontend Patterns
+
+**Tailwind tokens** are in `frontend/tailwind.config.js`. Custom colors: `surface (#FAF5EC)`, `dark (#3d3328)`, `primary (#b45a3c)`, `muted (#8a7d6c)`, `positive`/`negative` with text+bg variants. Font is `Anuphan` loaded from Google Fonts.
+
+**State split** — TanStack Query for all server state (portfolios, assets, transactions, prices). Zustand (`src/store/useStore.ts`) for: `user`, `token`, `page`, `currency` (THB|USD), and modal open/close state. After price refetch, call `POST /api/net-worth/snapshot` to record history.
+
+**Charts** — custom SVG only, no chart library. Area chart `viewBox="0 0 1100 170"` with `linearGradient`. Donut uses CSS `conic-gradient`. Bar chart uses SVG `<rect>` elements.
+
+**Auth persistence** — token stored in `localStorage` as `porto-token-v1`, user as `porto-user-v1`. The Axios interceptor auto-clears both and reloads on 401.
+
+**API client** — `src/api/apiClient.ts` uses `import.meta.env.DEV` to switch baseURL between `http://localhost:3000/api` (dev) and `/api` (prod).
+
+## Environment
+
+Local Postgres runs on **port 5435** (not 5432) — `docker-compose.yml` maps `5435:5432`. The backend `.env` already reflects this.
+
+Production env vars required on Railway: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `NODE_ENV=production`. SSL is auto-enabled for non-localhost `DATABASE_URL`.
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `backend/src/app.module.ts` | TypeORM config, module wiring, ServeStatic setup |
+| `backend/src/main.ts` | Global prefix `/api`, ValidationPipe, CORS |
+| `backend/src/position/position.service.ts` | Avg-cost engine — keep pure |
+| `backend/src/prices/prices.service.ts` | Price proxy + cache |
+| `backend/src/seed/seed.service.ts` | Demo data generator |
+| `frontend/src/store/useStore.ts` | All client state |
+| `frontend/src/api/apiClient.ts` | Axios instance + interceptors |
+| `frontend/tailwind.config.js` | Design tokens |
+| `package.json` (root) | `build:all` script for Railway |
