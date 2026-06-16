@@ -1,13 +1,15 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
 import { usePortfolios, useAssets, useNetWorth } from '../hooks/useApi';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const Portfolios: React.FC = () => {
   const { currency, openModal } = useStore();
   const { data: portfolios = [], deletePortfolio, isLoading: loadingPorts } = usePortfolios();
   const { data: assets = [], deleteAsset, isLoading: loadingAssets } = useAssets();
   const { summary } = useNetWorth();
+  const { t, language } = useTranslation();
 
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
@@ -48,24 +50,40 @@ export const Portfolios: React.FC = () => {
   const handleDeletePortfolio = async (id: string, name: string) => {
     const portfolioAssets = assets.filter((a) => a.portfolioId === id);
     if (portfolioAssets.length > 0) {
-      alert('ไม่สามารถลบพอร์ตได้เนื่องจากยังมีสินทรัพย์เหลืออยู่ภายในพอร์ต กรุณาลบสินทรัพย์ทั้งหมดก่อน');
+      alert(
+        language === 'th'
+          ? 'ไม่สามารถลบพอร์ตได้เนื่องจากยังมีสินทรัพย์เหลืออยู่ภายในพอร์ต กรุณาลบสินทรัพย์ทั้งหมดก่อน'
+          : 'Cannot delete portfolio because it still contains assets. Please delete all assets first.'
+      );
       return;
     }
-    if (confirm(`คุณต้องการลบพอร์ต "${name}" ใช่หรือไม่?`)) {
+    if (
+      confirm(
+        language === 'th'
+          ? `คุณต้องการลบพอร์ต "${name}" ใช่หรือไม่?`
+          : `Are you sure you want to delete portfolio "${name}"?`
+      )
+    ) {
       try {
         await deletePortfolio.mutateAsync(id);
       } catch (err: any) {
-        alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการลบพอร์ต');
+        alert(err.response?.data?.message || t('common.error'));
       }
     }
   };
 
   const handleDeleteAsset = async (id: string, symbol: string) => {
-    if (confirm(`คุณต้องการลบสินทรัพย์ "${symbol}" และรายการธุรกรรมทั้งหมดที่เกี่ยวข้องใช่หรือไม่?`)) {
+    if (
+      confirm(
+        language === 'th'
+          ? `คุณต้องการลบสินทรัพย์ "${symbol}" และรายการธุรกรรมทั้งหมดที่เกี่ยวข้องใช่หรือไม่?`
+          : `Are you sure you want to delete asset "${symbol}" and all related transactions?`
+      )
+    ) {
       try {
         await deleteAsset.mutateAsync(id);
       } catch (err: any) {
-        alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการลบสินทรัพย์');
+        alert(err.response?.data?.message || t('common.error'));
       }
     }
   };
@@ -74,7 +92,9 @@ export const Portfolios: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <div className="w-8 h-8 rounded-full border-4 border-inputBorder border-t-terracotta animate-spin"></div>
-        <span className="text-sm font-semibold text-muted mt-4">กำลังโหลดข้อมูลพอร์ต…</span>
+        <span className="text-sm font-semibold text-muted mt-4">
+          {language === 'th' ? 'กำลังโหลดข้อมูลพอร์ต…' : 'Loading portfolios...'}
+        </span>
       </div>
     );
   }
@@ -146,23 +166,21 @@ export const Portfolios: React.FC = () => {
     <div className="flex flex-col py-6 select-none" data-screen-label="Portfolios">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 py-4.5 border-b border-inputBorder/20 flex-wrap">
-        <h2 className="text-xl font-bold text-dark">พอร์ตการลงทุนของฉัน</h2>
-        <div className="flex gap-2.5 flex-wrap">
+        <h2 className="text-xl font-bold text-dark">{t('portfolios.title')}</h2>
+        <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => openModal('asset')}
-            className="flex items-center gap-1.5 px-4.5 py-2 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
+            className="px-5 py-2 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
             id="btn-add-asset-top"
           >
-            <Plus size={14} />
-            <span>+ เพิ่มสินทรัพย์</span>
+            {t('portfolios.addAssetBtn')}
           </button>
           <button
             onClick={() => openModal('portfolio')}
-            className="flex items-center gap-1.5 px-4.5 py-2 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
+            className="px-5 py-2 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
             id="btn-create-port-top"
           >
-            <Plus size={14} />
-            <span>+ สร้างพอร์ต</span>
+            {t('portfolios.createBtn')}
           </button>
         </div>
       </div>
@@ -170,7 +188,11 @@ export const Portfolios: React.FC = () => {
       {/* Empty State */}
       {portfolios.length === 0 && (
         <div className="bg-white border border-inputBorder/25 rounded-2.5xl p-10 text-center flex flex-col items-center gap-3 mt-6">
-          <span className="text-sm.5 text-muted">ยังไม่มีพอร์ตการลงทุนในระบบ กด "+ สร้างพอร์ต" เพื่อเริ่มต้น</span>
+          <span className="text-sm.5 text-muted">
+            {language === 'th'
+              ? 'ยังไม่มีพอร์ตการลงทุนในระบบ กด "+ สร้างพอร์ต" เพื่อเริ่มต้น'
+              : 'No portfolios found. Click "+ Create Portfolio" to start.'}
+          </span>
         </div>
       )}
 
@@ -203,14 +225,14 @@ export const Portfolios: React.FC = () => {
                     onClick={() => openModal('asset', { portfolioId: p.id })}
                     className="px-3.5 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11.5px] font-bold border-none cursor-pointer transition-colors"
                   >
-                    + สินทรัพย์
+                    + {language === 'th' ? 'สินทรัพย์' : 'Asset'}
                   </button>
                   <button
                     onClick={() => handleDeletePortfolio(p.id, p.name)}
                     className="bg-transparent border-none text-faint-darker hover:text-negative-text cursor-pointer text-[12px] font-semibold transition-colors flex items-center gap-0.5"
                   >
                     <Trash2 size={12} />
-                    <span>ลบพอร์ต</span>
+                    <span>{t('common.delete')}</span>
                   </button>
                 </div>
               </div>
@@ -237,18 +259,18 @@ export const Portfolios: React.FC = () => {
 
               {/* Holdings list */}
               {!p.hasHoldings ? (
-                <span className="text-xs.5 text-faint-darker font-medium py-2">ยังไม่มีสินทรัพย์ในพอร์ตนี้</span>
+                <span className="text-xs.5 text-faint-darker font-medium py-2">{t('portfolios.noAssetsInPort')}</span>
               ) : (
                 <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2">
                   <table className="min-w-[860px] w-full border-collapse">
                     <thead>
                       <tr className="grid grid-cols-[1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
-                        <th>สินทรัพย์</th>
-                        <th className="text-right">จำนวน</th>
-                        <th className="text-right">ต้นทุนเฉลี่ย</th>
-                        <th className="text-right">ราคา</th>
-                        <th className="text-right">มูลค่า</th>
-                        <th className="text-right">P&amp;L</th>
+                        <th>{language === 'th' ? 'สินทรัพย์' : 'Asset'}</th>
+                        <th className="text-right">{t('portfolios.tableQty')}</th>
+                        <th className="text-right">{t('portfolios.tableAvgCost')}</th>
+                        <th className="text-right">{t('portfolios.tablePrice')}</th>
+                        <th className="text-right">{t('portfolios.tableValue')}</th>
+                        <th className="text-right">{t('portfolios.tablePl')}</th>
                         <th></th>
                       </tr>
                     </thead>
@@ -296,14 +318,14 @@ export const Portfolios: React.FC = () => {
                                 onClick={() => openModal('tx', { assetId: h.id })}
                                 className="px-3 py-1.5 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[11px] font-bold border-none cursor-pointer transition-colors shadow-sm"
                               >
-                                ซื้อ/ขาย
+                                {language === 'th' ? 'ซื้อ/ขาย' : 'Buy/Sell'}
                               </button>
                               {h.type !== 'fund' && h.type !== 'deposit' && (
                                 <button
                                   onClick={() => openModal('chart', { assetId: h.id })}
                                   className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
                                 >
-                                  กราฟ
+                                  {language === 'th' ? 'กราฟ' : 'Chart'}
                                 </button>
                               )}
                               {h.type === 'fund' && (
@@ -335,3 +357,4 @@ export const Portfolios: React.FC = () => {
     </div>
   );
 };
+

@@ -18,31 +18,33 @@ import { ChartModal } from './components/ChartModal';
 import { apiClient } from './api/apiClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthConfig } from './hooks/useApi';
+import { useTranslation } from './hooks/useTranslation';
 
 function App() {
   const { user, page } = useStore();
   const queryClient = useQueryClient();
   const { data: config } = useAuthConfig();
+  const { t } = useTranslation();
 
   const handleLoadDemo = async () => {
-    if (confirm('ระบบจะล็อกเอาท์ออกจากบัญชีนี้และเปิดบัญชีตัวอย่าง (Demo) แทน ยืนยันหรือไม่?')) {
+    if (confirm(t('footer.confirmLoadDemo'))) {
       try {
         const res = await apiClient.post('/auth/demo');
         useStore.getState().login(res.data.user, res.data.token);
       } catch (err: any) {
-        alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการโหลดเดโม');
+        alert(err.response?.data?.message || t('footer.demoError'));
       }
     }
   };
 
   const handleClearAll = async () => {
-    if (confirm('คุณต้องการลบข้อมูลการลงทุนและหนี้สินทั้งหมดของคุณใช่หรือไม่? (การดำเนินการนี้จะไม่สามารถย้อนกลับได้)')) {
+    if (confirm(t('footer.confirmClearAll'))) {
       try {
         await apiClient.post('/auth/clear');
         queryClient.invalidateQueries();
-        alert('ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว');
+        alert(t('footer.clearSuccess'));
       } catch (err: any) {
-        alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการล้างข้อมูล');
+        alert(err.response?.data?.message || t('footer.clearError'));
       }
     }
   };
@@ -80,14 +82,14 @@ function App() {
 
         {/* Footer */}
         <footer className="flex gap-4 items-center pt-9 mt-auto text-[12px] text-faint-darker flex-wrap select-none border-t border-inputBorder/15">
-          <span>ข้อมูลทั้งหมดเก็บอย่างปลอดภัยในระบบฐานข้อมูลคลาวด์ส่วนตัวของคุณ · ราคาดึงผ่าน CoinGecko + Yahoo Finance</span>
+          <span>{t('footer.secureText')}</span>
           <div className="ml-auto flex gap-3.5">
             {config?.enableDemo && (
               <span
                 onClick={handleLoadDemo}
                 className="cursor-pointer underline hover:text-dark font-semibold"
               >
-                โหลดข้อมูลตัวอย่าง
+                {t('footer.loadDemo')}
               </span>
             )}
 
@@ -95,7 +97,7 @@ function App() {
               onClick={handleClearAll}
               className="cursor-pointer underline hover:text-dark font-semibold"
             >
-              ล้างข้อมูลทั้งหมด
+              {t('footer.clearAll')}
             </span>
           </div>
         </footer>
@@ -113,3 +115,4 @@ function App() {
 }
 
 export default App;
+

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { useAssets, usePriceHistory } from '../hooks/useApi';
 import { X, TrendingUp, TrendingDown } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const ChartModal: React.FC = () => {
   const { modals, closeModal, activeAssetId } = useStore();
   const { data: assets = [] } = useAssets();
+  const { t, language } = useTranslation();
   const [range, setRange] = useState<'7D' | '1M' | '3M' | '1Y'>('3M');
 
   const activeAsset = assets.find((a) => a.id === activeAssetId);
@@ -97,7 +99,7 @@ export const ChartModal: React.FC = () => {
     for (let i = 0; i < 4; i++) {
       const d = series[Math.round((i * (series.length - 1)) / 3)];
       if (d) {
-        xLabels.push(new Date(d.t).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }));
+        xLabels.push(new Date(d.t).toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }));
       }
     }
   }
@@ -114,7 +116,7 @@ export const ChartModal: React.FC = () => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-[24px] p-6.5 w-full max-w-[640px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
+        className="bg-surface rounded-[32px] p-8 w-full max-w-[640px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
         <button
           onClick={() => closeModal('chart')}
@@ -130,8 +132,8 @@ export const ChartModal: React.FC = () => {
           {activeAsset.type === 'crypto'
             ? 'Crypto'
             : activeAsset.type === 'th'
-            ? 'หุ้นไทย'
-            : 'หุ้น US'}
+            ? t('common.assetTypes.th')
+            : t('common.assetTypes.us')}
         </p>
 
         {/* Range Selector */}
@@ -170,13 +172,15 @@ export const ChartModal: React.FC = () => {
         {isLoading && (
           <div className="flex flex-col items-center justify-center min-h-[190px] mt-6">
             <div className="w-6 h-6 rounded-full border-2 border-inputBorder border-t-terracotta animate-spin"></div>
-            <span className="text-xs font-semibold text-muted mt-3">กำลังดึงข้อมูลราคาประวัติ…</span>
+            <span className="text-xs font-semibold text-muted mt-3">
+              {language === 'th' ? 'กำลังดึงข้อมูลราคาประวัติ…' : 'Fetching price history...'}
+            </span>
           </div>
         )}
 
         {isError && (
           <div className="flex flex-col items-center justify-center min-h-[190px] mt-6 text-center text-xs.5 text-[#84422e] bg-[#f3ded6] rounded-xl p-4">
-            ไม่สามารถดึงข้อมูลประวัติราคาได้ในขณะนี้
+            {language === 'th' ? 'ไม่สามารถดึงข้อมูลประวัติราคาได้ในขณะนี้' : 'Unable to fetch price history at this time'}
           </div>
         )}
 
@@ -213,7 +217,7 @@ export const ChartModal: React.FC = () => {
                     fontWeight="bold"
                     alignmentBaseline="middle"
                   >
-                    ต้นทุนเฉลี่ยของคุณ {formatNativeMoney(avgCost, ccy)}
+                    {language === 'th' ? 'ต้นทุนเฉลี่ยของคุณ' : 'Your Avg Cost'} {formatNativeMoney(avgCost, ccy)}
                   </text>
                 </>
               )}

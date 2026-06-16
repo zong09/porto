@@ -1,10 +1,12 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
 import { useAssets } from '../hooks/useApi';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const TopNav: React.FC = () => {
   const { page, setPage, currency, setCurrency, user, logout, openModal } = useStore();
   const { data: assets } = useAssets();
+  const { t, language, setLanguage } = useTranslation();
 
   const handleAddClick = () => {
     if (assets && assets.length > 0) {
@@ -34,13 +36,19 @@ export const TopNav: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-5 ml-2.5 flex-wrap">
-        <span onClick={() => setPage('overview')} className={navLinkClass(page === 'overview')} id="nav-overview">ภาพรวม</span>
-        <span onClick={() => setPage('ports')} className={navLinkClass(page === 'ports')} id="nav-ports">พอร์ต</span>
-        <span onClick={() => setPage('tx')} className={navLinkClass(page === 'tx')} id="nav-tx">Transactions</span>
-        <span onClick={() => setPage('debt')} className={navLinkClass(page === 'debt')} id="nav-debt">หนี้สิน</span>
+        <span onClick={() => setPage('overview')} className={navLinkClass(page === 'overview')} id="nav-overview">{t('common.overview')}</span>
+        <span onClick={() => setPage('ports')} className={navLinkClass(page === 'ports')} id="nav-ports">{t('common.ports')}</span>
+        <span onClick={() => setPage('tx')} className={navLinkClass(page === 'tx')} id="nav-tx">{t('common.tx')}</span>
+        <span onClick={() => setPage('debt')} className={navLinkClass(page === 'debt')} id="nav-debt">{t('common.debt')}</span>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
+        {/* Language Switcher */}
+        <div className="flex bg-[#f0e7d8] rounded-full p-[3px] text-[12.5px] font-bold select-none">
+          <div onClick={() => setLanguage('th')} className={pillClass(language === 'th')} id="btn-lang-th">TH</div>
+          <div onClick={() => setLanguage('en')} className={pillClass(language === 'en')} id="btn-lang-en">EN</div>
+        </div>
+
         {/* Currency Switcher */}
         <div className="flex bg-[#f0e7d8] rounded-full p-[3px] text-[12.5px] font-bold select-none">
           <div onClick={() => setCurrency('THB')} className={pillClass(currency === 'THB')} id="btn-thb">฿ THB</div>
@@ -53,7 +61,7 @@ export const TopNav: React.FC = () => {
           className="px-[18px] py-[8px] rounded-full bg-terracotta hover:opacity-88 text-white text-[13px] font-bold border-none cursor-pointer transition-all duration-150 active:scale-98 shadow-sm"
           id="btn-add-txn"
         >
-          + เพิ่มรายการ
+          {t('common.addTx')}
         </button>
 
         {/* Logout Button */}
@@ -62,9 +70,10 @@ export const TopNav: React.FC = () => {
           className="px-[13px] py-[8px] rounded-full bg-transparent hover:bg-chipBg text-muted hover:text-dark text-[12.5px] font-bold border border-inputBorder cursor-pointer transition-all duration-150"
           id="btn-logout"
         >
-          ออกจากระบบ
+          {t('common.logout')}
         </button>
       </div>
     </nav>
   );
 };
+

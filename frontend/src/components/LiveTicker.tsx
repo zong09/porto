@@ -1,10 +1,12 @@
 import React, { useTransition } from 'react';
 import { useAssets, useNetWorth } from '../hooks/useApi';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const LiveTicker: React.FC = () => {
   const { data: assets, isLoading, isError, refetch: refetchAssets } = useAssets();
   const { summary, takeSnapshot } = useNetWorth();
   const [isPending, startTransition] = useTransition();
+  const { language } = useTranslation();
 
   const handleRefresh = () => {
     startTransition(async () => {
@@ -41,8 +43,8 @@ export const LiveTicker: React.FC = () => {
   const fxRate = summary.data?.fx || 35.84;
   const lastUpdatedTime = React.useMemo(() => {
     const d = new Date();
-    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  }, [assets]);
+    return d.toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+  }, [assets, language]);
 
   return (
     <div className="flex flex-col">
@@ -75,7 +77,9 @@ export const LiveTicker: React.FC = () => {
         {/* Live / Refresh controller */}
         <div className="ml-auto flex items-center gap-[12px] shrink-0 pl-[20px] bg-[#3d3328]">
           <span className="text-muted">
-            ● LIVE · อัปเดต {lastUpdatedTime}
+            {language === 'th'
+              ? `● LIVE · อัปเดต ${lastUpdatedTime}`
+              : `● LIVE · Updated ${lastUpdatedTime}`}
           </span>
           <button
             onClick={handleRefresh}
@@ -83,7 +87,9 @@ export const LiveTicker: React.FC = () => {
             className="bg-[#4d4133] hover:bg-[#5a4c3c] text-surface border-none rounded-full py-[4px] px-[14px] text-[12px] font-bold cursor-pointer disabled:opacity-50 transition-colors"
             id="btn-refresh-prices"
           >
-            {isRefreshing ? 'กำลังดึงราคา…' : 'รีเฟรช'}
+            {isRefreshing
+              ? (language === 'th' ? 'กำลังดึงราคา…' : 'Updating prices...')
+              : (language === 'th' ? 'รีเฟรช' : 'Refresh')}
           </button>
         </div>
       </div>
@@ -91,7 +97,9 @@ export const LiveTicker: React.FC = () => {
       {/* Warning Banner if fetch failed */}
       {isError && (
         <div className="bg-[#f3ded6] text-[#84422e] text-[12.5px] px-[28px] py-[7px]">
-          ดึงราคาบางรายการไม่สำเร็จ — แสดงราคาล่าสุดที่บันทึกไว้ ลองกดรีเฟรชอีกครั้ง
+          {language === 'th'
+            ? 'ดึงราคาบางรายการไม่สำเร็จ — แสดงราคาล่าสุดที่บันทึกไว้ ลองกดรีเฟรชอีกครั้ง'
+            : 'Failed to fetch some prices — displaying cached prices. Click refresh to retry.'}
         </div>
       )}
     </div>

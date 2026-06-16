@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { usePortfolios, useAssets, useTransactions } from '../hooks/useApi';
-import { X } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const CG_ID_MAP: Record<string, string> = {
   BTC: 'bitcoin',
@@ -36,6 +36,7 @@ export const AssetModal: React.FC = () => {
   const { data: portfolios = [] } = usePortfolios();
   const { createAsset } = useAssets();
   const { createTransaction } = useTransactions();
+  const { t, language } = useTranslation();
 
   // Basic Fields
   const [portfolioId, setPortfolioId] = useState('');
@@ -101,16 +102,24 @@ export const AssetModal: React.FC = () => {
 
     const trimSymbol = symbol.trim();
     if (!portfolioId) {
-      setError('กรุณาเลือกพอร์ตการลงทุนก่อน — หากยังไม่มีให้สร้างพอร์ตก่อน');
+      setError(
+        language === 'th'
+          ? 'กรุณาเลือกพอร์ตการลงทุนก่อน — หากยังไม่มีให้สร้างพอร์ตก่อน'
+          : 'Please select a portfolio first - if you do not have one, please create it first.'
+      );
       return;
     }
     if (!trimSymbol) {
-      setError('กรุณากรอก Symbol');
+      setError(language === 'th' ? 'กรุณากรอก Symbol' : 'Please enter symbol');
       return;
     }
 
     if (type === 'crypto' && !cgId.trim()) {
-      setError('ไม่รู้จักเหรียญนี้ — กรุณากรอก CoinGecko ID (สามารถดูได้จาก url ของเหรียญใน coingecko.com)');
+      setError(
+        language === 'th'
+          ? 'ไม่รู้จักเหรียญนี้ — กรุณากรอก CoinGecko ID (สามารถดูได้จาก url ของเหรียญใน coingecko.com)'
+          : 'Unknown coin - please enter CoinGecko ID (can be found in the coin URL on coingecko.com)'
+      );
       return;
     }
 
@@ -127,15 +136,27 @@ export const AssetModal: React.FC = () => {
     const hasOpeningTransaction = oQty.trim() !== '';
     if (hasOpeningTransaction) {
       if (isNaN(qty) || qty <= 0) {
-        setError('กรุณากรอกจำนวนเริ่มต้นให้ถูกต้อง (> 0)');
+        setError(
+          language === 'th'
+            ? 'กรุณากรอกจำนวนเริ่มต้นให้ถูกต้อง (> 0)'
+            : 'Please enter a valid starting quantity (> 0)'
+        );
         return;
       }
       if (type !== 'deposit' && (isNaN(pr) || pr <= 0)) {
-        setError('กรุณากรอกราคาเริ่มต้นให้ถูกต้อง (> 0)');
+        setError(
+          language === 'th'
+            ? 'กรุณากรอกราคาเริ่มต้นให้ถูกต้อง (> 0)'
+            : 'Please enter a valid starting price (> 0)'
+        );
         return;
       }
       if (type !== 'deposit' && (isNaN(fe) || fe < 0)) {
-        setError('กรุณากรอกค่าธรรมเนียมให้ถูกต้อง (>= 0)');
+        setError(
+          language === 'th'
+            ? 'กรุณากรอกค่าธรรมเนียมให้ถูกต้อง (>= 0)'
+            : 'Please enter a valid fee (>= 0)'
+        );
         return;
       }
     }
@@ -173,7 +194,7 @@ export const AssetModal: React.FC = () => {
         }, 150);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'เกิดข้อผิดพลาดในการสร้างสินทรัพย์');
+      setError(err.response?.data?.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -182,15 +203,15 @@ export const AssetModal: React.FC = () => {
   const symbolPlaceholder = () => {
     switch (type) {
       case 'th':
-        return 'เช่น PTT, AOT, CPALL';
+        return language === 'th' ? 'เช่น PTT, AOT, CPALL' : 'e.g. PTT, AOT, CPALL';
       case 'us':
-        return 'เช่น AAPL, NVDA, VOO';
+        return language === 'th' ? 'เช่น AAPL, NVDA, VOO' : 'e.g. AAPL, NVDA, VOO';
       case 'fund':
-        return 'เช่น K-CHANGE-A(A)';
+        return language === 'th' ? 'เช่น K-CHANGE-A(A)' : 'e.g. K-CHANGE-A(A)';
       case 'deposit':
-        return 'เช่น บัญชีออมทรัพย์ SCB';
+        return language === 'th' ? 'เช่น บัญชีออมทรัพย์ SCB' : 'e.g. SCB Savings Account';
       default:
-        return 'เช่น BTC, ETH, SOL';
+        return language === 'th' ? 'เช่น BTC, ETH, SOL' : 'e.g. BTC, ETH, SOL';
     }
   };
 
@@ -205,25 +226,18 @@ export const AssetModal: React.FC = () => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-[24px] p-6.5 w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
+        className="bg-surface rounded-[32px] p-8 w-full max-w-[480px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <button
-          onClick={() => closeModal('asset')}
-          className="absolute top-5 right-5 text-muted hover:text-dark bg-transparent border-none cursor-pointer transition-colors p-1"
-        >
-          <X size={18} />
-        </button>
-
-        <h3 className="text-md.5 font-bold text-dark mb-4.5">เพิ่มสินทรัพย์ใหม่</h3>
+        <h3 className="text-[22px] font-bold text-dark mb-6">{t('modals.asset.createTitle')}</h3>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Portfolio Select */}
           <div>
-            <label className="block text-[12px] font-semibold text-muted mb-1.5">พอร์ต</label>
+            <label className="block text-[14px] font-semibold text-muted mb-2">{t('modals.asset.portLabel')}</label>
             <select
               value={portfolioId}
               onChange={(e) => setPortfolioId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm"
               id="select-asset-port"
             >
               {portfolios.map((p) => (
@@ -236,43 +250,43 @@ export const AssetModal: React.FC = () => {
 
           {/* Type Select */}
           <div>
-            <label className="block text-[12px] font-semibold text-muted mb-1.5">ประเภทสินทรัพย์</label>
+            <label className="block text-[14px] font-semibold text-muted mb-2">{t('modals.asset.typeLabel')}</label>
             <select
               value={type}
               onChange={(e) => handleTypeChange(e.target.value as any)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm"
               id="select-asset-type"
             >
-              <option value="crypto">Crypto (ราคาจาก CoinGecko)</option>
-              <option value="th">หุ้นไทย (ราคาจาก Yahoo — .BK)</option>
-              <option value="us">หุ้น / ETF สหรัฐ (ราคาจาก Yahoo)</option>
-              <option value="fund">กองทุนรวม (กรอก NAV เอง)</option>
-              <option value="deposit">เงินฝาก / เงินสด</option>
+              <option value="crypto">{language === 'th' ? 'Crypto (ราคาจาก CoinGecko)' : 'Crypto (Price from CoinGecko)'}</option>
+              <option value="th">{language === 'th' ? 'หุ้นไทย (ราคาจาก Yahoo — .BK)' : 'Thai Stocks (Price from Yahoo — .BK)'}</option>
+              <option value="us">{language === 'th' ? 'หุ้น / ETF สหรัฐ (ราคาจาก Yahoo)' : 'US Stocks / ETFs (Price from Yahoo)'}</option>
+              <option value="fund">{language === 'th' ? 'กองทุนรวม (กรอก NAV เอง)' : 'Mutual Funds (Enter NAV manually)'}</option>
+              <option value="deposit">{language === 'th' ? 'เงินฝาก / เงินสด' : 'Cash / Deposits'}</option>
             </select>
           </div>
 
           {/* Symbol */}
           <div>
-            <label className="block text-[12px] font-semibold text-muted mb-1.5">สัญลักษณ์ (Symbol)</label>
+            <label className="block text-[14px] font-semibold text-muted mb-2">{t('modals.asset.symbolLabel')}</label>
             <input
               type="text"
               placeholder={symbolPlaceholder()}
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               id="input-asset-symbol"
             />
           </div>
 
           {/* Name */}
           <div>
-            <label className="block text-[12px] font-semibold text-muted mb-1.5">ชื่อ (ไม่บังคับ)</label>
+            <label className="block text-[14px] font-semibold text-muted mb-2">{language === 'th' ? 'ชื่อ (ไม่บังคับ)' : 'Name (Optional)'}</label>
             <input
               type="text"
-              placeholder="เช่น Bitcoin, ปตท."
+              placeholder={language === 'th' ? 'เช่น Bitcoin, ปตท.' : 'e.g. Bitcoin, PTT'}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               id="input-asset-name"
             />
           </div>
@@ -280,13 +294,15 @@ export const AssetModal: React.FC = () => {
           {/* Crypto CoinGecko ID */}
           {type === 'crypto' && (
             <div>
-              <label className="block text-[12px] font-semibold text-muted mb-1.5">CoinGecko ID (เว้นว่างได้ถ้าเป็นเหรียญดัง)</label>
+              <label className="block text-[14px] font-semibold text-muted mb-2">
+                {language === 'th' ? 'CoinGecko ID (เว้นว่างได้ถ้าเป็นเหรียญดัง)' : 'CoinGecko ID (Optional for popular coins)'}
+              </label>
               <input
                 type="text"
                 placeholder="เช่น bitcoin, ethereum"
                 value={cgId}
                 onChange={(e) => setCgId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                 id="input-asset-cgid"
               />
             </div>
@@ -295,14 +311,16 @@ export const AssetModal: React.FC = () => {
           {/* Fund NAV */}
           {type === 'fund' && (
             <div>
-              <label className="block text-[12px] font-semibold text-muted mb-1.5">NAV เริ่มต้น (฿/หน่วย)</label>
+              <label className="block text-[14px] font-semibold text-muted mb-2">
+                {language === 'th' ? 'NAV เริ่มต้น (฿/หน่วย)' : 'Initial NAV (฿/Unit)'}
+              </label>
               <input
                 type="number"
                 placeholder="0.00"
                 step="any"
                 value={nav}
                 onChange={(e) => setNav(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                 id="input-asset-nav"
               />
             </div>
@@ -311,13 +329,17 @@ export const AssetModal: React.FC = () => {
           {/* Optional Initial Transaction */}
           <div className="border-t border-dashed border-[#e0d5c2] pt-4 mt-2">
             <h4 className="text-xs.5 font-bold text-chipBg-text mb-3">
-              รายการซื้อเริ่มต้น <span className="font-medium text-[#a89a86]">(ไม่บังคับ — บันทึกยอดที่ถืออยู่ตอนนี้)</span>
+              {language === 'th' ? (
+                <>รายการซื้อเริ่มต้น <span className="font-medium text-[#a89a86]">(ไม่บังคับ — บันทึกยอดที่ถืออยู่ตอนนี้)</span></>
+              ) : (
+                <>Opening Buy <span className="font-medium text-[#a89a86]">(Optional — record current holdings)</span></>
+              )}
             </h4>
             
             <div className="grid grid-cols-2 gap-3.5">
               <div>
                 <label className="block text-[11px] font-semibold text-muted mb-1">
-                  {isDep ? 'จำนวนเงินเริ่มต้น (฿)' : 'จำนวน'}
+                  {isDep ? (language === 'th' ? 'จำนวนเงินเริ่มต้น (฿)' : 'Initial Balance (฿)') : (language === 'th' ? 'จำนวน' : 'Quantity')}
                 </label>
                 <input
                   type="number"
@@ -325,18 +347,18 @@ export const AssetModal: React.FC = () => {
                   step="any"
                   value={oQty}
                   onChange={(e) => setOQty(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-inputBorder bg-white text-[13.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                  className="w-full px-4 py-3 rounded-[16px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                   id="input-opening-qty"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-muted mb-1">วันที่</label>
+                <label className="block text-[11px] font-semibold text-muted mb-1">{t('transactions.colDate')}</label>
                 <input
                   type="date"
                   value={oDate}
                   onChange={(e) => setODate(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-inputBorder bg-white text-[13.5px] text-dark focus:outline-none focus:border-terracotta transition-colors cursor-pointer"
+                  className="w-full px-4 py-3 rounded-[16px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors cursor-pointer shadow-sm"
                   id="input-opening-date"
                 />
               </div>
@@ -345,27 +367,29 @@ export const AssetModal: React.FC = () => {
             {!isDep && oQty.trim() !== '' && (
               <div className="grid grid-cols-2 gap-3.5 mt-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-muted mb-1">ราคาต่อหน่วย ({type === 'us' ? '$' : '฿'})</label>
+                  <label className="block text-[11px] font-semibold text-muted mb-1">
+                    {language === 'th' ? `ราคาต่อหน่วย (${type === 'us' ? '$' : '฿'})` : `Price per Unit (${type === 'us' ? '$' : '฿'})`}
+                  </label>
                   <input
                     type="number"
                     placeholder="0.00"
                     step="any"
                     value={oPrice}
                     onChange={(e) => setOPrice(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-inputBorder bg-white text-[13.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                    className="w-full px-4 py-3 rounded-[16px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                     id="input-opening-price"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-muted mb-1">ค่าธรรมเนียม</label>
+                  <label className="block text-[11px] font-semibold text-muted mb-1">{language === 'th' ? 'ค่าธรรมเนียม' : 'Fee'}</label>
                   <input
                     type="number"
                     placeholder="0.00"
                     step="any"
                     value={oFee}
                     onChange={(e) => setOFee(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-inputBorder bg-white text-[13.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                    className="w-full px-4 py-3 rounded-[16px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                     id="input-opening-fee"
                   />
                 </div>
@@ -375,34 +399,34 @@ export const AssetModal: React.FC = () => {
             {/* Live calculated spent */}
             {oQty.trim() !== '' && (
               <div className="flex justify-between items-center text-xs.5 font-bold text-muted bg-chipBg/30 border border-inputBorder/10 px-4.5 py-2.5 rounded-xl mt-4.5">
-                <span>มูลค่ารวม (Total spent):</span>
+                <span>{language === 'th' ? 'มูลค่ารวม (Total spent):' : 'Total spent:'}</span>
                 <span className="text-dark tabular-nums">{totalSpentFmt}</span>
               </div>
             )}
           </div>
 
           {error && (
-            <div className="bg-[#f3ded6] text-[#84422e] text-xs px-3.5 py-2 rounded-xl border border-negative-text/10">
+            <div className="bg-[#f3ded6] text-[#84422e] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
               {error}
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 justify-end mt-3">
+          <div className="flex gap-3 justify-end mt-6">
             <button
               type="button"
               onClick={() => closeModal('asset')}
-              className="px-4.5 py-2.5 rounded-full bg-[#f0e7d8] hover:bg-[#e8dcc8] text-[#6b5d49] text-xs font-bold border-none cursor-pointer transition-colors"
+              className="px-7 py-3 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[14px] font-bold border-none cursor-pointer transition-colors"
             >
-              ยกเลิก
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
+              className="px-7 py-3 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[14px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
               id="btn-submit-asset"
             >
-              {loading ? 'กำลังบันทึก…' : 'บันทึก'}
+              {loading ? t('common.loading') : t('common.save')}
             </button>
           </div>
         </form>
@@ -410,3 +434,4 @@ export const AssetModal: React.FC = () => {
     </div>
   );
 };
+

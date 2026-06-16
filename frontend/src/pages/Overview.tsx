@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { usePortfolios, useAssets, useNetWorth, useAuthConfig } from '../hooks/useApi';
 import { HelpCircle } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const Overview: React.FC = () => {
   const { currency, setPage, openModal } = useStore();
@@ -10,6 +11,7 @@ export const Overview: React.FC = () => {
   const { data: assets = [], isLoading: loadingAssets } = useAssets();
   const { summary, history } = useNetWorth(365);
   const { data: config } = useAuthConfig();
+  const { t, language } = useTranslation();
 
   const portfoliosCount = portfolios.length;
   const hasAssets = assets.length > 0;
@@ -63,7 +65,7 @@ export const Overview: React.FC = () => {
     if (oldPoint && Number(oldPoint.netWorthThb) > 0) {
       const pct = ((netWorth - Number(oldPoint.netWorthThb)) / Number(oldPoint.netWorthThb)) * 100;
       MoMChangeUp = pct >= 0;
-      MoMChangeLabel = `${pct >= 0 ? '▲ +' : '▼ '}${Math.abs(pct).toFixed(1)}% เดือนนี้`;
+      MoMChangeLabel = `${pct >= 0 ? '▲ +' : '▼ '}${Math.abs(pct).toFixed(1)}% ${t('overview.monthAbbr')}`;
     }
   }
 
@@ -104,7 +106,7 @@ export const Overview: React.FC = () => {
       const point = chartHistoryPoints[Math.round((i * (chartHistoryPoints.length - 1)) / 4)];
       if (point) {
         const d = new Date(point.date + 'T00:00:00');
-        xLabels.push(d.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' }));
+        xLabels.push(d.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { month: 'short', year: '2-digit' }));
       }
     }
   }
@@ -118,11 +120,11 @@ export const Overview: React.FC = () => {
       const types = new Set<string>();
 
       const typeLabels: Record<string, string> = {
-        crypto: 'Crypto',
-        th: 'หุ้นไทย',
-        us: 'หุ้น US',
-        fund: 'กองทุน',
-        deposit: 'เงินฝาก',
+        crypto: t('common.assetTypes.crypto'),
+        th: t('common.assetTypes.th'),
+        us: t('common.assetTypes.us'),
+        fund: t('common.assetTypes.fund'),
+        deposit: t('common.assetTypes.deposit'),
       };
 
       for (const a of pAssets) {
@@ -142,10 +144,10 @@ export const Overview: React.FC = () => {
         costThb: pCostThb,
         returnPct: pReturnPct,
         pctOfTotal: assetPctOfTotal,
-        desc: `${Array.from(types).join(' · ')} · ${pAssets.length} รายการ`,
+        desc: `${Array.from(types).join(' · ')} · ${pAssets.length} ${t('overview.itemsCount')}`,
       };
     });
-  }, [portfolios, assets, totalAssets, fx]);
+  }, [portfolios, assets, totalAssets, fx, language]);
 
   // Donut chart CSS gradient segments
   const donutGradient = React.useMemo(() => {
@@ -211,7 +213,7 @@ export const Overview: React.FC = () => {
   // Liabilities vs Assets ratios
   const debtRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
   const debtNoteText =
-    debtRatio < 30 ? 'อยู่ในเกณฑ์ดีมาก' : debtRatio < 50 ? 'พอใช้ — ระวังอย่าให้เกิน 50%' : 'สูง — ควรเร่งลดหนี้';
+    debtRatio < 30 ? t('overview.debtNoteGood') : debtRatio < 50 ? t('overview.debtNoteWarn') : t('overview.debtNoteBad');
   const debtNoteColor = debtRatio < 30 ? 'text-[#a3b87a]' : debtRatio < 50 ? 'text-[#e0b46a]' : 'text-[#d98f70]';
 
   // Empty state loading or data
@@ -219,7 +221,7 @@ export const Overview: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <div className="w-8 h-8 rounded-full border-4 border-inputBorder border-t-terracotta animate-spin"></div>
-        <span className="text-sm font-semibold text-muted mt-4">กำลังโหลดข้อมูลภาพรวม…</span>
+        <span className="text-sm font-semibold text-muted mt-4">{t('overview.loadingOverview')}</span>
       </div>
     );
   }
@@ -228,7 +230,7 @@ export const Overview: React.FC = () => {
     <div className="flex flex-col py-6 select-none" data-screen-label="Overview">
       {/* 1. Hero Net Worth */}
       <div className="flex flex-col items-center gap-1.5 py-8 text-center">
-        <h2 className="text-xs.5 md:text-sm font-semibold text-muted tracking-wide">ความมั่งคั่งสุทธิของคุณ (Net Worth)</h2>
+        <h2 className="text-xs.5 md:text-sm font-semibold text-muted tracking-wide">{t('overview.netWorth')}</h2>
         <span className="text-[34px] md:text-[52px] font-bold text-dark tabular-nums tracking-tight leading-none">
           {formatMoney(netWorth)}
         </span>
@@ -241,7 +243,7 @@ export const Overview: React.FC = () => {
             {MoMChangeLabel}
           </div>
           <div className="text-faint">
-            อัปเดตล่าสุด · CoinGecko + Yahoo Finance
+            {t('overview.updatedText')}
           </div>
         </div>
       </div>
@@ -249,15 +251,15 @@ export const Overview: React.FC = () => {
       {/* 2. Mini Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 max-w-[650px] mx-auto w-full px-2">
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
-          <span className="text-xs font-semibold text-muted">Total Assets</span>
+          <span className="text-xs font-semibold text-muted">{t('overview.totalAssets')}</span>
           <span className="text-lg.5 font-bold text-dark tabular-nums">{formatMoney(totalAssets)}</span>
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
-          <span className="text-xs font-semibold text-muted">Liabilities</span>
+          <span className="text-xs font-semibold text-muted">{t('overview.liabilities')}</span>
           <span className="text-lg.5 font-bold text-[#84422e] tabular-nums">{formatMoney(totalLiabilities)}</span>
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
-          <span className="text-xs font-semibold text-muted">P/L วันนี้</span>
+          <span className="text-xs font-semibold text-muted">{t('overview.todayPl')}</span>
           <span
             className={`text-lg.5 font-bold tabular-nums ${
               todayPl >= 0 ? 'text-positive-text' : 'text-negative-text'
@@ -295,29 +297,28 @@ export const Overview: React.FC = () => {
       {!hasAssets && (
         <div className="bg-white border border-inputBorder/25 rounded-2.5xl p-10 text-center flex flex-col items-center gap-3 mt-10 select-none">
           <HelpCircle size={38} className="text-muted/65" />
-          <h3 className="text-base.5 font-bold text-dark">ยังไม่มีสินทรัพย์ในพอร์ต</h3>
+          <h3 className="text-base.5 font-bold text-dark">{t('overview.emptyTitle')}</h3>
           <p className="text-xs.5 text-muted max-w-[340px]">
-            เริ่มต้นด้วยการสร้างพอร์ตและบันทึกสินทรัพย์แรกของคุณ
-            {config?.enableDemo && ' หรือคลิกปุ่มด้านล่างเพื่อสร้างบัญชีเดโมและเซ็ตข้อมูลตัวอย่าง'}
+            {t('overview.emptyDesc')}
           </p>
           <div className="flex gap-2.5 mt-2 flex-wrap">
             <button
               onClick={() => openModal('portfolio')}
               className="px-5 py-2.5 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold border-none cursor-pointer shadow-sm transition-colors"
             >
-              + สร้างพอร์ต
+              {t('overview.createPort')}
             </button>
             {config?.enableDemo && (
               <button
                 onClick={async () => {
-                  if (confirm('ระบบจะล็อกเอาท์ออกจากบัญชีนี้และเปิดบัญชีตัวอย่าง (Demo) แทน ยืนยันหรือไม่?')) {
+                  if (confirm(t('footer.confirmLoadDemo'))) {
                     const res = await apiClient.post('/auth/demo');
                     useStore.getState().login(res.data.user, res.data.token);
                   }
                 }}
                 className="px-5 py-2.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-xs font-bold border-none cursor-pointer transition-colors"
               >
-                โหลดข้อมูลตัวอย่าง
+                {t('footer.loadDemo')}
               </button>
             )}
           </div>
@@ -367,7 +368,7 @@ export const Overview: React.FC = () => {
                     ></div>
                   </div>
                   <span className="text-[10.5px] text-faint-darker font-bold">
-                    {c.pctOfTotal.toFixed(1)}% ของสินทรัพย์รวม
+                    {c.pctOfTotal.toFixed(1)}% {t('overview.pctOfTotalAssets')}
                   </span>
                 </div>
               );
@@ -378,7 +379,7 @@ export const Overview: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5 mt-6 items-stretch">
             {/* Allocation Donut */}
             <div className="bg-white rounded-2.5xl p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-4">
-              <h3 className="text-xs.5 font-bold text-dark">สัดส่วนตามพอร์ต</h3>
+              <h3 className="text-xs.5 font-bold text-dark">{t('overview.portsAllocation')}</h3>
               <div className="flex flex-col items-center gap-5 my-auto">
                 <div className="relative w-[150px] height-[150px] shrink-0">
                   <div
@@ -386,7 +387,7 @@ export const Overview: React.FC = () => {
                     style={{ background: donutGradient }}
                   ></div>
                   <div className="absolute inset-[26px] rounded-full bg-white shadow-sm flex flex-col items-center justify-center">
-                    <span className="text-[10px] text-faint font-bold select-none">{portfoliosCount} พอร์ต</span>
+                    <span className="text-[10px] text-faint font-bold select-none">{portfoliosCount} {t('overview.portsCount')}</span>
                     <span className="text-sm.5 font-bold text-dark tabular-nums select-none leading-none mt-0.5">
                       {formatAbbrMoney(totalAssets)}
                     </span>
@@ -417,10 +418,10 @@ export const Overview: React.FC = () => {
 
             {/* Asset P&L Bars */}
             <div className="bg-white rounded-2.5xl p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-4">
-              <h3 className="text-xs.5 font-bold text-dark">กำไร / ขาดทุน รายสินทรัพย์ (Unrealized)</h3>
+              <h3 className="text-xs.5 font-bold text-dark">{t('overview.unrealizedPl')}</h3>
               {barChartData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center h-[200px] text-muted text-xs.5">
-                  ยังไม่มีการทำกำไร/ขาดทุน
+                  {t('overview.noUnrealizedPl')}
                 </div>
               ) : (
                 <div className="flex items-end justify-around h-[170px] px-1 my-auto">
@@ -446,11 +447,11 @@ export const Overview: React.FC = () => {
 
             {/* Assets vs Liabilities */}
             <div className="bg-dark rounded-2.5xl p-5 shadow-sm flex flex-col gap-4 text-[#faf5ec]">
-              <h3 className="text-xs.5 font-bold text-[#faf5ec]/90">Assets vs Liabilities</h3>
+              <h3 className="text-xs.5 font-bold text-[#faf5ec]/90">{t('overview.assetsVsLiabilities')}</h3>
               <div className="flex flex-col gap-4 my-auto justify-center select-none">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex text-xs.5 text-[#cdbfa8]">
-                    <span>สินทรัพย์</span>
+                    <span>{t('overview.assetsLabel')}</span>
                     <span className="ml-auto font-bold text-[#faf5ec]">{formatMoney(totalAssets)}</span>
                   </div>
                   <div className="h-4 bg-white/12 rounded-full overflow-hidden">
@@ -460,7 +461,7 @@ export const Overview: React.FC = () => {
 
                 <div className="flex flex-col gap-1.5">
                   <div className="flex text-xs.5 text-[#cdbfa8]">
-                    <span>หนี้สิน</span>
+                    <span>{t('overview.liabilitiesLabel')}</span>
                     <span className="ml-auto font-bold text-[#faf5ec]">{formatMoney(totalLiabilities)}</span>
                   </div>
                   <div className="h-4 bg-white/12 rounded-full overflow-hidden">
@@ -472,7 +473,7 @@ export const Overview: React.FC = () => {
                 </div>
 
                 <div className="border-t border-dashed border-white/20 pt-4 flex flex-col gap-1 mt-2">
-                  <span className="text-[11.5px] text-[#cdbfa8] font-bold">อัตราหนี้ต่อสินทรัพย์</span>
+                  <span className="text-[11.5px] text-[#cdbfa8] font-bold">{t('overview.debtRatio')}</span>
                   <span className="text-2xl font-bold text-[#faf5ec] tabular-nums mt-0.5">{debtRatio.toFixed(1)}%</span>
                   <span className={`text-[11px] font-bold ${debtNoteColor} mt-1`}>{debtNoteText}</span>
                 </div>
@@ -484,3 +485,4 @@ export const Overview: React.FC = () => {
     </div>
   );
 };
+

@@ -2,10 +2,12 @@ import React from 'react';
 import { useStore } from '../store/useStore';
 import { useTransactions } from '../hooks/useApi';
 import { PlusCircle } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const Transactions: React.FC = () => {
   const { openModal } = useStore();
   const { data: transactions = [], deleteTransaction, isLoading } = useTransactions();
+  const { t, language } = useTranslation();
 
   const formatNativeMoney = (val: number, ccy: 'THB' | 'USD') => {
     const isUSD = ccy === 'USD';
@@ -31,18 +33,18 @@ export const Transactions: React.FC = () => {
   const formatDate = (dateStr: string) => {
     try {
       const d = new Date(dateStr + 'T00:00:00');
-      return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+      return d.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' });
     } catch (e) {
       return dateStr;
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('คุณต้องการลบรายการธุรกรรมนี้ใช่หรือไม่? (การลบจะอัปเดตต้นทุนเฉลี่ยของสินทรัพย์โดยอัตโนมัติ)')) {
+    if (confirm(t('transactions.confirmDeleteTx'))) {
       try {
         await deleteTransaction.mutateAsync(id);
       } catch (err: any) {
-        alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการลบรายการ');
+        alert(err.response?.data?.message || t('common.error'));
       }
     }
   };
@@ -51,7 +53,7 @@ export const Transactions: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <div className="w-8 h-8 rounded-full border-4 border-inputBorder border-t-terracotta animate-spin"></div>
-        <span className="text-sm font-semibold text-muted mt-4">กำลังโหลดรายการธุรกรรม…</span>
+        <span className="text-sm font-semibold text-muted mt-4">{t('transactions.loadingTx')}</span>
       </div>
     );
   }
@@ -63,9 +65,9 @@ export const Transactions: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 py-4.5 border-b border-inputBorder/20 flex-wrap">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-dark">Transactions</h2>
+          <h2 className="text-xl font-bold text-dark">{t('transactions.title')}</h2>
           <span className="text-xs.5 text-faint-darker font-bold bg-[#f0e7d8] px-2 py-0.5 rounded-md mt-0.5">
-            {transactions.length} รายการ
+            {transactions.length} {t('overview.itemsCount')}
           </span>
         </div>
         <button
@@ -74,14 +76,14 @@ export const Transactions: React.FC = () => {
           id="btn-add-txn-tx-page"
         >
           <PlusCircle size={14} />
-          <span>+ บันทึกรายการ</span>
+          <span>{t('common.addTx')}</span>
         </button>
       </div>
 
       {/* Empty State */}
       {!hasTxs && (
         <div className="bg-white border border-inputBorder/25 rounded-2.5xl p-10 text-center flex flex-col items-center gap-3 mt-6">
-          <span className="text-sm.5 text-muted">ยังไม่มีรายการบันทึกซื้อ-ขาย</span>
+          <span className="text-sm.5 text-muted">{t('transactions.noTx')}</span>
         </div>
       )}
 
@@ -91,13 +93,13 @@ export const Transactions: React.FC = () => {
           <table className="min-w-[820px] w-full border-collapse">
             <thead>
               <tr className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_44px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
-                <th>วันที่</th>
-                <th>ประเภท</th>
-                <th>สินทรัพย์</th>
-                <th>พอร์ต</th>
-                <th className="text-right">จำนวน</th>
-                <th className="text-right">ราคา</th>
-                <th className="text-right">มูลค่ารวม</th>
+                <th>{t('transactions.colDate')}</th>
+                <th>{t('transactions.colType')}</th>
+                <th>{t('transactions.colAsset')}</th>
+                <th>{t('transactions.colPort')}</th>
+                <th className="text-right">{t('transactions.colQty')}</th>
+                <th className="text-right">{t('transactions.colPrice')}</th>
+                <th className="text-right">{t('transactions.colNetAmt')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -106,7 +108,9 @@ export const Transactions: React.FC = () => {
                 const asset = t.asset || { symbol: '?', type: 'crypto', currency: 'THB', portfolio: { name: '—' } };
                 const isDep = asset.type === 'deposit';
                 const isBuy = t.side === 'buy';
-                const typeLabel = isDep ? (isBuy ? 'ฝาก' : 'ถอน') : (isBuy ? 'ซื้อ' : 'ขาย');
+                const typeLabel = isDep
+                  ? (isBuy ? (language === 'th' ? 'ฝาก' : 'Deposit') : (language === 'th' ? 'ถอน' : 'Withdraw'))
+                  : (isBuy ? (language === 'th' ? 'ซื้อ' : 'BUY') : (language === 'th' ? 'ขาย' : 'SELL'));
 
                 const totalValue = Number(t.quantity) * Number(t.price) + (isBuy ? Number(t.fee || 0) : -Number(t.fee || 0));
 
