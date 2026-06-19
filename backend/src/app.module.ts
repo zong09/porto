@@ -54,7 +54,7 @@ import { NetWorthModule } from './net-worth/net-worth.module';
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
-      exclude: ['/api*'],
+      exclude: ['/api/*path'],
     }),
     AuthModule,
     SeedModule,

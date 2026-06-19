@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { useAssets, usePriceHistory } from '../hooks/useApi';
+import { useAssets, usePriceHistory, useNetWorth } from '../hooks/useApi';
 import { X, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 
 export const ChartModal: React.FC = () => {
-  const { modals, closeModal, activeAssetId } = useStore();
+  const { modals, closeModal, activeAssetId, currency } = useStore();
   const { data: assets = [] } = useAssets();
+  const { summary } = useNetWorth();
   const { t, language } = useTranslation();
   const [range, setRange] = useState<'7D' | '1M' | '3M' | '1Y'>('3M');
 
@@ -17,15 +18,35 @@ export const ChartModal: React.FC = () => {
 
   if (!modals.chart || !activeAsset) return null;
 
+  const fx = summary.data?.fx || 35.84;
+  const isThb = currency === 'THB';
+
   const formatNativeMoney = (val: number, ccy: 'THB' | 'USD') => {
     const isUSD = ccy === 'USD';
-    const decimalLimit = Math.abs(val) < 1000 ? 2 : 0;
+    const usd = isUSD ? val : val / fx;
+    const thb = isUSD ? val * fx : val;
+
+    const thbDecimals = Math.abs(thb) < 1000 ? 2 : 0;
+
+    const usdStr = '$' + usd.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const thbStr = '฿' + thb.toLocaleString('en-US', {
+      minimumFractionDigits: thbDecimals,
+      maximumFractionDigits: thbDecimals,
+    });
+
+    const primary = isThb ? thbStr : usdStr;
+    const secondary = isThb ? usdStr : thbStr;
+
     return (
-      (isUSD ? '$' : '฿') +
-      val.toLocaleString('en-US', {
-        minimumFractionDigits: decimalLimit,
-        maximumFractionDigits: decimalLimit,
-      })
+      <span className="tabular-nums">
+        {primary}
+        <span className="text-[0.72em] text-faint ml-1.5 font-semibold">
+          ({secondary})
+        </span>
+      </span>
     );
   };
 
@@ -39,9 +60,9 @@ export const ChartModal: React.FC = () => {
   let chartDotY = 0;
   let hasAvg = false;
   let avgY = 0;
-  let currentPriceStr = '';
-  let highPriceStr = '';
-  let lowPriceStr = '';
+  let currentPriceStr: React.ReactNode = '';
+  let highPriceStr: React.ReactNode = '';
+  let lowPriceStr: React.ReactNode = '';
   let changePctStr = '';
   let isUp = true;
   const xLabels: string[] = [];

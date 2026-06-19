@@ -13,12 +13,30 @@ export const Liabilities: React.FC = () => {
   const isThb = currency === 'THB';
 
   const formatMoney = (val: number) => {
-    const converted = isThb ? val : val / fx;
+    const usd = val / fx;
+    const thb = val;
+    const isNeg = val < 0;
+    const absUsd = Math.abs(usd);
+    const absThb = Math.abs(thb);
+
+    const usdStr = '$' + absUsd.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const thbStr = '฿' + absThb.toLocaleString('en-US', {
+      maximumFractionDigits: 0,
+    });
+
+    const primary = isThb ? thbStr : usdStr;
+    const secondary = isThb ? usdStr : thbStr;
+
     return (
-      (isThb ? '฿' : '$') +
-      converted.toLocaleString('en-US', {
-        maximumFractionDigits: 0,
-      })
+      <span className="tabular-nums">
+        {isNeg ? '-' : ''}{primary}
+        <span className="text-[0.72em] text-faint ml-1.5 font-semibold">
+          ({isNeg ? '-' : ''}{secondary})
+        </span>
+      </span>
     );
   };
 

@@ -1,8 +1,10 @@
 import React, { useTransition } from 'react';
 import { useAssets, useNetWorth } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { useStore } from '../store/useStore';
 
 export const LiveTicker: React.FC = () => {
+  const { currency } = useStore();
   const { data: assets, isLoading, isError, refetch: refetchAssets } = useAssets();
   const { summary, takeSnapshot } = useNetWorth();
   const [isPending, startTransition] = useTransition();
@@ -52,10 +54,14 @@ export const LiveTicker: React.FC = () => {
       <div className="bg-[#3d3328] text-white flex gap-[26px] px-[28px] py-[9px] text-[12.5px] font-semibold overflow-x-auto no-scrollbar items-center select-none">
         {tickers.map((t) => {
           const isUp = t.change24h >= 0;
-          const priceFmt =
-            t.currency === 'USD'
-              ? `$${t.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              : `฿${t.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+          const isThb = currency === 'THB';
+          const usdPrice = t.currency === 'USD' ? t.price : t.price / fxRate;
+          const thbPrice = t.currency === 'USD' ? t.price * fxRate : t.price;
+
+          const usdStr = `$${usdPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const thbStr = `฿${thbPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+
+          const priceFmt = isThb ? `${thbStr} (${usdStr})` : `${usdStr} (${thbStr})`;
           
           const changeFmt = `${isUp ? '+' : ''}${t.change24h.toFixed(1)}%`;
 

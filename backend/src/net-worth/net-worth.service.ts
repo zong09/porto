@@ -142,6 +142,7 @@ export class NetWorthService {
       history.totalAssetsThb = summary.totalAssetsThb;
       history.totalLiabilitiesThb = summary.totalLiabilitiesThb;
       history.netWorthThb = summary.netWorthThb;
+      history.fxRate = summary.fx;
     } else {
       history = this.netWorthHistoryRepo.create({
         userId,
@@ -149,6 +150,7 @@ export class NetWorthService {
         totalAssetsThb: summary.totalAssetsThb,
         totalLiabilitiesThb: summary.totalLiabilitiesThb,
         netWorthThb: summary.netWorthThb,
+        fxRate: summary.fx,
       });
     }
 

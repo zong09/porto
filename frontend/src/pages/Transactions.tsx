@@ -1,23 +1,53 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { useTransactions } from '../hooks/useApi';
+import { useTransactions, useNetWorth } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
 export const Transactions: React.FC = () => {
-  const { openModal } = useStore();
+  const { openModal, currency } = useStore();
   const { data: transactions = [], deleteTransaction, isLoading } = useTransactions();
+  const { summary } = useNetWorth();
   const { t, language } = useTranslation();
 
-  const formatNativeMoney = (val: number, ccy: 'THB' | 'USD') => {
+  const fx = summary.data?.fx || 35.84;
+  const isThb = currency === 'THB';
+
+  const formatNativePrimary = (val: number, ccy: 'THB' | 'USD') => {
     const isUSD = ccy === 'USD';
-    const decimalLimit = Math.abs(val) < 1000 ? 2 : 0;
-    return (
-      (isUSD ? '$' : '฿') +
-      val.toLocaleString('en-US', {
+    const usd = isUSD ? val : val / fx;
+    const thb = isUSD ? val * fx : val;
+
+    if (isThb) {
+      const decimalLimit = Math.abs(thb) < 1000 ? 2 : 0;
+      return '฿' + thb.toLocaleString('en-US', {
         minimumFractionDigits: decimalLimit,
         maximumFractionDigits: decimalLimit,
-      })
-    );
+      });
+    } else {
+      return '$' + usd.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+  };
+
+  const formatNativeSecondary = (val: number, ccy: 'THB' | 'USD') => {
+    const isUSD = ccy === 'USD';
+    const usd = isUSD ? val : val / fx;
+    const thb = isUSD ? val * fx : val;
+
+    if (isThb) {
+      return '$' + usd.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    } else {
+      const decimalLimit = Math.abs(thb) < 1000 ? 2 : 0;
+      return '฿' + thb.toLocaleString('en-US', {
+        minimumFractionDigits: decimalLimit,
+        maximumFractionDigits: decimalLimit,
+      });
+    }
   };
 
   const formatQty = (qty: number, type: string) => {
@@ -132,11 +162,19 @@ export const Transactions: React.FC = () => {
                     <td className="text-right font-semibold tabular-nums text-dark/90 text-sm">
                       {formatQty(Number(t.quantity), asset.type)}
                     </td>
-                    <td className="text-right font-semibold tabular-nums text-muted text-xs.5">
-                      {isDep ? '—' : formatNativeMoney(Number(t.price), asset.currency as any)}
+                    <td className="text-right tabular-nums flex flex-col items-end">
+                      {isDep ? (
+                        <span className="font-semibold text-muted text-xs.5">—</span>
+                      ) : (
+                        <>
+                          <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(Number(t.price), asset.currency as any)}</span>
+                          <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(Number(t.price), asset.currency as any)}</span>
+                        </>
+                      )}
                     </td>
-                    <td className="text-right font-bold tabular-nums text-dark text-sm">
-                      {formatNativeMoney(totalValue, asset.currency as any)}
+                    <td className="text-right tabular-nums flex flex-col items-end">
+                      <span className="font-bold text-dark text-sm">{formatNativePrimary(totalValue, asset.currency as any)}</span>
+                      <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(totalValue, asset.currency as any)}</span>
                     </td>
                     <td className="text-center">
                       <button
