@@ -38,4 +38,12 @@ export class NetWorthHistory {
     transformer: NumericColumnTransformer
   })
   netWorthThb: number;
+
+  @Column('numeric', {
+    precision: 20,
+    scale: 8,
+    transformer: NumericColumnTransformer,
+    nullable: true
+  })
+  fxRate: number | null;
 }
