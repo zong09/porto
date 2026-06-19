@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #FAF5EC;
+  font-family: 'Anuphan', sans-serif;
+  color: #3d3328;
+  min-height: 100vh;
+}
+
+/* Custom classes */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
