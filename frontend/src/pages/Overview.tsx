@@ -19,28 +19,70 @@ export const Overview: React.FC = () => {
   const isThb = currency === 'THB';
 
   const formatMoney = (val: number, showDecimals = false) => {
-    const converted = isThb ? val : val / fx;
+    const usd = val / fx;
+    const thb = val;
+    const isNeg = val < 0;
+    const absUsd = Math.abs(usd);
+    const absThb = Math.abs(thb);
+
+    const usdStr = '$' + absUsd.toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    });
+    const thbStr = '฿' + absThb.toLocaleString('en-US', {
+      maximumFractionDigits: showDecimals ? 2 : 0,
+      minimumFractionDigits: showDecimals ? 2 : 0,
+    });
+
+    const primary = isThb ? thbStr : usdStr;
+    const secondary = isThb ? usdStr : thbStr;
+
     return (
-      (isThb ? '฿' : '$') +
-      converted.toLocaleString('en-US', {
-        maximumFractionDigits: showDecimals ? 2 : 0,
-        minimumFractionDigits: showDecimals ? 2 : 0,
-      })
+      <span className="tabular-nums">
+        {isNeg ? '-' : ''}{primary}
+        <span className="text-[0.72em] text-faint ml-1.5 font-semibold">
+          ({isNeg ? '-' : ''}{secondary})
+        </span>
+      </span>
     );
   };
 
-  const formatAbbrMoney = (val: number) => {
-    const converted = isThb ? val : val / fx;
-    const absVal = Math.abs(converted);
-    const sign = converted >= 0 ? '' : '-';
-    const currencySign = isThb ? '฿' : '$';
-    if (absVal >= 1e6) {
-      return `${sign}${currencySign}${(absVal / 1e6).toFixed(1)}M`;
-    }
-    if (absVal >= 1000) {
-      return `${sign}${currencySign}${(absVal / 1000).toFixed(0)}k`;
-    }
-    return `${sign}${currencySign}${absVal.toFixed(0)}`;
+  const formatAbbrMoney = (val: number, forcePlusSign = false) => {
+    const usd = val / fx;
+    const thb = val;
+
+    const getAbbr = (value: number, sign: string) => {
+      const absVal = Math.abs(value);
+      const isNeg = value < 0;
+      let leadingSign = '';
+      if (isNeg) {
+        leadingSign = '−';
+      } else if (forcePlusSign && value > 0) {
+        leadingSign = '+';
+      }
+
+      let formatted = '';
+      if (absVal >= 1e6) {
+        formatted = `${(absVal / 1e6).toFixed(1)}M`;
+      } else if (absVal >= 1000) {
+        formatted = `${(absVal / 1000).toFixed(0)}k`;
+      } else {
+        formatted = absVal.toFixed(0);
+      }
+      return `${leadingSign}${sign}${formatted}`;
+    };
+
+    const primary = isThb ? getAbbr(thb, '฿') : getAbbr(usd, '$');
+    const secondary = isThb ? getAbbr(usd, '$') : getAbbr(thb, '฿');
+
+    return (
+      <span className="tabular-nums">
+        {primary}
+        <span className="text-[0.72em] text-faint ml-1 font-semibold">
+          ({secondary})
+        </span>
+      </span>
+    );
   };
 
   // 1. Current Stats
@@ -78,7 +120,10 @@ export const Overview: React.FC = () => {
 
   const chartHistoryPoints = historyData.slice(-60); // Show last 60 points
   if (chartHistoryPoints.length >= 2) {
-    const values = chartHistoryPoints.map((h) => Number(h.netWorthThb));
+    const values = chartHistoryPoints.map((h) => {
+      const pointFx = h.fxRate || fx;
+      return isThb ? Number(h.netWorthThb) : Number(h.netWorthThb) / pointFx;
+    });
     const min = Math.min(...values);
     const max = Math.max(...values);
     const pad = (max - min) * 0.15 || Math.abs(max) * 0.05 || 1;
@@ -91,8 +136,10 @@ export const Overview: React.FC = () => {
     const paddingTop = 12;
 
     const points = chartHistoryPoints.map((h, i) => {
+      const pointFx = h.fxRate || fx;
+      const val = isThb ? Number(h.netWorthThb) : Number(h.netWorthThb) / pointFx;
       const x = i * (width / (chartHistoryPoints.length - 1));
-      const y = height - paddingBottom - ((Number(h.netWorthThb) - lo) / (hi - lo)) * (height - paddingBottom - paddingTop);
+      const y = height - paddingBottom - ((val - lo) / (hi - lo)) * (height - paddingBottom - paddingTop);
       return [x, y];
     });
 
@@ -205,7 +252,7 @@ export const Overview: React.FC = () => {
         isProfit,
         heightPercent: Math.max(10, heightPercent), // At least 10% height for visibility
         color,
-        valLabel: `${isProfit ? '+' : '−'}${formatAbbrMoney(Math.abs(x.plThb))}`,
+        valLabel: formatAbbrMoney(x.plThb, true),
       };
     });
   }, [assets, fx, currency]);

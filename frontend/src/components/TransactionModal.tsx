@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { useAssets, useTransactions } from '../hooks/useApi';
+import { useAssets, useTransactions, useNetWorth } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
 export const TransactionModal: React.FC = () => {
-  const { modals, closeModal, activeAssetId, openModal } = useStore();
+  const { modals, closeModal, activeAssetId, openModal, currency } = useStore();
   const { data: assets = [] } = useAssets();
   const { createTransaction } = useTransactions();
+  const { summary } = useNetWorth();
   const { t, language } = useTranslation();
+
+  const fx = summary.data?.fx || 35.84;
 
   const [assetId, setAssetId] = useState('');
   const [side, setSide] = useState<'buy' | 'sell'>('buy'); // Buy/Deposit -> 'buy', Sell/Withdraw -> 'sell'
@@ -62,21 +65,38 @@ export const TransactionModal: React.FC = () => {
       return;
     }
 
-    const q = parseFloat(quantity);
-    const p = isDeposit ? 1 : parseFloat(price);
-    const f = isDeposit ? 0 : parseFloat(fee || '0');
+    const qInput = parseFloat(quantity);
+    const pInput = isDeposit ? 1 : parseFloat(price);
+    const fInput = isDeposit ? 0 : parseFloat(fee || '0');
 
-    if (isNaN(q) || q <= 0) {
+    if (isNaN(qInput) || qInput <= 0) {
       setError(language === 'th' ? 'กรุณากรอกจำนวนให้ถูกต้อง (> 0)' : 'Please enter a valid quantity (> 0)');
       return;
     }
-    if (!isDeposit && (isNaN(p) || p <= 0)) {
+    if (!isDeposit && (isNaN(pInput) || pInput <= 0)) {
       setError(language === 'th' ? 'กรุณากรอกราคาให้ถูกต้อง (> 0)' : 'Please enter a valid price (> 0)');
       return;
     }
-    if (!isDeposit && (isNaN(f) || f < 0)) {
+    if (!isDeposit && (isNaN(fInput) || fInput < 0)) {
       setError(language === 'th' ? 'กรุณากรอกค่าธรรมเนียมให้ถูกต้อง (>= 0)' : 'Please enter a valid fee (>= 0)');
       return;
+    }
+
+    let q = qInput;
+    if (isDeposit && currency === 'USD') {
+      q = qInput * fx;
+    }
+
+    let p = pInput;
+    let f = fInput;
+    if (!isDeposit && selectedAsset) {
+      if (currency === 'USD' && selectedAsset.currency === 'THB') {
+        p = pInput * fx;
+        f = fInput * fx;
+      } else if (currency === 'THB' && selectedAsset.currency === 'USD') {
+        p = pInput / fx;
+        f = fInput / fx;
+      }
     }
 
     // Verify sell limit
@@ -183,7 +203,7 @@ export const TransactionModal: React.FC = () => {
           <div>
             <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
               {isDeposit
-                ? (language === 'th' ? 'จำนวนเงิน (฿)' : 'Amount (฿)')
+                ? (language === 'th' ? `จำนวนเงิน (${currency === 'USD' ? '$' : '฿'})` : `Amount (${currency === 'USD' ? '$' : '฿'})`)
                 : (language === 'th' ? 'จำนวน (หน่วย/เหรียญ/หุ้น)' : 'Quantity (units/coins/shares)')}
             </label>
             <input
@@ -203,8 +223,8 @@ export const TransactionModal: React.FC = () => {
               <div>
                 <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
                   {language === 'th'
-                    ? `ราคาต่อหน่วย (${selectedAsset?.currency === 'USD' ? '$' : '฿'})`
-                    : `Price per Unit (${selectedAsset?.currency === 'USD' ? '$' : '฿'})`}
+                    ? `ราคาต่อหน่วย (${currency === 'USD' ? '$' : '฿'})`
+                    : `Price per Unit (${currency === 'USD' ? '$' : '฿'})`}
                 </label>
                 <input
                   type="number"

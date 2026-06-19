@@ -14,28 +14,101 @@ export const Portfolios: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoney = (val: number, showDecimals = false) => {
-    const converted = isThb ? val : val / fx;
-    return (
-      (isThb ? '฿' : '$') +
-      converted.toLocaleString('en-US', {
+  const formatMoneyPrimary = (val: number, showDecimals = false) => {
+    const usd = val / fx;
+    const thb = val;
+    const isNeg = val < 0;
+    const absUsd = Math.abs(usd);
+    const absThb = Math.abs(thb);
+
+    if (isThb) {
+      const formatted = absThb.toLocaleString('en-US', {
         maximumFractionDigits: showDecimals ? 2 : 0,
         minimumFractionDigits: showDecimals ? 2 : 0,
-      })
+      });
+      return `${isNeg ? '-' : ''}฿${formatted}`;
+    } else {
+      const formatted = absUsd.toLocaleString('en-US', {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2,
+      });
+      return `${isNeg ? '-' : ''}$${formatted}`;
+    }
+  };
+
+  const formatMoneySecondary = (val: number, showDecimals = false) => {
+    const usd = val / fx;
+    const thb = val;
+    const isNeg = val < 0;
+    const absUsd = Math.abs(usd);
+    const absThb = Math.abs(thb);
+
+    if (isThb) {
+      const formatted = absUsd.toLocaleString('en-US', {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2,
+      });
+      return `${isNeg ? '-' : ''}$${formatted}`;
+    } else {
+      const formatted = absThb.toLocaleString('en-US', {
+        maximumFractionDigits: showDecimals ? 2 : 0,
+        minimumFractionDigits: showDecimals ? 2 : 0,
+      });
+      return `${isNeg ? '-' : ''}฿${formatted}`;
+    }
+  };
+
+  const formatMoney = (val: number, showDecimals = false) => {
+    const primary = formatMoneyPrimary(val, showDecimals);
+    const secondary = formatMoneySecondary(val, showDecimals);
+    return (
+      <span className="tabular-nums">
+        {primary}
+        <span className="text-[0.72em] text-faint ml-1.5 font-semibold">
+          ({secondary})
+        </span>
+      </span>
     );
   };
 
-  const formatNativeMoney = (val: number, ccy: 'THB' | 'USD', forceDecimals = false) => {
+  const formatNativePrimary = (val: number, ccy: 'THB' | 'USD', forceDecimals = false) => {
     const isUSD = ccy === 'USD';
-    const decimalLimit = forceDecimals || Math.abs(val) < 1000 ? 2 : 0;
-    return (
-      (isUSD ? '$' : '฿') +
-      val.toLocaleString('en-US', {
+    const usd = isUSD ? val : val / fx;
+    const thb = isUSD ? val * fx : val;
+
+    if (isThb) {
+      const decimalLimit = forceDecimals || Math.abs(thb) < 1000 ? 2 : 0;
+      return '฿' + thb.toLocaleString('en-US', {
         minimumFractionDigits: decimalLimit,
         maximumFractionDigits: decimalLimit,
-      })
-    );
+      });
+    } else {
+      return '$' + usd.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
   };
+
+  const formatNativeSecondary = (val: number, ccy: 'THB' | 'USD', forceDecimals = false) => {
+    const isUSD = ccy === 'USD';
+    const usd = isUSD ? val : val / fx;
+    const thb = isUSD ? val * fx : val;
+
+    if (isThb) {
+      return '$' + usd.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    } else {
+      const decimalLimit = forceDecimals || Math.abs(thb) < 1000 ? 2 : 0;
+      return '฿' + thb.toLocaleString('en-US', {
+        minimumFractionDigits: decimalLimit,
+        maximumFractionDigits: decimalLimit,
+      });
+    }
+  };
+
 
   const formatQty = (qty: number, type: string) => {
     if (type === 'deposit') return `฿${qty.toLocaleString('en-US')}`;
@@ -293,25 +366,43 @@ export const Portfolios: React.FC = () => {
                             <td className="text-right font-bold tabular-nums text-dark/90 text-sm">
                               {formatQty(h.quantity, h.type)}
                             </td>
-                            <td className="text-right font-semibold tabular-nums text-muted text-xs.5">
-                              {isDep ? '—' : formatNativeMoney(h.avgCost, h.currency)}
+                            <td className="text-right tabular-nums flex flex-col items-end">
+                              {isDep ? (
+                                <span className="font-semibold text-muted text-xs.5">—</span>
+                              ) : (
+                                <>
+                                  <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(h.avgCost, h.currency)}</span>
+                                  <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.avgCost, h.currency)}</span>
+                                </>
+                              )}
                             </td>
-                            <td className="text-right font-semibold tabular-nums text-dark/95 text-xs.5">
-                              {isDep ? '—' : formatNativeMoney(h.currentPrice, h.currency)}
+                            <td className="text-right tabular-nums flex flex-col items-end">
+                              {isDep ? (
+                                <span className="font-semibold text-dark/95 text-xs.5">—</span>
+                              ) : (
+                                <>
+                                  <span className="font-semibold text-dark/95 text-xs.5">{formatNativePrimary(h.currentPrice, h.currency)}</span>
+                                  <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.currentPrice, h.currency)}</span>
+                                </>
+                              )}
                             </td>
-                            <td className="text-right font-bold tabular-nums text-dark text-sm">
-                              {formatMoney(h.valueThb)}
+                            <td className="text-right tabular-nums flex flex-col items-end">
+                              <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb)}</span>
+                              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb)}</span>
                             </td>
-                            <td
-                              className={`text-right font-bold tabular-nums text-xs.5 ${
-                                isDep
-                                  ? 'text-faint'
-                                  : isUp
-                                  ? 'text-positive-text'
-                                  : 'text-negative-text'
-                              }`}
-                            >
-                              {isDep ? '—' : `${isUp ? '+' : ''}${formatMoney(h.plThb)}`}
+                            <td className="text-right tabular-nums flex flex-col items-end">
+                              {isDep ? (
+                                <span className="font-bold text-faint text-xs.5">—</span>
+                              ) : (
+                                <>
+                                  <span className={`font-bold text-xs.5 ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
+                                    {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb)}
+                                  </span>
+                                  <span className="text-[10.5px] text-faint font-bold mt-0.5">
+                                    {isUp ? '+' : ''}{formatMoneySecondary(h.plThb)}
+                                  </span>
+                                </>
+                              )}
                             </td>
                             <td className="flex justify-end gap-1.5">
                               <button

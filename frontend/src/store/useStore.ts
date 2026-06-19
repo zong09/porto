@@ -59,7 +59,7 @@ export const useStore = create<StoreState>((set) => {
 
   return {
     page: 'overview',
-    currency: savedCurrency || 'THB',
+    currency: savedCurrency || 'USD',
     language: savedLanguage || 'th',
     user: initialUser,
     token: savedToken,

@@ -245,6 +245,7 @@ export interface NetWorthHistoryItem {
   totalAssetsThb: number;
   totalLiabilitiesThb: number;
   netWorthThb: number;
+  fxRate?: number | null;
 }
 
 export function useNetWorth(days?: number) {

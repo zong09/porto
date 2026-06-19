@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { usePortfolios, useAssets, useTransactions } from '../hooks/useApi';
+import { usePortfolios, useAssets, useTransactions, useNetWorth } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
 const CG_ID_MAP: Record<string, string> = {
@@ -32,11 +32,14 @@ const CG_ID_MAP: Record<string, string> = {
 };
 
 export const AssetModal: React.FC = () => {
-  const { modals, closeModal, activePortfolioId, openModal } = useStore();
+  const { modals, closeModal, activePortfolioId, openModal, currency } = useStore();
   const { data: portfolios = [] } = usePortfolios();
   const { createAsset } = useAssets();
   const { createTransaction } = useTransactions();
+  const { summary } = useNetWorth();
   const { t, language } = useTranslation();
+
+  const fx = summary.data?.fx || 35.84;
 
   // Basic Fields
   const [portfolioId, setPortfolioId] = useState('');
@@ -124,14 +127,34 @@ export const AssetModal: React.FC = () => {
     }
 
     // Prepare variables
-    const currency = type === 'us' ? 'USD' : 'THB';
+    const assetCcy = type === 'us' ? 'USD' : 'THB';
     const yahooSymbol = type === 'th' ? `${trimSymbol}.BK` : type === 'us' ? trimSymbol : undefined;
-    const manualPrice = type === 'fund' && nav ? parseFloat(nav) : undefined;
+    
+    let manualPrice = type === 'fund' && nav ? parseFloat(nav) : undefined;
+    if (manualPrice !== undefined && currency === 'USD') {
+      manualPrice = parseFloat(nav) * fx;
+    }
 
     // Validate opening buy details if filled
-    const qty = parseFloat(oQty);
-    const pr = type === 'deposit' ? 1 : parseFloat(oPrice);
-    const fe = type === 'deposit' ? 0 : parseFloat(oFee || '0');
+    let qty = parseFloat(oQty);
+    if (type === 'deposit' && currency === 'USD' && !isNaN(qty)) {
+      qty = qty * fx;
+    }
+
+    const prInput = type === 'deposit' ? 1 : parseFloat(oPrice);
+    const feInput = type === 'deposit' ? 0 : parseFloat(oFee || '0');
+
+    let pr = prInput;
+    let fe = feInput;
+    if (type !== 'deposit') {
+      if (currency === 'USD' && assetCcy === 'THB') {
+        pr = prInput * fx;
+        fe = feInput * fx;
+      } else if (currency === 'THB' && assetCcy === 'USD') {
+        pr = prInput / fx;
+        fe = feInput / fx;
+      }
+    }
 
     const hasOpeningTransaction = oQty.trim() !== '';
     if (hasOpeningTransaction) {
@@ -169,7 +192,7 @@ export const AssetModal: React.FC = () => {
         type,
         symbol: type === 'crypto' || type === 'us' || type === 'th' ? trimSymbol.toUpperCase() : trimSymbol,
         name: name.trim(),
-        currency,
+        currency: assetCcy,
         cgId: type === 'crypto' ? cgId.trim().toLowerCase() : undefined,
         yahooSymbol,
         manualPrice,
@@ -217,7 +240,7 @@ export const AssetModal: React.FC = () => {
 
   const isDep = type === 'deposit';
   const oTotal = (parseFloat(oQty) || 0) * (isDep ? 1 : (parseFloat(oPrice) || 0)) + (isDep ? 0 : (parseFloat(oFee) || 0));
-  const totalSpentFmt = (type === 'us' ? '$' : '฿') + oTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalSpentFmt = (currency === 'USD' ? '$' : '฿') + oTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div
@@ -312,7 +335,7 @@ export const AssetModal: React.FC = () => {
           {type === 'fund' && (
             <div>
               <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
-                {language === 'th' ? 'NAV เริ่มต้น (฿/หน่วย)' : 'Initial NAV (฿/Unit)'}
+                {language === 'th' ? `NAV เริ่มต้น (${currency === 'USD' ? '$' : '฿'}/หน่วย)` : `Initial NAV (${currency === 'USD' ? '$' : '฿'}/Unit)`}
               </label>
               <input
                 type="number"
@@ -339,7 +362,7 @@ export const AssetModal: React.FC = () => {
             <div className="grid grid-cols-2 gap-3.5">
               <div>
                 <label className="block text-[12px] font-semibold text-muted mb-[5px]">
-                  {isDep ? (language === 'th' ? 'จำนวนเงินเริ่มต้น (฿)' : 'Initial Balance (฿)') : (language === 'th' ? 'จำนวน' : 'Quantity')}
+                  {isDep ? (language === 'th' ? `จำนวนเงินเริ่มต้น (${currency === 'USD' ? '$' : '฿'})` : `Initial Balance (${currency === 'USD' ? '$' : '฿'})`) : (language === 'th' ? 'จำนวน' : 'Quantity')}
                 </label>
                 <input
                   type="number"
@@ -368,7 +391,7 @@ export const AssetModal: React.FC = () => {
               <div className="grid grid-cols-2 gap-3.5 mt-3">
                 <div>
                   <label className="block text-[12px] font-semibold text-muted mb-[5px]">
-                    {language === 'th' ? `ราคาต่อหน่วย (${type === 'us' ? '$' : '฿'})` : `Price per Unit (${type === 'us' ? '$' : '฿'})`}
+                    {language === 'th' ? `ราคาต่อหน่วย (${currency === 'USD' ? '$' : '฿'})` : `Price per Unit (${currency === 'USD' ? '$' : '฿'})`}
                   </label>
                   <input
                     type="number"
