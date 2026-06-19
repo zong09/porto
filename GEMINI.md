@@ -28,6 +28,7 @@ Porto runs as a unified service in production (e.g. Railway):
 - **Server**: NestJS serves statically built React SPA pages out of `backend/public/`.
 - **API**: Exposed under the `/api` prefix.
 - **Client**: Built with React 19 + Vite. In local development, the client connects to `http://localhost:3000/api` directly without Vite proxying.
+- **Base Currency & Dual Currency**: Default base currency is USD. Application supports concurrent dual-currency display for both USD and THB.
 
 ---
 
@@ -58,9 +59,13 @@ Porto runs as a unified service in production (e.g. Railway):
 2. **State Management**:
    - Server-side data fetching uses TanStack Query.
    - Client-side states (modals, currency, user auth, page routes) use Zustand inside [useStore.ts](file:///Users/pchayphiphitthaphan/Gits/porto/frontend/src/store/useStore.ts).
-3. **SVG Visualizations (No D3/Libraries)**:
+3. **Currency Display Rules**:
+   - Default base currency is USD.
+   - Enforce USD values are formatted to exactly 2 decimal places.
+   - Secondary currency (shown in parentheses, e.g. `(฿495)`) is formatted using `text-[0.72em] text-faint ml-1.5 font-semibold` to distinguish it visually from the primary currency.
+4. **SVG Visualizations (No D3/Libraries)**:
    - All charts are constructed manually with SVG primitives (e.g., SVG paths, linear gradients, and conic-gradients).
-4. **Modals Size & Dimensions**:
+5. **Modals Size & Dimensions**:
    - Standard modals (Asset, Transaction, Portfolio, Liability, Price) use a max-width of `440px`, padding `py-[26px] px-[28px]`, and border-radius `rounded-[24px]`.
    - The Chart modal uses a max-width of `640px` with the same padding and border-radius.
    - Form fields use `gap-[14px]` layout spacing. Labels use `text-[12.5px] font-semibold text-muted mb-[6px]`. Inputs/selects use `py-[10px] px-[14px] rounded-[12px] text-[14px]`.
