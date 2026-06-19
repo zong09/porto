@@ -22,7 +22,7 @@ cd backend && npm run test:e2e          # e2e tests
 
 ## Architecture
 
-Single Railway service: NestJS serves the React SPA from `backend/public/` and exposes all API under `/api`. In dev, frontend hits `http://localhost:3000/api` directly (no Vite proxy).
+Single Railway service: NestJS serves the React SPA from `backend/public/` and exposes all API under `/api`. In dev, frontend hits `http://localhost:3000/api` directly (no Vite proxy). Base currency defaults to USD, with concurrent dual-currency display support for both USD and THB.
 
 ## Backend Patterns
 
@@ -39,6 +39,8 @@ Single Railway service: NestJS serves the React SPA from `backend/public/` and e
 ## Frontend Patterns
 
 **Tailwind tokens** are in `frontend/tailwind.config.js`. Custom colors: `surface (#FAF5EC)`, `dark (#3d3328)`, `primary (#b45a3c)`, `muted (#8a7d6c)`, `positive`/`negative` with text+bg variants. Font is `Anuphan` loaded from Google Fonts.
+
+**Currency Display** — Default base currency is USD. All USD numbers are strictly formatted to 2 decimal places. Dual-currency display shows both USD and THB inline/stacked, with the secondary currency (in parentheses) styled smaller (`text-[0.72em]`) for hierarchical clarity.
 
 **Modal Layout** — Modals (Asset, Transaction, Portfolio, Liability, Price) use `max-w-[440px]`, `py-[26px] px-[28px]`, and `rounded-[24px]`. The Chart modal uses `max-w-[640px]`. Forms use `gap-[14px]`. Labels use `text-[12.5px] font-semibold text-muted mb-[6px]`. Inputs/selects use `py-[10px] px-[14px] rounded-[12px] text-[14px]`. Segmented toggles use `py-[9px] rounded-[12px]`. Cancel/Save footer buttons use `py-[9px] px-[18px]` / `py-[9px] px-[22px]` with `text-[13.5px]`.
 

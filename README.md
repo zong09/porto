@@ -1,6 +1,6 @@
 # Porto — Personal Net Worth & Investment Tracker
 
-A full-stack web application for tracking personal net worth across crypto, Thai/US stocks, mutual funds, deposits, and liabilities. Live prices via CoinGecko + Yahoo Finance. Deployable as a single service on Railway.
+A full-stack web application for tracking personal net worth across crypto, Thai/US stocks, mutual funds, deposits, and liabilities. Default base currency is USD, with concurrent dual-currency display support for both USD and THB. Live prices via CoinGecko + Yahoo Finance. Deployable as a single service on Railway.
 
 ## Stack
 
