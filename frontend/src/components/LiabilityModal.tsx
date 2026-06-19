@@ -54,33 +54,33 @@ export const LiabilityModal: React.FC = () => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-[32px] p-8 w-full max-w-[480px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
+        className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <h3 className="text-[22px] font-bold text-dark mb-6">{t('modals.liability.createTitle')}</h3>
+        <h3 className="text-[18px] font-bold text-dark mb-[18px]">{t('modals.liability.createTitle')}</h3>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">{language === 'th' ? 'ชื่อหนี้สิน' : 'Liability Name'}</label>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{language === 'th' ? 'ชื่อหนี้สิน' : 'Liability Name'}</label>
             <input
               type="text"
               placeholder={language === 'th' ? 'เช่น บัตรเครดิต, สินเชื่อบ้าน' : 'e.g. Credit Card, Mortgage'}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               autoFocus
               id="input-debt-name"
             />
           </div>
 
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">{language === 'th' ? 'ยอดหนี้สิน (THB)' : 'Outstanding Balance (THB)'}</label>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{language === 'th' ? 'ยอดหนี้สิน (THB)' : 'Outstanding Balance (THB)'}</label>
             <input
               type="number"
               placeholder="0.00"
               step="any"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               id="input-debt-amount"
             />
           </div>
@@ -95,14 +95,14 @@ export const LiabilityModal: React.FC = () => {
             <button
               type="button"
               onClick={() => closeModal('liability')}
-              className="px-7 py-3 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[14px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-7 py-3 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[14px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
+              className="py-[9px] px-[22px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13.5px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
               id="btn-submit-debt"
             >
               {loading ? t('common.loading') : t('common.save')}

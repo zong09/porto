@@ -42,19 +42,19 @@ export const PortfolioModal: React.FC = () => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-[32px] p-8 w-full max-w-[480px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
+        className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <h3 className="text-[22px] font-bold text-dark mb-6">{t('portfolios.createPortTitle')}</h3>
+        <h3 className="text-[18px] font-bold text-dark mb-[18px]">{t('portfolios.createPortTitle')}</h3>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">{t('portfolios.portNameLabel')}</label>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('portfolios.portNameLabel')}</label>
             <input
               type="text"
               placeholder={t('portfolios.placeholderName')}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               autoFocus
               id="input-port-name"
             />
@@ -70,14 +70,14 @@ export const PortfolioModal: React.FC = () => {
             <button
               type="button"
               onClick={() => closeModal('portfolio')}
-              className="px-7 py-3 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[14px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-7 py-3 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[14px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
+              className="py-[9px] px-[22px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13.5px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
               id="btn-submit-port"
             >
               {loading ? t('common.loading') : (language === 'th' ? 'สร้างพอร์ต' : 'Create')}

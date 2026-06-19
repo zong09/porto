@@ -315,7 +315,7 @@ export function usePriceHistory(asset: Asset | null, range: string) {
 }
 
 export function useAuthConfig() {
-  return useQuery<{ enableDemo: boolean }>({
+  return useQuery<{ enableDemo: boolean; enableRegister: boolean }>({
     queryKey: ['auth-config'],
     queryFn: async () => {
       const res = await apiClient.get('/auth/config');

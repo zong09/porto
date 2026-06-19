@@ -1,7 +1,6 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
 import { useLiabilities, useNetWorth } from '../hooks/useApi';
-import { PlusCircle } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 
 export const Liabilities: React.FC = () => {
@@ -80,11 +79,10 @@ export const Liabilities: React.FC = () => {
         <h2 className="text-xl font-bold text-dark">{language === 'th' ? 'หนี้สินของฉัน' : 'My Liabilities'}</h2>
         <button
           onClick={() => openModal('liability')}
-          className="flex items-center gap-1.5 px-4.5 py-2 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
+          className="px-[18px] py-[8px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13px] font-bold border-none cursor-pointer transition-colors shadow-sm ml-auto"
           id="btn-add-debt-page"
         >
-          <PlusCircle size={14} />
-          <span>{t('liabilities.addBtn')}</span>
+          {t('liabilities.addBtn')}
         </button>
       </div>
 

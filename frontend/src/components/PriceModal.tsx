@@ -53,21 +53,21 @@ export const PriceModal: React.FC = () => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-[32px] p-8 w-full max-w-[480px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
+        className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <h3 className="text-[22px] font-bold text-dark mb-1">{t('modals.price.title')}</h3>
-        <p className="text-sm.5 text-muted mb-6">{activeAsset.symbol} — {activeAsset.name}</p>
+        <h3 className="text-[18px] font-bold text-dark mb-1">{t('modals.price.title')}</h3>
+        <p className="text-[12.5px] text-muted mb-[18px]">{activeAsset.symbol} — {activeAsset.name}</p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">{language === 'th' ? 'NAV ปัจจุบัน (฿/หน่วย)' : 'Current NAV (฿/Unit)'}</label>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{language === 'th' ? 'NAV ปัจจุบัน (฿/หน่วย)' : 'Current NAV (฿/Unit)'}</label>
             <input
               type="number"
               placeholder="0.00"
               step="any"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-full px-5 py-3.5 rounded-[20px] border border-inputBorder bg-white text-[15px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               autoFocus
               id="input-nav-price"
             />
@@ -83,14 +83,14 @@ export const PriceModal: React.FC = () => {
             <button
               type="button"
               onClick={() => closeModal('price')}
-              className="px-7 py-3 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[14px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-7 py-3 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[14px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
+              className="py-[9px] px-[22px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13.5px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
               id="btn-submit-nav"
             >
               {loading ? t('common.loading') : t('common.save')}

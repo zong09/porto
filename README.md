@@ -56,7 +56,12 @@ DB_DATABASE=porto
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRES_IN=7d
 PORT=3000
+ENABLE_DEMO=false
+ENABLE_REGISTER=true
 ```
+
+- `ENABLE_DEMO`: Enables or disables the "Try Demo" button on the login screen and blocks/allows the backend seeder endpoint (default: `false`).
+- `ENABLE_REGISTER`: Enables or disables user registration frontend tab and blocks/allows backend signups (default: `true`).
 
 ### Railway (production)
 
@@ -67,6 +72,8 @@ DATABASE_URL=<provided by Railway Postgres plugin>
 JWT_SECRET=<strong random string>
 JWT_EXPIRES_IN=7d
 NODE_ENV=production
+ENABLE_DEMO=false
+ENABLE_REGISTER=true
 ```
 
 When `DATABASE_URL` is set it takes precedence over individual `DB_*` vars. SSL is enabled automatically for non-localhost URLs.

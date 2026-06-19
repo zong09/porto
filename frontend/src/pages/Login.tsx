@@ -15,6 +15,12 @@ export const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    if (config?.enableRegister === false) {
+      setIsSignup(false);
+    }
+  }, [config]);
+
   const handleDemo = async () => {
     setError(null);
     setLoading(true);
@@ -33,6 +39,10 @@ export const Login: React.FC = () => {
     setError(null);
 
     // Validation
+    if (isSignup && config?.enableRegister === false) {
+      setError(t('login.signupDisabled'));
+      return;
+    }
     if (isSignup && !name.trim()) {
       setError(t('login.nameRequired'));
       return;
@@ -192,19 +202,21 @@ export const Login: React.FC = () => {
             </>
           )}
 
-          <div className="text-center text-[13px] text-muted select-none">
-            <span>{isSignup ? t('login.hasAccount') : t('login.noAccount')}</span>{' '}
-            <span
-              onClick={() => {
-                setIsSignup(!isSignup);
-                setError(null);
-              }}
-              className="text-terracotta font-bold cursor-pointer underline hover:text-terracotta-hover"
-              id="link-toggle-auth-mode"
-            >
-              {isSignup ? t('login.loginBtn') : t('login.signupBtn')}
-            </span>
-          </div>
+          {config?.enableRegister !== false && (
+            <div className="text-center text-[13px] text-muted select-none">
+              <span>{isSignup ? t('login.hasAccount') : t('login.noAccount')}</span>{' '}
+              <span
+                onClick={() => {
+                  setIsSignup(!isSignup);
+                  setError(null);
+                }}
+                className="text-terracotta font-bold cursor-pointer underline hover:text-terracotta-hover"
+                id="link-toggle-auth-mode"
+              >
+                {isSignup ? t('login.loginBtn') : t('login.signupBtn')}
+              </span>
+            </div>
+          )}
 
           <div className="text-center text-[11px] text-[#b3a692] leading-[1.6] max-w-[280px] mx-auto">
             {t('login.secureNote')}

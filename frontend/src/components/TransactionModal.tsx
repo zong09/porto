@@ -112,7 +112,7 @@ export const TransactionModal: React.FC = () => {
   };
 
   const toggleSideBtn = (active: boolean) =>
-    `flex-1 py-3 rounded-full border font-bold text-[13.5px] cursor-pointer text-center transition-colors ${
+    `flex-1 py-[9px] rounded-[12px] border font-bold text-[13.5px] cursor-pointer text-center transition-colors ${
       active
         ? 'bg-terracotta border-terracotta text-white'
         : 'bg-white border-inputBorder text-muted hover:bg-surface'
@@ -125,18 +125,18 @@ export const TransactionModal: React.FC = () => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-[32px] p-8 w-full max-w-[480px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
+        className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <h3 className="text-[22px] font-bold text-dark mb-6">{t('modals.transaction.title')}</h3>
+        <h3 className="text-[18px] font-bold text-dark mb-[18px]">{t('modals.transaction.title')}</h3>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           {/* Asset select */}
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">{t('transactions.colAsset')}</label>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('transactions.colAsset')}</label>
             <select
               value={assetId}
               onChange={(e) => setAssetId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm"
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm"
               id="select-txn-asset"
             >
               {assets.map((a) => (
@@ -158,7 +158,7 @@ export const TransactionModal: React.FC = () => {
 
           {/* Segmented Buy/Sell toggle */}
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">{t('transactions.colType')}</label>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('transactions.colType')}</label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -181,7 +181,7 @@ export const TransactionModal: React.FC = () => {
 
           {/* Quantity */}
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
               {isDeposit
                 ? (language === 'th' ? 'จำนวนเงิน (฿)' : 'Amount (฿)')
                 : (language === 'th' ? 'จำนวน (หน่วย/เหรียญ/หุ้น)' : 'Quantity (units/coins/shares)')}
@@ -192,7 +192,7 @@ export const TransactionModal: React.FC = () => {
               step="any"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               id="input-txn-qty"
             />
           </div>
@@ -201,7 +201,7 @@ export const TransactionModal: React.FC = () => {
           {!isDeposit && (
             <>
               <div>
-                <label className="block text-[14px] font-semibold text-muted mb-2">
+                <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
                   {language === 'th'
                     ? `ราคาต่อหน่วย (${selectedAsset?.currency === 'USD' ? '$' : '฿'})`
                     : `Price per Unit (${selectedAsset?.currency === 'USD' ? '$' : '฿'})`}
@@ -212,13 +212,13 @@ export const TransactionModal: React.FC = () => {
                   step="any"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+                  className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                   id="input-txn-price"
                 />
               </div>
 
               <div>
-                <label className="block text-[14px] font-semibold text-muted mb-2">
+                <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
                   {language === 'th' ? 'ค่าธรรมเนียม (ถ้ามี)' : 'Fee (Optional)'}
                 </label>
                 <input
@@ -227,7 +227,7 @@ export const TransactionModal: React.FC = () => {
                   step="any"
                   value={fee}
                   onChange={(e) => setFee(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+                  className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                   id="input-txn-fee"
                 />
               </div>
@@ -236,12 +236,12 @@ export const TransactionModal: React.FC = () => {
 
           {/* Date */}
           <div>
-            <label className="block text-[14px] font-semibold text-muted mb-2">{t('transactions.colDate')}</label>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('transactions.colDate')}</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-inputBorder bg-white text-[13px] text-dark focus:outline-none focus:border-terracotta transition-colors cursor-pointer shadow-sm"
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors cursor-pointer shadow-sm"
               id="input-txn-date"
             />
           </div>
@@ -257,14 +257,14 @@ export const TransactionModal: React.FC = () => {
             <button
               type="button"
               onClick={() => closeModal('tx')}
-              className="px-7 py-3 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[14px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-7 py-3 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[14px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
+              className="py-[9px] px-[22px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13.5px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
               id="btn-submit-txn"
             >
               {loading ? t('common.loading') : t('common.save')}

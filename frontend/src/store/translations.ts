@@ -55,6 +55,7 @@ export const translations: Record<string, any> = {
     emailInvalid: { th: 'อีเมลไม่ถูกต้อง', en: 'Invalid email address' },
     passwordMinLength: { th: 'รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร', en: 'Password must be at least 4 characters long' },
     orText: { th: 'หรือ', en: 'OR' },
+    signupDisabled: { th: 'ระบบปิดการลงทะเบียนบัญชีใหม่ชั่วคราว', en: 'New account registration is temporarily disabled' },
   },
   overview: {
     netWorth: { th: 'ความมั่งคั่งสุทธิของคุณ (Net Worth)', en: 'Your Net Worth' },
@@ -129,10 +130,11 @@ export const translations: Record<string, any> = {
     txBuy: { th: 'ซื้อ', en: 'BUY' },
     txSell: { th: 'ขาย', en: 'SELL' },
     loadingTx: { th: 'กำลังโหลดรายการธุรกรรม…', en: 'Loading transactions...' },
+    recordBtn: { th: '+ บันทึกรายการ', en: '+ Record Transaction' },
   },
   liabilities: {
     title: { th: 'การจัดการหนี้สิน (Liabilities)', en: 'Liabilities Management' },
-    addBtn: { th: '+ เพิ่มรายการหนี้สิน', en: '+ Add Liability' },
+    addBtn: { th: '+ เพิ่มหนี้สิน', en: '+ Add Liability' },
     totalDebt: { th: 'ยอดหนี้สินรวมทั้งหมด', en: 'Total Outstanding Debt' },
     monthlyPayment: { th: 'ยอดผ่อนชำระต่อเดือน', en: 'Total Monthly Payment' },
     colName: { th: 'ชื่อรายการ', en: 'Liability Name' },

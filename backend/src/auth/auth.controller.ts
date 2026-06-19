@@ -50,6 +50,7 @@ export class AuthController {
   async getConfig() {
     return {
       enableDemo: this.authService.isDemoEnabled(),
+      enableRegister: this.authService.isRegisterEnabled(),
     };
   }
 

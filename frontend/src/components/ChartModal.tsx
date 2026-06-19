@@ -105,7 +105,7 @@ export const ChartModal: React.FC = () => {
   }
 
   const rangeBtnClass = (active: typeof range) =>
-    `px-4 py-1.5 rounded-full cursor-pointer text-[12.5px] font-bold border-none transition-colors duration-150 ${
+    `px-[14px] py-[5px] rounded-full cursor-pointer text-[12.5px] font-bold border-none transition-colors duration-150 ${
       range === active ? 'bg-dark text-surface shadow-sm' : 'bg-chipBg text-muted hover:bg-[#e8dcc8]'
     }`;
 
@@ -116,7 +116,7 @@ export const ChartModal: React.FC = () => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-[32px] p-8 w-full max-w-[640px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
+        className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[640px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
         <button
           onClick={() => closeModal('chart')}
@@ -126,8 +126,8 @@ export const ChartModal: React.FC = () => {
         </button>
 
         {/* Title */}
-        <h3 className="text-md.5 font-bold text-dark leading-none">{activeAsset.symbol}</h3>
-        <p className="text-[12px] text-muted font-bold mt-1.5">
+        <h3 className="text-[18px] font-bold text-dark leading-none">{activeAsset.symbol}</h3>
+        <p className="text-[12.5px] text-muted mt-1.5">
           {activeAsset.name && activeAsset.name !== activeAsset.symbol ? `${activeAsset.name} · ` : ''}
           {activeAsset.type === 'crypto'
             ? 'Crypto'
@@ -137,7 +137,7 @@ export const ChartModal: React.FC = () => {
         </p>
 
         {/* Range Selector */}
-        <div className="flex gap-2.5 mt-4 select-none">
+        <div className="flex gap-[6px] mt-[14px] mb-[6px] select-none">
           <button onClick={() => setRange('7D')} className={rangeBtnClass('7D')}>7D</button>
           <button onClick={() => setRange('1M')} className={rangeBtnClass('1M')}>1M</button>
           <button onClick={() => setRange('3M')} className={rangeBtnClass('3M')}>3M</button>

@@ -34,6 +34,9 @@ export class AuthService {
   }
 
   async register(email: string, name: string, pass: string) {
+    if (!this.isRegisterEnabled()) {
+      throw new ForbiddenException('การสมัครสมาชิกถูกปิดใช้งาน');
+    }
     const existing = await this.userRepo.findOne({ where: { email } });
     if (existing) {
       throw new ConflictException('อีเมลนี้ถูกใช้งานแล้ว');
@@ -67,6 +70,10 @@ export class AuthService {
 
   isDemoEnabled(): boolean {
     return this.configService.get<string>('ENABLE_DEMO', 'false') === 'true';
+  }
+
+  isRegisterEnabled(): boolean {
+    return this.configService.get<string>('ENABLE_REGISTER', 'true') === 'true';
   }
 
   async demo() {
