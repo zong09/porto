@@ -3,6 +3,34 @@ import { useStore } from '../store/useStore';
 import { useAssets, useTransactions, useNetWorth } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
+const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
+  if (val === '') return '';
+  const clean = val.replace(/,/g, '');
+  const parts = clean.split('.');
+  
+  if (parts[0]) {
+    const num = Number(parts[0]);
+    if (!isNaN(num)) {
+      parts[0] = num.toLocaleString('en-US');
+    }
+  }
+  
+  let decimalPart = parts[1] || '';
+  if (minDecimals > 0) {
+    while (decimalPart.length < minDecimals) {
+      decimalPart += '0';
+    }
+  }
+  if (decimalPart.length > maxDecimals) {
+    decimalPart = decimalPart.slice(0, maxDecimals);
+  }
+  
+  if (decimalPart || clean.includes('.')) {
+    return parts[0] + '.' + decimalPart;
+  }
+  return parts[0];
+};
+
 export const TransactionModal: React.FC = () => {
   const { modals, closeModal, activeAssetId, openModal, currency } = useStore();
   const { data: assets = [] } = useAssets();
@@ -20,6 +48,7 @@ export const TransactionModal: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const selectedAsset = assets.find((a) => a.id === assetId);
   const isDeposit = selectedAsset?.type === 'deposit';
@@ -44,11 +73,17 @@ export const TransactionModal: React.FC = () => {
         setPrice('1');
         setFee('0');
       } else {
-        setPrice(selectedAsset.currentPrice?.toString() || '');
+        let val = selectedAsset.currentPrice || 0;
+        if (currency === 'USD' && selectedAsset.currency === 'THB') {
+          val = val / fx;
+        } else if (currency === 'THB' && selectedAsset.currency === 'USD') {
+          val = val * fx;
+        }
+        setPrice(val ? Number(val.toFixed(8)).toString() : '');
         setFee('');
       }
     }
-  }, [selectedAsset]);
+  }, [selectedAsset, currency, fx]);
 
   if (!modals.tx) return null;
 
@@ -103,10 +138,11 @@ export const TransactionModal: React.FC = () => {
     if (side === 'sell' && selectedAsset) {
       const currentQty = selectedAsset.position?.quantity || 0;
       if (q > currentQty + 1e-9) {
+        const formattedQty = currentQty.toLocaleString('en-US', { maximumFractionDigits: 8 });
         setError(
           language === 'th'
-            ? `ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${currentQty.toLocaleString()} หน่วย)`
-            : `Cannot sell more than you hold (currently holding ${currentQty.toLocaleString()} units)`
+            ? `ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${formattedQty} หน่วย)`
+            : `Cannot sell more than you hold (currently holding ${formattedQty} units)`
         );
         return;
       }
@@ -207,11 +243,12 @@ export const TransactionModal: React.FC = () => {
                 : (language === 'th' ? 'จำนวน (หน่วย/เหรียญ/หุ้น)' : 'Quantity (units/coins/shares)')}
             </label>
             <input
-              type="number"
+              type="text"
               placeholder="0.00"
-              step="any"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              value={focusedField === 'qty' ? quantity : formatInputWithCommas(quantity, 8, 8)}
+              onChange={(e) => setQuantity(e.target.value.replace(/,/g, ''))}
+              onFocus={() => setFocusedField('qty')}
+              onBlur={() => setFocusedField(null)}
               className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               id="input-txn-qty"
             />
@@ -227,11 +264,12 @@ export const TransactionModal: React.FC = () => {
                     : `Price per Unit (${currency === 'USD' ? '$' : '฿'})`}
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   placeholder="0.00"
-                  step="any"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  value={focusedField === 'price' ? price : formatInputWithCommas(price, 2, 8)}
+                  onChange={(e) => setPrice(e.target.value.replace(/,/g, ''))}
+                  onFocus={() => setFocusedField('price')}
+                  onBlur={() => setFocusedField(null)}
                   className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                   id="input-txn-price"
                 />
@@ -242,11 +280,12 @@ export const TransactionModal: React.FC = () => {
                   {language === 'th' ? 'ค่าธรรมเนียม (ถ้ามี)' : 'Fee (Optional)'}
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   placeholder="0.00"
-                  step="any"
-                  value={fee}
-                  onChange={(e) => setFee(e.target.value)}
+                  value={focusedField === 'fee' ? fee : formatInputWithCommas(fee, 2, 8)}
+                  onChange={(e) => setFee(e.target.value.replace(/,/g, ''))}
+                  onFocus={() => setFocusedField('fee')}
+                  onBlur={() => setFocusedField(null)}
                   className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                   id="input-txn-fee"
                 />
