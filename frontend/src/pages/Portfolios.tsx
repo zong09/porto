@@ -112,11 +112,9 @@ export const Portfolios: React.FC = () => {
 
   const formatQty = (qty: number, type: string) => {
     if (type === 'deposit') return `฿${qty.toLocaleString('en-US')}`;
-    const absQty = Math.abs(qty);
-    const fractionDigits = absQty < 10 ? 4 : 2;
     return qty.toLocaleString('en-US', {
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
+      minimumFractionDigits: 8,
+      maximumFractionDigits: 8,
     });
   };
 
