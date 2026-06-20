@@ -119,7 +119,7 @@ export const Transactions: React.FC = () => {
         <div className="bg-white rounded-2.5xl p-4 border border-inputBorder/20 shadow-sm overflow-x-auto mt-6">
           <table className="min-w-[820px] w-full border-collapse">
             <thead>
-              <tr className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_44px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
+              <tr className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
                 <th>{t('transactions.colDate')}</th>
                 <th>{t('transactions.colType')}</th>
                 <th>{t('transactions.colAsset')}</th>
@@ -131,22 +131,22 @@ export const Transactions: React.FC = () => {
               </tr>
             </thead>
             <tbody className="flex flex-col gap-1 mt-1">
-              {transactions.map((t) => {
-                const asset = t.asset || { symbol: '?', type: 'crypto', currency: 'THB', portfolio: { name: '—' } };
+              {transactions.map((txn) => {
+                const asset = txn.asset || { symbol: '?', type: 'crypto', currency: 'THB', portfolio: { name: '—' } };
                 const isDep = asset.type === 'deposit';
-                const isBuy = t.side === 'buy';
+                const isBuy = txn.side === 'buy';
                 const typeLabel = isDep
                   ? (isBuy ? (language === 'th' ? 'ฝาก' : 'Deposit') : (language === 'th' ? 'ถอน' : 'Withdraw'))
                   : (isBuy ? (language === 'th' ? 'ซื้อ' : 'BUY') : (language === 'th' ? 'ขาย' : 'SELL'));
 
-                const totalValue = Number(t.quantity) * Number(t.price) + (isBuy ? Number(t.fee || 0) : -Number(t.fee || 0));
+                const totalValue = Number(txn.quantity) * Number(txn.price) + (isBuy ? Number(txn.fee || 0) : -Number(txn.fee || 0));
 
                 return (
                   <tr
-                    key={t.id}
-                    className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_44px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
+                    key={txn.id}
+                    className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
                   >
-                    <td className="text-muted text-xs.5 font-medium select-none">{formatDate(t.date)}</td>
+                    <td className="text-muted text-xs.5 font-medium select-none">{formatDate(txn.date)}</td>
                     <td className="select-none">
                       <span
                         className={`text-[11px] font-bold px-3 py-1.5 rounded-full select-none ${
@@ -159,15 +159,15 @@ export const Transactions: React.FC = () => {
                     <td className="font-bold text-dark">{asset.symbol}</td>
                     <td className="text-muted text-xs.5 font-medium">{asset.portfolio?.name || '—'}</td>
                     <td className="text-right font-semibold tabular-nums text-dark/90 text-sm">
-                      {formatQty(Number(t.quantity), asset.type)}
+                      {formatQty(Number(txn.quantity), asset.type)}
                     </td>
                     <td className="text-right tabular-nums flex flex-col items-end">
                       {isDep ? (
                         <span className="font-semibold text-muted text-xs.5">—</span>
                       ) : (
                         <>
-                          <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(Number(t.price), asset.currency as any)}</span>
-                          <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(Number(t.price), asset.currency as any)}</span>
+                          <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(Number(txn.price), asset.currency as any)}</span>
+                          <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(Number(txn.price), asset.currency as any)}</span>
                         </>
                       )}
                     </td>
@@ -175,10 +175,18 @@ export const Transactions: React.FC = () => {
                       <span className="font-bold text-dark text-sm">{formatNativePrimary(totalValue, asset.currency as any)}</span>
                       <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(totalValue, asset.currency as any)}</span>
                     </td>
-                    <td className="text-center">
+                    <td className="flex gap-2 justify-center items-center">
                       <button
-                        onClick={() => handleDelete(t.id)}
+                        onClick={() => openModal('tx', { transactionId: txn.id })}
+                        className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
+                        title={t('common.edit') as string}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => handleDelete(txn.id)}
                         className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
+                        title={t('common.delete') as string}
                       >
                         ✕
                       </button>

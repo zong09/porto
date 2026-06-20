@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
 import { IsNotEmpty, IsEnum, IsOptional, IsNumber, Min, IsUUID, IsString } from 'class-validator';
@@ -41,6 +41,24 @@ export class TransactionsController {
   @Post()
   async create(@Body() body: CreateTransactionDto, @CurrentUser() user: any) {
     return this.transactionsService.create(
+      user.userId,
+      body.assetId,
+      body.side,
+      body.quantity,
+      body.price || 0,
+      body.fee || 0,
+      body.date || '',
+    );
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateTransactionDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.transactionsService.update(
+      id,
       user.userId,
       body.assetId,
       body.side,

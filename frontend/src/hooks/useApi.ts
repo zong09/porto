@@ -171,6 +171,26 @@ export function useTransactions() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: {
+      id: string;
+      assetId: string;
+      side: 'buy' | 'sell' | 'deposit' | 'withdraw';
+      quantity: number;
+      price?: number;
+      fee?: number;
+      date?: string;
+    }) => {
+      const res = await apiClient.put(`/transactions/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['net-worth-summary'] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await apiClient.delete(`/transactions/${id}`);
@@ -183,7 +203,12 @@ export function useTransactions() {
     },
   });
 
-  return { ...query, createTransaction: createMutation, deleteTransaction: deleteMutation };
+  return {
+    ...query,
+    createTransaction: createMutation,
+    updateTransaction: updateMutation,
+    deleteTransaction: deleteMutation,
+  };
 }
 
 // --- Liabilities Hooks ---
