@@ -5,7 +5,8 @@ import { useTranslation } from '../hooks/useTranslation';
 
 const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
   if (val === '') return '';
-  const clean = val.replace(/,/g, '');
+  const hasDollar = val.trim().startsWith('$');
+  const clean = val.replace(/[$,]/g, '');
   const parts = clean.split('.');
   
   if (parts[0]) {
@@ -25,10 +26,11 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
     decimalPart = decimalPart.slice(0, maxDecimals);
   }
   
+  let formatted = parts[0];
   if (decimalPart || clean.includes('.')) {
-    return parts[0] + '.' + decimalPart;
+    formatted = parts[0] + '.' + decimalPart;
   }
-  return parts[0];
+  return hasDollar ? '$' + formatted : formatted;
 };
 
 export const TransactionModal: React.FC = () => {
@@ -101,8 +103,8 @@ export const TransactionModal: React.FC = () => {
     }
 
     const qInput = parseFloat(quantity);
-    const pInput = isDeposit ? 1 : parseFloat(price);
-    const fInput = isDeposit ? 0 : parseFloat(fee || '0');
+    const pInput = isDeposit ? 1 : parseFloat(price.replace(/[$,]/g, ''));
+    const fInput = isDeposit ? 0 : parseFloat((fee || '0').replace(/[$,]/g, ''));
 
     if (isNaN(qInput) || qInput <= 0) {
       setError(language === 'th' ? 'กรุณากรอกจำนวนให้ถูกต้อง (> 0)' : 'Please enter a valid quantity (> 0)');
