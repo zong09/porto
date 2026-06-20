@@ -16,13 +16,12 @@ import { PriceModal } from './components/PriceModal';
 import { ChartModal } from './components/ChartModal';
 
 import { apiClient } from './api/apiClient';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuthConfig } from './hooks/useApi';
 import { useTranslation } from './hooks/useTranslation';
+import packageJson from '../../package.json';
 
 function App() {
   const { user, page } = useStore();
-  const queryClient = useQueryClient();
   const { data: config } = useAuthConfig();
   const { t } = useTranslation();
 
@@ -33,18 +32,6 @@ function App() {
         useStore.getState().login(res.data.user, res.data.token);
       } catch (err: any) {
         alert(err.response?.data?.message || t('footer.demoError'));
-      }
-    }
-  };
-
-  const handleClearAll = async () => {
-    if (confirm(t('footer.confirmClearAll'))) {
-      try {
-        await apiClient.post('/auth/clear');
-        queryClient.invalidateQueries();
-        alert(t('footer.clearSuccess'));
-      } catch (err: any) {
-        alert(err.response?.data?.message || t('footer.clearError'));
       }
     }
   };
@@ -83,7 +70,7 @@ function App() {
         {/* Footer */}
         <footer className="flex gap-4 items-center pt-9 mt-auto text-[12px] text-faint-darker flex-wrap select-none border-t border-inputBorder/15">
           <span>{t('footer.secureText')}</span>
-          <span className="text-[10px] font-bold text-faint bg-chipBg px-2 py-0.5 rounded-md leading-none mt-0.5">v1.0.0</span>
+          <span className="text-[10px] font-bold text-faint bg-chipBg px-2 py-0.5 rounded-md leading-none mt-0.5">v{packageJson.version}</span>
           <div className="ml-auto flex gap-3.5">
             {config?.enableDemo && (
               <span
@@ -93,13 +80,6 @@ function App() {
                 {t('footer.loadDemo')}
               </span>
             )}
-
-            <span
-              onClick={handleClearAll}
-              className="cursor-pointer underline hover:text-dark font-semibold"
-            >
-              {t('footer.clearAll')}
-            </span>
           </div>
         </footer>
       </main>
