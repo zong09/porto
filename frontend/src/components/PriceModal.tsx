@@ -3,6 +3,36 @@ import { useStore } from '../store/useStore';
 import { useAssets } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
+const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
+  if (val === '') return '';
+  const hasDollar = val.trim().startsWith('$');
+  const clean = val.replace(/[$,]/g, '');
+  const parts = clean.split('.');
+  
+  if (parts[0]) {
+    const num = Number(parts[0]);
+    if (!isNaN(num)) {
+      parts[0] = num.toLocaleString('en-US');
+    }
+  }
+  
+  let decimalPart = parts[1] || '';
+  if (minDecimals > 0) {
+    while (decimalPart.length < minDecimals) {
+      decimalPart += '0';
+    }
+  }
+  if (decimalPart.length > maxDecimals) {
+    decimalPart = decimalPart.slice(0, maxDecimals);
+  }
+  
+  let formatted = parts[0];
+  if (decimalPart || clean.includes('.')) {
+    formatted = parts[0] + '.' + decimalPart;
+  }
+  return hasDollar ? '$' + formatted : formatted;
+};
+
 export const PriceModal: React.FC = () => {
   const { modals, closeModal, activeAssetId } = useStore();
   const { data: assets = [], updateAsset } = useAssets();
@@ -10,6 +40,7 @@ export const PriceModal: React.FC = () => {
   const [price, setPrice] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const activeAsset = assets.find((a) => a.id === activeAssetId);
 
@@ -25,7 +56,7 @@ export const PriceModal: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    const parsedPrice = parseFloat(price);
+    const parsedPrice = parseFloat(price.replace(/[$,]/g, ''));
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
       setError(language === 'th' ? 'กรุณากรอกราคา NAV ให้ถูกต้อง (> 0)' : 'Please enter a valid NAV price (> 0)');
       return;
@@ -62,11 +93,12 @@ export const PriceModal: React.FC = () => {
           <div>
             <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{language === 'th' ? 'NAV ปัจจุบัน (฿/หน่วย)' : 'Current NAV (฿/Unit)'}</label>
             <input
-              type="number"
+              type="text"
               placeholder="0.00"
-              step="any"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              value={focusedField === 'price' ? price : formatInputWithCommas(price, 2, 8)}
+              onChange={(e) => setPrice(e.target.value.replace(/,/g, ''))}
+              onFocus={() => setFocusedField('price')}
+              onBlur={() => setFocusedField(null)}
               className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
               autoFocus
               id="input-nav-price"

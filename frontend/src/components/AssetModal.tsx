@@ -31,6 +31,36 @@ const CG_ID_MAP: Record<string, string> = {
   USDC: 'usd-coin',
 };
 
+const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
+  if (val === '') return '';
+  const hasDollar = val.trim().startsWith('$');
+  const clean = val.replace(/[$,]/g, '');
+  const parts = clean.split('.');
+  
+  if (parts[0]) {
+    const num = Number(parts[0]);
+    if (!isNaN(num)) {
+      parts[0] = num.toLocaleString('en-US');
+    }
+  }
+  
+  let decimalPart = parts[1] || '';
+  if (minDecimals > 0) {
+    while (decimalPart.length < minDecimals) {
+      decimalPart += '0';
+    }
+  }
+  if (decimalPart.length > maxDecimals) {
+    decimalPart = decimalPart.slice(0, maxDecimals);
+  }
+  
+  let formatted = parts[0];
+  if (decimalPart || clean.includes('.')) {
+    formatted = parts[0] + '.' + decimalPart;
+  }
+  return hasDollar ? '$' + formatted : formatted;
+};
+
 export const AssetModal: React.FC = () => {
   const { modals, closeModal, activePortfolioId, openModal, currency } = useStore();
   const { data: portfolios = [] } = usePortfolios();
@@ -57,6 +87,7 @@ export const AssetModal: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   useEffect(() => {
     if (modals.asset) {
@@ -130,9 +161,9 @@ export const AssetModal: React.FC = () => {
     const assetCcy = type === 'us' ? 'USD' : 'THB';
     const yahooSymbol = type === 'th' ? `${trimSymbol}.BK` : type === 'us' ? trimSymbol : undefined;
     
-    let manualPrice = type === 'fund' && nav ? parseFloat(nav) : undefined;
+    let manualPrice = type === 'fund' && nav ? parseFloat(nav.replace(/[$,]/g, '')) : undefined;
     if (manualPrice !== undefined && currency === 'USD') {
-      manualPrice = parseFloat(nav) * fx;
+      manualPrice = parseFloat(nav.replace(/[$,]/g, '')) * fx;
     }
 
     // Validate opening buy details if filled
@@ -141,8 +172,8 @@ export const AssetModal: React.FC = () => {
       qty = qty * fx;
     }
 
-    const prInput = type === 'deposit' ? 1 : parseFloat(oPrice);
-    const feInput = type === 'deposit' ? 0 : parseFloat(oFee || '0');
+    const prInput = type === 'deposit' ? 1 : parseFloat(oPrice.replace(/[$,]/g, ''));
+    const feInput = type === 'deposit' ? 0 : parseFloat((oFee || '0').replace(/[$,]/g, ''));
 
     let pr = prInput;
     let fe = feInput;
@@ -239,7 +270,9 @@ export const AssetModal: React.FC = () => {
   };
 
   const isDep = type === 'deposit';
-  const oTotal = (parseFloat(oQty) || 0) * (isDep ? 1 : (parseFloat(oPrice) || 0)) + (isDep ? 0 : (parseFloat(oFee) || 0));
+  const cleanOPrice = oPrice.replace(/[$,]/g, '');
+  const cleanOFee = oFee.replace(/[$,]/g, '');
+  const oTotal = (parseFloat(oQty) || 0) * (isDep ? 1 : (parseFloat(cleanOPrice) || 0)) + (isDep ? 0 : (parseFloat(cleanOFee) || 0));
   const totalSpentFmt = (currency === 'USD' ? '$' : '฿') + oTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
@@ -338,11 +371,12 @@ export const AssetModal: React.FC = () => {
                 {language === 'th' ? `NAV เริ่มต้น (${currency === 'USD' ? '$' : '฿'}/หน่วย)` : `Initial NAV (${currency === 'USD' ? '$' : '฿'}/Unit)`}
               </label>
               <input
-                type="number"
+                type="text"
                 placeholder="0.00"
-                step="any"
-                value={nav}
-                onChange={(e) => setNav(e.target.value)}
+                value={focusedField === 'nav' ? nav : formatInputWithCommas(nav, 2, 8)}
+                onChange={(e) => setNav(e.target.value.replace(/,/g, ''))}
+                onFocus={() => setFocusedField('nav')}
+                onBlur={() => setFocusedField(null)}
                 className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                 id="input-asset-nav"
               />
@@ -394,11 +428,12 @@ export const AssetModal: React.FC = () => {
                     {language === 'th' ? `ราคาต่อหน่วย (${currency === 'USD' ? '$' : '฿'})` : `Price per Unit (${currency === 'USD' ? '$' : '฿'})`}
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     placeholder="0.00"
-                    step="any"
-                    value={oPrice}
-                    onChange={(e) => setOPrice(e.target.value)}
+                    value={focusedField === 'oPrice' ? oPrice : formatInputWithCommas(oPrice, 2, 8)}
+                    onChange={(e) => setOPrice(e.target.value.replace(/,/g, ''))}
+                    onFocus={() => setFocusedField('oPrice')}
+                    onBlur={() => setFocusedField(null)}
                     className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                     id="input-opening-price"
                   />
@@ -407,11 +442,12 @@ export const AssetModal: React.FC = () => {
                 <div>
                   <label className="block text-[12px] font-semibold text-muted mb-[5px]">{language === 'th' ? 'ค่าธรรมเนียม' : 'Fee'}</label>
                   <input
-                    type="number"
+                    type="text"
                     placeholder="0.00"
-                    step="any"
-                    value={oFee}
-                    onChange={(e) => setOFee(e.target.value)}
+                    value={focusedField === 'oFee' ? oFee : formatInputWithCommas(oFee, 2, 8)}
+                    onChange={(e) => setOFee(e.target.value.replace(/,/g, ''))}
+                    onFocus={() => setFocusedField('oFee')}
+                    onBlur={() => setFocusedField(null)}
                     className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors shadow-sm"
                     id="input-opening-fee"
                   />
