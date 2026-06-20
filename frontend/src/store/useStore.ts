@@ -29,6 +29,7 @@ interface StoreState {
   modals: ModalsState;
   activeAssetId: string | null;
   activePortfolioId: string | null;
+  activeTransactionId: string | null;
 
   // Actions
   setPage: (page: PageType) => void;
@@ -36,7 +37,10 @@ interface StoreState {
   setLanguage: (language: LanguageType) => void;
   login: (user: User, token: string) => void;
   logout: () => void;
-  openModal: (modalName: keyof ModalsState, options?: { assetId?: string; portfolioId?: string }) => void;
+  openModal: (
+    modalName: keyof ModalsState,
+    options?: { assetId?: string; portfolioId?: string; transactionId?: string }
+  ) => void;
   closeModal: (modalName: keyof ModalsState) => void;
   closeAllModals: () => void;
 }
@@ -73,6 +77,7 @@ export const useStore = create<StoreState>((set) => {
     },
     activeAssetId: null,
     activePortfolioId: null,
+    activeTransactionId: null,
 
     setPage: (page) => set({ page }),
     setCurrency: (currency) => {
@@ -105,6 +110,7 @@ export const useStore = create<StoreState>((set) => {
         },
         activeAssetId: null,
         activePortfolioId: null,
+        activeTransactionId: null,
       });
     },
     openModal: (modalName, options) =>
@@ -112,12 +118,14 @@ export const useStore = create<StoreState>((set) => {
         modals: { ...state.modals, [modalName]: true },
         activeAssetId: options?.assetId || null,
         activePortfolioId: options?.portfolioId || null,
+        activeTransactionId: options?.transactionId || null,
       })),
     closeModal: (modalName) =>
       set((state) => ({
         modals: { ...state.modals, [modalName]: false },
         activeAssetId: modalName === 'price' || modalName === 'chart' ? null : state.activeAssetId,
         activePortfolioId: modalName === 'asset' ? null : state.activePortfolioId,
+        activeTransactionId: modalName === 'tx' ? null : state.activeTransactionId,
       })),
     closeAllModals: () =>
       set({
@@ -131,6 +139,7 @@ export const useStore = create<StoreState>((set) => {
         },
         activeAssetId: null,
         activePortfolioId: null,
+        activeTransactionId: null,
       }),
   };
 });

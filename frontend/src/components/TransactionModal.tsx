@@ -34,9 +34,9 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
 };
 
 export const TransactionModal: React.FC = () => {
-  const { modals, closeModal, activeAssetId, openModal, currency } = useStore();
+  const { modals, closeModal, activeAssetId, activeTransactionId, openModal, currency } = useStore();
   const { data: assets = [] } = useAssets();
-  const { createTransaction } = useTransactions();
+  const { data: transactions = [], createTransaction, updateTransaction } = useTransactions();
   const { summary } = useNetWorth();
   const { t, language } = useTranslation();
 
@@ -52,25 +52,61 @@ export const TransactionModal: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
   const selectedAsset = assets.find((a) => a.id === assetId);
   const isDeposit = selectedAsset?.type === 'deposit';
 
   useEffect(() => {
     if (modals.tx) {
-      if (activeAssetId) {
-        setAssetId(activeAssetId);
-      } else if (assets.length > 0) {
-        setAssetId(assets[0].id);
+      if (activeTransactionId && activeTransaction) {
+        setAssetId(activeTransaction.assetId);
+        
+        const asset = assets.find((a) => a.id === activeTransaction.assetId);
+        const isDep = asset?.type === 'deposit';
+        if (isDep) {
+          setSide(activeTransaction.side === 'buy' ? 'buy' : 'sell');
+        } else {
+          setSide(activeTransaction.side as 'buy' | 'sell');
+        }
+        
+        // Convert quantities, prices, and fees if displaying in USD while asset is THB (and vice versa)
+        let prefilledQty = activeTransaction.quantity;
+        if (isDep && currency === 'USD') {
+          prefilledQty = activeTransaction.quantity / fx;
+        }
+        setQuantity(prefilledQty ? Number(prefilledQty.toFixed(8)).toString() : '');
+
+        let prefilledPrice = activeTransaction.price;
+        let prefilledFee = activeTransaction.fee || 0;
+        if (!isDep && asset) {
+          if (currency === 'USD' && asset.currency === 'THB') {
+            prefilledPrice = activeTransaction.price / fx;
+            prefilledFee = (activeTransaction.fee || 0) / fx;
+          } else if (currency === 'THB' && asset.currency === 'USD') {
+            prefilledPrice = activeTransaction.price * fx;
+            prefilledFee = (activeTransaction.fee || 0) * fx;
+          }
+        }
+        
+        setPrice(prefilledPrice ? Number(prefilledPrice.toFixed(8)).toString() : (activeTransaction.price === 0 ? '0' : ''));
+        setFee(prefilledFee ? Number(prefilledFee.toFixed(8)).toString() : (activeTransaction.fee === 0 ? '0' : ''));
+        setDate(activeTransaction.date.slice(0, 10));
+      } else {
+        if (activeAssetId) {
+          setAssetId(activeAssetId);
+        } else if (assets.length > 0) {
+          setAssetId(assets[0].id);
+        }
+        setSide('buy');
+        setQuantity('');
+        setFee('');
+        setDate(new Date().toISOString().slice(0, 10));
       }
-      setSide('buy');
-      setQuantity('');
-      setFee('');
-      setDate(new Date().toISOString().slice(0, 10));
     }
-  }, [modals.tx, activeAssetId, assets]);
+  }, [modals.tx, activeTransactionId, activeTransaction, activeAssetId, assets, currency, fx]);
 
   useEffect(() => {
-    if (selectedAsset) {
+    if (selectedAsset && !activeTransactionId) {
       if (selectedAsset.type === 'deposit') {
         setPrice('1');
         setFee('0');
@@ -85,7 +121,7 @@ export const TransactionModal: React.FC = () => {
         setFee('');
       }
     }
-  }, [selectedAsset, currency, fx]);
+  }, [selectedAsset, currency, fx, activeTransactionId]);
 
   if (!modals.tx) return null;
 
@@ -139,8 +175,10 @@ export const TransactionModal: React.FC = () => {
     // Verify sell limit
     if (side === 'sell' && selectedAsset) {
       const currentQty = selectedAsset.position?.quantity || 0;
-      if (q > currentQty + 1e-9) {
-        const formattedQty = currentQty.toLocaleString('en-US', { maximumFractionDigits: 8 });
+      // If editing, we subtract the old transaction quantity from validation to get current actual excluding it
+      const oldQty = activeTransactionId && activeTransaction ? activeTransaction.quantity : 0;
+      if (q > (currentQty + oldQty) + 1e-9) {
+        const formattedQty = (currentQty + oldQty).toLocaleString('en-US', { maximumFractionDigits: 8 });
         setError(
           language === 'th'
             ? `ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${formattedQty} หน่วย)`
@@ -152,14 +190,26 @@ export const TransactionModal: React.FC = () => {
 
     setLoading(true);
     try {
-      await createTransaction.mutateAsync({
-        assetId,
-        side: isDeposit ? (side === 'buy' ? 'deposit' : 'withdraw') : side,
-        quantity: q,
-        price: p,
-        fee: f,
-        date,
-      });
+      if (activeTransactionId) {
+        await updateTransaction.mutateAsync({
+          id: activeTransactionId,
+          assetId,
+          side: isDeposit ? (side === 'buy' ? 'deposit' : 'withdraw') : side,
+          quantity: q,
+          price: p,
+          fee: f,
+          date,
+        });
+      } else {
+        await createTransaction.mutateAsync({
+          assetId,
+          side: isDeposit ? (side === 'buy' ? 'deposit' : 'withdraw') : side,
+          quantity: q,
+          price: p,
+          fee: f,
+          date,
+        });
+      }
       // Reset & close
       closeModal('tx');
     } catch (err: any) {
@@ -185,7 +235,9 @@ export const TransactionModal: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
         className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <h3 className="text-[18px] font-bold text-dark mb-[18px]">{t('modals.transaction.title')}</h3>
+        <h3 className="text-[18px] font-bold text-dark mb-[18px]">
+          {activeTransactionId ? (language === 'th' ? 'แก้ไขรายการธุรกรรม' : 'Edit Transaction') : t('modals.transaction.title')}
+        </h3>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           {/* Asset select */}
@@ -194,7 +246,8 @@ export const TransactionModal: React.FC = () => {
             <select
               value={assetId}
               onChange={(e) => setAssetId(e.target.value)}
-              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm"
+              disabled={!!activeTransactionId}
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               id="select-txn-asset"
             >
               {assets.map((a) => (
@@ -203,15 +256,17 @@ export const TransactionModal: React.FC = () => {
                 </option>
               ))}
             </select>
-            <div
-              onClick={() => {
-                closeModal('tx');
-                openModal('asset');
-              }}
-              className="text-xs text-terracotta hover:text-terracotta-hover font-semibold mt-2.5 cursor-pointer underline select-none inline-block"
-            >
-              + {t('portfolios.addAssetBtn')}
-            </div>
+            {!activeTransactionId && (
+              <div
+                onClick={() => {
+                  closeModal('tx');
+                  openModal('asset');
+                }}
+                className="text-xs text-terracotta hover:text-terracotta-hover font-semibold mt-2.5 cursor-pointer underline select-none inline-block"
+              >
+                + {t('portfolios.addAssetBtn')}
+              </div>
+            )}
           </div>
 
           {/* Segmented Buy/Sell toggle */}

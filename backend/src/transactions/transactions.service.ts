@@ -110,6 +110,74 @@ export class TransactionsService {
     return this.transactionRepo.save(tx);
   }
 
+  async update(
+    id: string,
+    userId: string,
+    assetId: string,
+    side: 'buy' | 'sell' | 'deposit' | 'withdraw',
+    quantity: number,
+    price: number,
+    fee: number,
+    date: string,
+  ): Promise<Transaction> {
+    // 1. Verify transaction ownership and existence
+    const tx = await this.findOne(id, userId);
+
+    // 2. Verify asset ownership and existence
+    const asset = await this.assetRepo.createQueryBuilder('asset')
+      .innerJoinAndSelect('asset.portfolio', 'portfolio')
+      .where('asset.id = :assetId', { assetId })
+      .andWhere('portfolio.userId = :userId', { userId })
+      .getOne();
+
+    if (!asset) {
+      throw new NotFoundException('ไม่พบสินทรัพย์นี้ หรือคุณไม่มีสิทธิ์เข้าถึง');
+    }
+
+    // 3. Validate side vs asset type
+    if (asset.type === 'deposit') {
+      if (side !== 'buy' && side !== 'deposit' && side !== 'sell' && side !== 'withdraw') {
+        throw new BadRequestException('ประเภทรายการไม่ถูกต้องสำหรับเงินฝาก');
+      }
+    }
+    
+    let dbSide: 'buy' | 'sell' = 'buy';
+    if (side === 'sell' || side === 'withdraw') {
+      dbSide = 'sell';
+    }
+
+    // 4. For sells, validate quantity does not exceed currently held quantity (excluding the current transaction being edited)
+    if (dbSide === 'sell') {
+      const existingTxs = await this.transactionRepo.find({
+        where: { assetId },
+      });
+      // Map to SimpleTransaction for math, excluding the current transaction being edited
+      const simpleTxs = existingTxs
+        .filter(t => t.id !== id)
+        .map(t => ({
+          quantity: Number(t.quantity),
+          price: Number(t.price),
+          fee: Number(t.fee),
+          side: t.side,
+          date: t.date,
+        }));
+      const position = this.positionService.calculate(simpleTxs);
+      
+      if (quantity > position.quantity + 1e-9) {
+        throw new BadRequestException(`ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${position.quantity} หน่วย)`);
+      }
+    }
+
+    tx.assetId = assetId;
+    tx.side = dbSide;
+    tx.quantity = quantity;
+    tx.price = asset.type === 'deposit' ? 1 : price;
+    tx.fee = asset.type === 'deposit' ? 0 : fee;
+    tx.date = date || new Date().toISOString().slice(0, 10);
+
+    return this.transactionRepo.save(tx);
+  }
+
   async remove(id: string, userId: string): Promise<void> {
     await this.findOne(id, userId);
     await this.transactionRepo.delete(id);
