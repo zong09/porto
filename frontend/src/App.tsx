@@ -83,6 +83,7 @@ function App() {
         {/* Footer */}
         <footer className="flex gap-4 items-center pt-9 mt-auto text-[12px] text-faint-darker flex-wrap select-none border-t border-inputBorder/15">
           <span>{t('footer.secureText')}</span>
+          <span className="text-[10px] font-bold text-faint bg-chipBg px-2 py-0.5 rounded-md leading-none mt-0.5">v1.0.0</span>
           <div className="ml-auto flex gap-3.5">
             {config?.enableDemo && (
               <span

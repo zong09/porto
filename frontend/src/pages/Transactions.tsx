@@ -52,10 +52,9 @@ export const Transactions: React.FC = () => {
 
   const formatQty = (qty: number, type: string) => {
     if (type === 'deposit') return `฿${qty.toLocaleString('en-US')}`;
-    const fractionDigits = Math.abs(qty) < 10 ? 4 : 2;
     return qty.toLocaleString('en-US', {
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
+      minimumFractionDigits: 8,
+      maximumFractionDigits: 8,
     });
   };
 
