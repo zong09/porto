@@ -70,26 +70,26 @@ export const TransactionModal: React.FC = () => {
         }
         
         // Convert quantities, prices, and fees if displaying in USD while asset is THB (and vice versa)
-        let prefilledQty = activeTransaction.quantity;
+        let prefilledQty = Number(activeTransaction.quantity);
         if (isDep && currency === 'USD') {
-          prefilledQty = activeTransaction.quantity / fx;
+          prefilledQty = Number(activeTransaction.quantity) / fx;
         }
         setQuantity(prefilledQty ? Number(prefilledQty.toFixed(8)).toString() : '');
 
-        let prefilledPrice = activeTransaction.price;
-        let prefilledFee = activeTransaction.fee || 0;
+        let prefilledPrice = Number(activeTransaction.price);
+        let prefilledFee = Number(activeTransaction.fee || 0);
         if (!isDep && asset) {
           if (currency === 'USD' && asset.currency === 'THB') {
-            prefilledPrice = activeTransaction.price / fx;
-            prefilledFee = (activeTransaction.fee || 0) / fx;
+            prefilledPrice = Number(activeTransaction.price) / fx;
+            prefilledFee = Number(activeTransaction.fee || 0) / fx;
           } else if (currency === 'THB' && asset.currency === 'USD') {
-            prefilledPrice = activeTransaction.price * fx;
-            prefilledFee = (activeTransaction.fee || 0) * fx;
+            prefilledPrice = Number(activeTransaction.price) * fx;
+            prefilledFee = Number(activeTransaction.fee || 0) * fx;
           }
         }
         
-        setPrice(prefilledPrice ? Number(prefilledPrice.toFixed(8)).toString() : (activeTransaction.price === 0 ? '0' : ''));
-        setFee(prefilledFee ? Number(prefilledFee.toFixed(8)).toString() : (activeTransaction.fee === 0 ? '0' : ''));
+        setPrice(prefilledPrice ? Number(prefilledPrice.toFixed(8)).toString() : (Number(activeTransaction.price) === 0 ? '0' : ''));
+        setFee(prefilledFee ? Number(prefilledFee.toFixed(8)).toString() : (Number(activeTransaction.fee) === 0 ? '0' : ''));
         setDate(activeTransaction.date.slice(0, 10));
       } else {
         if (activeAssetId) {
@@ -176,7 +176,7 @@ export const TransactionModal: React.FC = () => {
     if (side === 'sell' && selectedAsset) {
       const currentQty = selectedAsset.position?.quantity || 0;
       // If editing, we subtract the old transaction quantity from validation to get current actual excluding it
-      const oldQty = activeTransactionId && activeTransaction ? activeTransaction.quantity : 0;
+      const oldQty = activeTransactionId && activeTransaction ? Number(activeTransaction.quantity) : 0;
       if (q > (currentQty + oldQty) + 1e-9) {
         const formattedQty = (currentQty + oldQty).toLocaleString('en-US', { maximumFractionDigits: 8 });
         setError(
