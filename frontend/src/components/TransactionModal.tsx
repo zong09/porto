@@ -70,9 +70,12 @@ export const TransactionModal: React.FC = () => {
         }
         
         // Convert quantities, prices, and fees if displaying in USD while asset is THB (and vice versa)
+        // Values are stored in the asset's native currency; convert to the display currency for the form.
+        const fromNative = (v: number) =>
+          !asset || currency === asset.currency ? v : currency === 'USD' ? v / fx : v * fx;
         let prefilledQty = Number(activeTransaction.quantity);
-        if (isDep && currency === 'USD') {
-          prefilledQty = Number(activeTransaction.quantity) / fx;
+        if (isDep) {
+          prefilledQty = fromNative(Number(activeTransaction.quantity));
         }
         setQuantity(prefilledQty ? Number(prefilledQty.toFixed(8)).toString() : '');
 
@@ -155,9 +158,10 @@ export const TransactionModal: React.FC = () => {
       return;
     }
 
+    // Deposit quantity is a cash amount in the asset's native currency; convert from the display currency.
     let q = qInput;
-    if (isDeposit && currency === 'USD') {
-      q = qInput * fx;
+    if (isDeposit && selectedAsset && currency !== selectedAsset.currency) {
+      q = currency === 'USD' ? qInput * fx : qInput / fx;
     }
 
     let p = pInput;

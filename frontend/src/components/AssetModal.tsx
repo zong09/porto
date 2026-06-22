@@ -78,6 +78,8 @@ export const AssetModal: React.FC = () => {
   const [name, setName] = useState('');
   const [cgId, setCgId] = useState('');
   const [nav, setNav] = useState('');
+  // Native currency the asset is denominated in (stored on the asset; transactions are stored in this currency).
+  const [assetCcy, setAssetCcy] = useState<'THB' | 'USD'>('USD');
 
   // Opening Transaction Fields
   const [oQty, setOQty] = useState('');
@@ -97,6 +99,7 @@ export const AssetModal: React.FC = () => {
         setPortfolioId(portfolios[0].id);
       }
       setType('crypto');
+      setAssetCcy('USD');
       setSymbol('');
       setName('');
       setCgId('');
@@ -121,6 +124,8 @@ export const AssetModal: React.FC = () => {
   const handleTypeChange = (newType: typeof type) => {
     setType(newType);
     setError(null);
+    // Sensible default native currency per type; user can still override (th/us follow the Yahoo listing currency).
+    setAssetCcy(newType === 'th' || newType === 'fund' || newType === 'deposit' ? 'THB' : 'USD');
     if (newType === 'deposit') {
       setOPrice('1');
       setOFee('0');
@@ -158,18 +163,17 @@ export const AssetModal: React.FC = () => {
     }
 
     // Prepare variables
-    const assetCcy = type === 'us' ? 'USD' : 'THB';
     const yahooSymbol = type === 'th' ? `${trimSymbol}.BK` : type === 'us' ? trimSymbol : undefined;
-    
-    let manualPrice = type === 'fund' && nav ? parseFloat(nav.replace(/[$,]/g, '')) : undefined;
-    if (manualPrice !== undefined && currency === 'USD') {
-      manualPrice = parseFloat(nav.replace(/[$,]/g, '')) * fx;
-    }
+
+    // Inputs are entered in the display currency; everything is stored in the asset's native currency (assetCcy).
+    const toNative = (v: number) => (currency === assetCcy ? v : currency === 'USD' ? v * fx : v / fx);
+
+    let manualPrice = type === 'fund' && nav ? toNative(parseFloat(nav.replace(/[$,]/g, ''))) : undefined;
 
     // Validate opening buy details if filled
     let qty = parseFloat(oQty);
-    if (type === 'deposit' && currency === 'USD' && !isNaN(qty)) {
-      qty = qty * fx;
+    if (type === 'deposit' && !isNaN(qty)) {
+      qty = toNative(qty);
     }
 
     const prInput = type === 'deposit' ? 1 : parseFloat(oPrice.replace(/[$,]/g, ''));
@@ -178,13 +182,8 @@ export const AssetModal: React.FC = () => {
     let pr = prInput;
     let fe = feInput;
     if (type !== 'deposit') {
-      if (currency === 'USD' && assetCcy === 'THB') {
-        pr = prInput * fx;
-        fe = feInput * fx;
-      } else if (currency === 'THB' && assetCcy === 'USD') {
-        pr = prInput / fx;
-        fe = feInput / fx;
-      }
+      pr = toNative(prInput);
+      fe = toNative(feInput);
     }
 
     const hasOpeningTransaction = oQty.trim() !== '';
@@ -319,6 +318,37 @@ export const AssetModal: React.FC = () => {
               <option value="fund">{language === 'th' ? 'กองทุนรวม (กรอก NAV เอง)' : 'Mutual Funds (Enter NAV manually)'}</option>
               <option value="deposit">{language === 'th' ? 'เงินฝาก / เงินสด' : 'Cash / Deposits'}</option>
             </select>
+          </div>
+
+          {/* Native Currency */}
+          <div>
+            <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
+              {language === 'th' ? 'สกุลเงินของสินทรัพย์' : 'Asset Currency'}
+            </label>
+            <div className="flex gap-2">
+              {(['THB', 'USD'] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setAssetCcy(c)}
+                  className={`flex-1 py-[9px] rounded-[12px] border font-bold text-[13.5px] cursor-pointer text-center transition-colors ${
+                    assetCcy === c
+                      ? 'bg-terracotta border-terracotta text-white'
+                      : 'bg-white border-inputBorder text-muted hover:bg-surface'
+                  }`}
+                  id={`btn-asset-ccy-${c.toLowerCase()}`}
+                >
+                  {c === 'THB' ? '฿ THB' : '$ USD'}
+                </button>
+              ))}
+            </div>
+            {(type === 'th' || type === 'us') && (
+              <p className="text-[11.5px] text-muted mt-[6px] leading-snug">
+                {language === 'th'
+                  ? 'ราคาหุ้นดึงจาก Yahoo ตามสกุลของตลาด — ควรตั้งให้ตรง (หุ้นไทย = THB, หุ้นสหรัฐ = USD)'
+                  : 'Stock prices come from Yahoo in the listing currency — keep this matched (Thai = THB, US = USD)'}
+              </p>
+            )}
           </div>
 
           {/* Symbol */}

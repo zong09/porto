@@ -122,8 +122,10 @@ export class AssetsService {
           const data = await this.pricesService.getCryptoPrices([asset.cgId], ['thb', 'usd']);
           const val = data?.[asset.cgId];
           if (val) {
-            currentPrice = Number(val.thb || 0);
-            change24h = Number(val.thb_24h_change || 0);
+            // Return the price in the asset's native currency; the frontend converts for display.
+            const q = (asset.currency || 'THB').toLowerCase(); // 'thb' | 'usd'
+            currentPrice = Number(val[q] || 0);
+            change24h = Number(val[`${q}_24h_change`] || 0);
           }
         } else if ((asset.type === 'th' || asset.type === 'us') && asset.yahooSymbol) {
           const data = await this.pricesService.getStockPrice(asset.yahooSymbol);

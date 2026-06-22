@@ -51,9 +51,9 @@ export class SeedService {
       { key: 'a5', portfolioId: portMap.p2.id, type: 'us', symbol: 'VOO', name: 'Vanguard S&P 500 ETF', currency: 'USD', yahooSymbol: 'VOO' },
       { key: 'a6', portfolioId: portMap.p2.id, type: 'th', symbol: 'PTT', name: 'ปตท.', currency: 'THB', yahooSymbol: 'PTT.BK' },
       { key: 'a7', portfolioId: portMap.p2.id, type: 'th', symbol: 'CPALL', name: 'ซีพี ออลล์', currency: 'THB', yahooSymbol: 'CPALL.BK' },
-      { key: 'a8', portfolioId: portMap.p3.id, type: 'crypto', symbol: 'BTC', name: 'Bitcoin', currency: 'THB', cgId: 'bitcoin' },
-      { key: 'a9', portfolioId: portMap.p3.id, type: 'crypto', symbol: 'ETH', name: 'Ethereum', currency: 'THB', cgId: 'ethereum' },
-      { key: 'a10', portfolioId: portMap.p3.id, type: 'crypto', symbol: 'SOL', name: 'Solana', currency: 'THB', cgId: 'solana' },
+      { key: 'a8', portfolioId: portMap.p3.id, type: 'crypto', symbol: 'BTC', name: 'Bitcoin', currency: 'USD', cgId: 'bitcoin' },
+      { key: 'a9', portfolioId: portMap.p3.id, type: 'crypto', symbol: 'ETH', name: 'Ethereum', currency: 'USD', cgId: 'ethereum' },
+      { key: 'a10', portfolioId: portMap.p3.id, type: 'crypto', symbol: 'SOL', name: 'Solana', currency: 'USD', cgId: 'solana' },
     ];
 
     const savedAssets: Record<string, Asset> = {};
@@ -84,10 +84,10 @@ export class SeedService {
       { assetId: savedAssets.a5.id, side: 'buy', quantity: 9, price: 468, fee: 0, date: dateNDaysAgo(250) },
       { assetId: savedAssets.a6.id, side: 'buy', quantity: 6000, price: 35.5, fee: 0, date: dateNDaysAgo(310) },
       { assetId: savedAssets.a7.id, side: 'buy', quantity: 3000, price: 61.75, fee: 0, date: dateNDaysAgo(200) },
-      { assetId: savedAssets.a8.id, side: 'buy', quantity: 0.2, price: 2350000, fee: 0, date: dateNDaysAgo(340) },
-      { assetId: savedAssets.a8.id, side: 'sell', quantity: 0.05, price: 3300000, fee: 0, date: dateNDaysAgo(60) },
-      { assetId: savedAssets.a9.id, side: 'buy', quantity: 1.2, price: 118000, fee: 0, date: dateNDaysAgo(220) },
-      { assetId: savedAssets.a10.id, side: 'buy', quantity: 18, price: 4650, fee: 0, date: dateNDaysAgo(90) },
+      { assetId: savedAssets.a8.id, side: 'buy', quantity: 0.2, price: 65000, fee: 0, date: dateNDaysAgo(340) },
+      { assetId: savedAssets.a8.id, side: 'sell', quantity: 0.05, price: 92000, fee: 0, date: dateNDaysAgo(60) },
+      { assetId: savedAssets.a9.id, side: 'buy', quantity: 1.2, price: 3300, fee: 0, date: dateNDaysAgo(220) },
+      { assetId: savedAssets.a10.id, side: 'buy', quantity: 18, price: 130, fee: 0, date: dateNDaysAgo(90) },
     ];
 
     const txs = this.transactionRepo.create(txsData);
