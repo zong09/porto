@@ -18,7 +18,7 @@ export const Overview: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoney = (val: number, showDecimals = true) => {
+  const formatMoney = (val: number) => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
