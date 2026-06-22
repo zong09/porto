@@ -34,7 +34,10 @@ export class NetWorthService {
     const liabilities = await this.liabilityRepo.find({
       where: { userId },
     });
-    const totalLiabilitiesThb = liabilities.reduce((sum, l) => sum + Number(l.amount), 0);
+    const totalLiabilitiesThb = liabilities.reduce(
+      (sum, l) => sum + Number(l.amount),
+      0,
+    );
 
     // 3. Fetch FX rate
     const fx = await this.pricesService.getFxRate();
@@ -68,7 +71,10 @@ export class NetWorthService {
         // Fetch live price
         try {
           if (asset.type === 'crypto' && asset.cgId) {
-            const data = await this.pricesService.getCryptoPrices([asset.cgId], ['thb', 'usd']);
+            const data = await this.pricesService.getCryptoPrices(
+              [asset.cgId],
+              ['thb', 'usd'],
+            );
             const val = data?.[asset.cgId];
             if (val) {
               // Pick the price in the asset's native currency so the fx multiplier below converts correctly.
@@ -76,8 +82,13 @@ export class NetWorthService {
               price = Number(val[q] || 0);
               chg24h = Number(val[`${q}_24h_change`] || 0);
             }
-          } else if ((asset.type === 'th' || asset.type === 'us') && asset.yahooSymbol) {
-            const data = await this.pricesService.getStockPrice(asset.yahooSymbol);
+          } else if (
+            (asset.type === 'th' || asset.type === 'us') &&
+            asset.yahooSymbol
+          ) {
+            const data = await this.pricesService.getStockPrice(
+              asset.yahooSymbol,
+            );
             if (data) {
               price = Number(data.price || 0);
               chg24h = Number(data.chg || 0);
@@ -86,7 +97,9 @@ export class NetWorthService {
         } catch (e) {
           // Fallback to manualPrice or position avg cost
           price = Number(asset.manualPrice || position.avgCost || 0);
-          console.warn(`Failed to fetch price for asset ${asset.symbol}: ${e.message}`);
+          console.warn(
+            `Failed to fetch price for asset ${asset.symbol}: ${e.message}`,
+          );
         }
       }
 
@@ -95,7 +108,7 @@ export class NetWorthService {
       // So if asset.currency is USD, we multiply by fx.
       const multiplier = asset.currency === 'USD' ? fx : 1;
       const assetValThb = position.quantity * price * multiplier;
-      
+
       totalAssetsThb += assetValThb;
       totalCostThb += position.quantity * position.avgCost * multiplier;
 
@@ -119,14 +132,17 @@ export class NetWorthService {
   }
 
   async getHistory(userId: string, days?: number): Promise<NetWorthHistory[]> {
-    const query = this.netWorthHistoryRepo.createQueryBuilder('history')
+    const query = this.netWorthHistoryRepo
+      .createQueryBuilder('history')
       .where('history.userId = :userId', { userId })
       .orderBy('history.date', 'ASC');
 
     if (days) {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - days);
-      query.andWhere('history.date >= :cutoff', { cutoff: cutoff.toISOString().slice(0, 10) });
+      query.andWhere('history.date >= :cutoff', {
+        cutoff: cutoff.toISOString().slice(0, 10),
+      });
     }
 
     return query.getMany();
