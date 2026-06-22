@@ -57,8 +57,9 @@ export class AssetsService {
             );
             const val = data?.[asset.cgId];
             if (val) {
-              currentPrice = Number(val.thb || 0);
-              change24h = Number(val.thb_24h_change || 0);
+              const q = (asset.currency || 'THB').toLowerCase();
+              currentPrice = Number(val[q] || 0);
+              change24h = Number(val[`${q}_24h_change`] || 0);
             }
           } else if (
             (asset.type === 'th' || asset.type === 'us') &&
