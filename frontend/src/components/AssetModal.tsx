@@ -62,11 +62,15 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
 };
 
 export const AssetModal: React.FC = () => {
-  const { modals, closeModal, activePortfolioId, openModal } = useStore();
+  const { modals, closeModal, activePortfolioId, activeAssetId, openModal } = useStore();
   const { data: portfolios = [] } = usePortfolios();
-  const { createAsset } = useAssets();
+  const { data: assets = [], createAsset, updateAsset } = useAssets();
   const { createTransaction } = useTransactions();
   const { t, language } = useTranslation();
+
+  // Edit mode: an asset id is active. Only name + manualPrice (NAV) are editable; the rest is locked.
+  const editing = activeAssetId ? assets.find((a) => a.id === activeAssetId) : undefined;
+  const isEdit = !!editing;
 
   // Basic Fields
   const [portfolioId, setPortfolioId] = useState('');
@@ -89,7 +93,21 @@ export const AssetModal: React.FC = () => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   useEffect(() => {
-    if (modals.asset) {
+    if (!modals.asset) return;
+    setError(null);
+    if (editing) {
+      // Prefill from the asset being edited.
+      setPortfolioId(editing.portfolioId);
+      setType(editing.type);
+      setAssetCcy(editing.currency);
+      setSymbol(editing.symbol);
+      setName(editing.name && editing.name !== editing.symbol ? editing.name : '');
+      setCgId(editing.cgId || '');
+      setNav(editing.manualPrice != null ? String(editing.manualPrice) : '');
+      setOQty('');
+      setOPrice('');
+      setOFee('');
+    } else {
       if (activePortfolioId) {
         setPortfolioId(activePortfolioId);
       } else if (portfolios.length > 0) {
@@ -106,7 +124,7 @@ export const AssetModal: React.FC = () => {
       setOFee('');
       setODate(new Date().toISOString().slice(0, 10));
     }
-  }, [modals.asset, activePortfolioId, portfolios]);
+  }, [modals.asset, activeAssetId, activePortfolioId, portfolios, assets]);
 
   // Symbol auto-mapping to CoinGecko ID
   useEffect(() => {
@@ -135,6 +153,25 @@ export const AssetModal: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Edit mode: update only name + manualPrice (NAV). No transaction, no immutable fields.
+    if (isEdit && editing) {
+      setLoading(true);
+      try {
+        await updateAsset.mutateAsync({
+          id: editing.id,
+          name: name.trim(),
+          manualPrice:
+            editing.type === 'fund' && nav ? Number.parseFloat(nav.replace(/[$,]/g, '')) : undefined,
+        });
+        closeModal('asset');
+      } catch (err: any) {
+        setError(err.response?.data?.message || t('common.error'));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     const trimSymbol = symbol.trim();
     if (!portfolioId) {
@@ -267,7 +304,11 @@ export const AssetModal: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
         className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <h3 className="text-[18px] font-bold text-dark mb-[18px]">{t('modals.asset.createTitle')}</h3>
+        <h3 className="text-[18px] font-bold text-dark mb-[18px]">
+          {isEdit
+            ? (language === 'th' ? 'แก้ไขสินทรัพย์' : 'Edit Asset')
+            : t('modals.asset.createTitle')}
+        </h3>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           {/* Portfolio Select */}
@@ -276,7 +317,8 @@ export const AssetModal: React.FC = () => {
             <select
               value={portfolioId}
               onChange={(e) => setPortfolioId(e.target.value)}
-              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm"
+              disabled={isEdit}
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               id="select-asset-port"
             >
               {portfolios.map((p) => (
@@ -293,7 +335,8 @@ export const AssetModal: React.FC = () => {
             <select
               value={type}
               onChange={(e) => handleTypeChange(e.target.value as any)}
-              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm"
+              disabled={isEdit}
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               id="select-asset-type"
             >
               <option value="crypto">{language === 'th' ? 'Crypto (ราคาจาก CoinGecko)' : 'Crypto (Price from CoinGecko)'}</option>
@@ -314,12 +357,13 @@ export const AssetModal: React.FC = () => {
                 <button
                   key={c}
                   type="button"
-                  onClick={() => setAssetCcy(c)}
-                  className={`flex-1 py-[9px] rounded-[12px] border font-bold text-[13.5px] cursor-pointer text-center transition-colors ${
+                  onClick={() => !isEdit && setAssetCcy(c)}
+                  disabled={isEdit}
+                  className={`flex-1 py-[9px] rounded-[12px] border font-bold text-[13.5px] text-center transition-colors disabled:cursor-not-allowed ${
                     assetCcy === c
                       ? 'bg-terracotta border-terracotta text-white'
                       : 'bg-white border-inputBorder text-muted hover:bg-surface'
-                  }`}
+                  } ${isEdit ? 'opacity-60' : 'cursor-pointer'}`}
                   id={`btn-asset-ccy-${c.toLowerCase()}`}
                 >
                   {c === 'THB' ? '฿ THB' : '$ USD'}
@@ -343,7 +387,8 @@ export const AssetModal: React.FC = () => {
               placeholder={symbolPlaceholder()}
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
-              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+              disabled={isEdit}
+              className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               id="input-asset-symbol"
             />
           </div>
@@ -372,7 +417,8 @@ export const AssetModal: React.FC = () => {
                 placeholder="เช่น bitcoin, ethereum"
                 value={cgId}
                 onChange={(e) => setCgId(e.target.value)}
-                className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm"
+                disabled={isEdit}
+                className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 id="input-asset-cgid"
               />
             </div>
@@ -397,7 +443,8 @@ export const AssetModal: React.FC = () => {
             </div>
           )}
 
-          {/* Optional Initial Transaction */}
+          {/* Optional Initial Transaction (create only) */}
+          {!isEdit && (
           <div className="border-t border-dashed border-inputBorder pt-4 mt-0.5 mb-3.5">
             <div className="text-[13px] font-bold text-chipBg-text mb-2.5">
               {language === 'th' ? (
@@ -477,6 +524,7 @@ export const AssetModal: React.FC = () => {
               </div>
             )}
           </div>
+          )}
 
           {error && (
             <div className="bg-[#f3ded6] text-[#84422e] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
