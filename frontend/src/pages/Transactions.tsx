@@ -18,7 +18,7 @@ export const Transactions: React.FC = () => {
     const thb = isUSD ? val * fx : val;
 
     if (isThb) {
-      const decimalLimit = Math.abs(thb) < 1000 ? 2 : 0;
+      const decimalLimit = 2;
       return '฿' + thb.toLocaleString('en-US', {
         minimumFractionDigits: decimalLimit,
         maximumFractionDigits: decimalLimit,
@@ -42,7 +42,7 @@ export const Transactions: React.FC = () => {
         maximumFractionDigits: 2,
       });
     } else {
-      const decimalLimit = Math.abs(thb) < 1000 ? 2 : 0;
+      const decimalLimit = 2;
       return '฿' + thb.toLocaleString('en-US', {
         minimumFractionDigits: decimalLimit,
         maximumFractionDigits: decimalLimit,
@@ -53,7 +53,7 @@ export const Transactions: React.FC = () => {
   const formatQty = (qty: number, type: string) => {
     if (type === 'deposit') return `฿${qty.toLocaleString('en-US')}`;
     return qty.toLocaleString('en-US', {
-      minimumFractionDigits: 8,
+      minimumFractionDigits: 0,
       maximumFractionDigits: 8,
     });
   };

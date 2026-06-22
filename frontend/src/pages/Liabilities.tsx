@@ -24,7 +24,8 @@ export const Liabilities: React.FC = () => {
       maximumFractionDigits: 2,
     });
     const thbStr = '฿' + absThb.toLocaleString('en-US', {
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
 
     const primary = isThb ? thbStr : usdStr;

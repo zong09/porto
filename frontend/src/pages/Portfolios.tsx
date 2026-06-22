@@ -14,7 +14,7 @@ export const Portfolios: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoneyPrimary = (val: number, showDecimals = false, nativeCcy?: 'THB' | 'USD') => {
+  const formatMoneyPrimary = (val: number, showDecimals = true, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
@@ -25,8 +25,8 @@ export const Portfolios: React.FC = () => {
 
     if (useThb) {
       const formatted = absThb.toLocaleString('en-US', {
-        maximumFractionDigits: showDecimals ? 2 : 0,
-        minimumFractionDigits: showDecimals ? 2 : 0,
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2,
       });
       return `${isNeg ? '-' : ''}฿${formatted}`;
     } else {
@@ -38,7 +38,7 @@ export const Portfolios: React.FC = () => {
     }
   };
 
-  const formatMoneySecondary = (val: number, showDecimals = false, nativeCcy?: 'THB' | 'USD') => {
+  const formatMoneySecondary = (val: number, showDecimals = true, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
@@ -54,14 +54,14 @@ export const Portfolios: React.FC = () => {
       return `${isNeg ? '-' : ''}$${formatted}`;
     } else {
       const formatted = absThb.toLocaleString('en-US', {
-        maximumFractionDigits: showDecimals ? 2 : 0,
-        minimumFractionDigits: showDecimals ? 2 : 0,
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2,
       });
       return `${isNeg ? '-' : ''}฿${formatted}`;
     }
   };
 
-  const formatMoney = (val: number, showDecimals = false) => {
+  const formatMoney = (val: number, showDecimals = true) => {
     const primary = formatMoneyPrimary(val, showDecimals);
     const secondary = formatMoneySecondary(val, showDecimals);
     return (
@@ -81,7 +81,7 @@ export const Portfolios: React.FC = () => {
 
     // Primary shows the asset's own native currency, regardless of global display.
     if (ccy === 'THB') {
-      const decimalLimit = forceDecimals || Math.abs(thb) < 1000 ? 2 : 0;
+      const decimalLimit = 2;
       return '฿' + thb.toLocaleString('en-US', {
         minimumFractionDigits: decimalLimit,
         maximumFractionDigits: decimalLimit,
@@ -106,7 +106,7 @@ export const Portfolios: React.FC = () => {
         maximumFractionDigits: 2,
       });
     } else {
-      const decimalLimit = forceDecimals || Math.abs(thb) < 1000 ? 2 : 0;
+      const decimalLimit = 2;
       return '฿' + thb.toLocaleString('en-US', {
         minimumFractionDigits: decimalLimit,
         maximumFractionDigits: decimalLimit,
@@ -118,7 +118,7 @@ export const Portfolios: React.FC = () => {
   const formatQty = (qty: number, type: string) => {
     if (type === 'deposit') return `฿${qty.toLocaleString('en-US')}`;
     return qty.toLocaleString('en-US', {
-      minimumFractionDigits: 8,
+      minimumFractionDigits: 0,
       maximumFractionDigits: 8,
     });
   };

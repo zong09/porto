@@ -26,7 +26,7 @@ export const ChartModal: React.FC = () => {
     const usd = isUSD ? val : val / fx;
     const thb = isUSD ? val * fx : val;
 
-    const thbDecimals = Math.abs(thb) < 1000 ? 2 : 0;
+    const thbDecimals = 2;
 
     const usdStr = '$' + usd.toLocaleString('en-US', {
       minimumFractionDigits: 2,
