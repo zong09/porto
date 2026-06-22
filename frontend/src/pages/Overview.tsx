@@ -118,7 +118,23 @@ export const Overview: React.FC = () => {
   let nwDotY = 0;
   let xLabels: string[] = [];
 
-  const chartHistoryPoints = historyData.slice(-60); // Show last 60 points
+  let chartHistoryPoints = [...historyData].slice(-60);
+  if (chartHistoryPoints.length === 0) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const prevDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    chartHistoryPoints = [
+      { id: 'placeholder-1', date: prevDate, netWorthThb: 0, totalAssetsThb: 0, totalLiabilitiesThb: 0, fxRate: fx } as any,
+      { id: 'placeholder-2', date: todayStr, netWorthThb: netWorth, totalAssetsThb: totalAssets, totalLiabilitiesThb: totalLiabilities, fxRate: fx } as any
+    ];
+  } else if (chartHistoryPoints.length === 1) {
+    const prevDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const onlyPoint = chartHistoryPoints[0];
+    chartHistoryPoints = [
+      { id: 'placeholder-1', date: prevDate, netWorthThb: 0, totalAssetsThb: 0, totalLiabilitiesThb: 0, fxRate: onlyPoint.fxRate || fx } as any,
+      onlyPoint
+    ];
+  }
+
   if (chartHistoryPoints.length >= 2) {
     const values = chartHistoryPoints.map((h) => {
       const pointFx = h.fxRate || fx;
@@ -149,11 +165,18 @@ export const Overview: React.FC = () => {
     nwDotY = points[points.length - 1][1];
 
     // Label coordinates
-    for (let i = 0; i < 5; i++) {
-      const point = chartHistoryPoints[Math.round((i * (chartHistoryPoints.length - 1)) / 4)];
-      if (point) {
-        const d = new Date(point.date + 'T00:00:00');
-        xLabels.push(d.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { month: 'short', year: '2-digit' }));
+    if (chartHistoryPoints.length <= 5) {
+      xLabels = chartHistoryPoints.map((p) => {
+        const d = new Date(p.date + 'T00:00:00');
+        return d.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { month: 'short', year: '2-digit' });
+      });
+    } else {
+      for (let i = 0; i < 5; i++) {
+        const point = chartHistoryPoints[Math.round((i * (chartHistoryPoints.length - 1)) / 4)];
+        if (point) {
+          const d = new Date(point.date + 'T00:00:00');
+          xLabels.push(d.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { month: 'short', year: '2-digit' }));
+        }
       }
     }
   }
