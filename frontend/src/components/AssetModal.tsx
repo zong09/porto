@@ -398,7 +398,7 @@ export const AssetModal: React.FC = () => {
           {type === 'fund' && (
             <div>
               <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
-                {language === 'th' ? `NAV เริ่มต้น (${currency === 'USD' ? '$' : '฿'}/หน่วย)` : `Initial NAV (${currency === 'USD' ? '$' : '฿'}/Unit)`}
+                {language === 'th' ? `NAV เริ่มต้น (${assetCcy === 'USD' ? '$' : '฿'}/หน่วย)` : `Initial NAV (${assetCcy === 'USD' ? '$' : '฿'}/Unit)`}
               </label>
               <input
                 type="text"
