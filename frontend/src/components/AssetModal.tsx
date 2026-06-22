@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { usePortfolios, useAssets, useTransactions, useNetWorth } from '../hooks/useApi';
+import { usePortfolios, useAssets, useTransactions } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
 const CG_ID_MAP: Record<string, string> = {
@@ -62,14 +62,11 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
 };
 
 export const AssetModal: React.FC = () => {
-  const { modals, closeModal, activePortfolioId, openModal, currency } = useStore();
+  const { modals, closeModal, activePortfolioId, openModal } = useStore();
   const { data: portfolios = [] } = usePortfolios();
   const { createAsset } = useAssets();
   const { createTransaction } = useTransactions();
-  const { summary } = useNetWorth();
   const { t, language } = useTranslation();
-
-  const fx = summary.data?.fx || 35.84;
 
   // Basic Fields
   const [portfolioId, setPortfolioId] = useState('');
@@ -165,26 +162,13 @@ export const AssetModal: React.FC = () => {
     // Prepare variables
     const yahooSymbol = type === 'th' ? `${trimSymbol}.BK` : type === 'us' ? trimSymbol : undefined;
 
-    // Inputs are entered in the display currency; everything is stored in the asset's native currency (assetCcy).
-    const toNative = (v: number) => (currency === assetCcy ? v : currency === 'USD' ? v * fx : v / fx);
-
-    let manualPrice = type === 'fund' && nav ? Number.parseFloat(nav.replace(/[$,]/g, '')) : undefined;
+    // All inputs are entered directly in the asset's native currency (assetCcy); stored as-is.
+    const manualPrice = type === 'fund' && nav ? Number.parseFloat(nav.replace(/[$,]/g, '')) : undefined;
 
     // Validate opening buy details if filled
-    let qty = parseFloat(oQty);
-    if (type === 'deposit' && !isNaN(qty)) {
-      qty = toNative(qty);
-    }
-
-    const prInput = type === 'deposit' ? 1 : parseFloat(oPrice.replace(/[$,]/g, ''));
-    const feInput = type === 'deposit' ? 0 : parseFloat((oFee || '0').replace(/[$,]/g, ''));
-
-    let pr = prInput;
-    let fe = feInput;
-    if (type !== 'deposit') {
-      pr = toNative(prInput);
-      fe = toNative(feInput);
-    }
+    const qty = parseFloat(oQty);
+    const pr = type === 'deposit' ? 1 : parseFloat(oPrice.replace(/[$,]/g, ''));
+    const fe = type === 'deposit' ? 0 : parseFloat((oFee || '0').replace(/[$,]/g, ''));
 
     const hasOpeningTransaction = oQty.trim() !== '';
     if (hasOpeningTransaction) {
