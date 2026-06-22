@@ -18,7 +18,7 @@ export const Overview: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoney = (val: number, showDecimals = false) => {
+  const formatMoney = (val: number, showDecimals = true) => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
@@ -30,8 +30,8 @@ export const Overview: React.FC = () => {
       minimumFractionDigits: 2,
     });
     const thbStr = '฿' + absThb.toLocaleString('en-US', {
-      maximumFractionDigits: showDecimals ? 2 : 0,
-      minimumFractionDigits: showDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
     });
 
     const primary = isThb ? thbStr : usdStr;
