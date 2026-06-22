@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Asset } from './entities/asset.entity';
@@ -18,7 +22,8 @@ export class AssetsService {
   ) {}
 
   async findAll(userId: string): Promise<any[]> {
-    const assets = await this.assetRepo.createQueryBuilder('asset')
+    const assets = await this.assetRepo
+      .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .leftJoinAndSelect('asset.transactions', 'transactions')
       .where('portfolio.userId = :userId', { userId })
@@ -46,14 +51,22 @@ export class AssetsService {
       } else {
         try {
           if (asset.type === 'crypto' && asset.cgId) {
-            const data = await this.pricesService.getCryptoPrices([asset.cgId], ['thb', 'usd']);
+            const data = await this.pricesService.getCryptoPrices(
+              [asset.cgId],
+              ['thb', 'usd'],
+            );
             const val = data?.[asset.cgId];
             if (val) {
               currentPrice = Number(val.thb || 0);
               change24h = Number(val.thb_24h_change || 0);
             }
-          } else if ((asset.type === 'th' || asset.type === 'us') && asset.yahooSymbol) {
-            const data = await this.pricesService.getStockPrice(asset.yahooSymbol);
+          } else if (
+            (asset.type === 'th' || asset.type === 'us') &&
+            asset.yahooSymbol
+          ) {
+            const data = await this.pricesService.getStockPrice(
+              asset.yahooSymbol,
+            );
             if (data) {
               currentPrice = Number(data.price || 0);
               change24h = Number(data.chg || 0);
@@ -89,7 +102,8 @@ export class AssetsService {
   }
 
   async findOne(id: string, userId: string): Promise<any> {
-    const asset = await this.assetRepo.createQueryBuilder('asset')
+    const asset = await this.assetRepo
+      .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .leftJoinAndSelect('asset.transactions', 'transactions')
       .where('asset.id = :id', { id })
@@ -119,14 +133,24 @@ export class AssetsService {
     } else {
       try {
         if (asset.type === 'crypto' && asset.cgId) {
-          const data = await this.pricesService.getCryptoPrices([asset.cgId], ['thb', 'usd']);
+          const data = await this.pricesService.getCryptoPrices(
+            [asset.cgId],
+            ['thb', 'usd'],
+          );
           const val = data?.[asset.cgId];
           if (val) {
-            currentPrice = Number(val.thb || 0);
-            change24h = Number(val.thb_24h_change || 0);
+            // Return the price in the asset's native currency; the frontend converts for display.
+            const q = (asset.currency || 'THB').toLowerCase(); // 'thb' | 'usd'
+            currentPrice = Number(val[q] || 0);
+            change24h = Number(val[`${q}_24h_change`] || 0);
           }
-        } else if ((asset.type === 'th' || asset.type === 'us') && asset.yahooSymbol) {
-          const data = await this.pricesService.getStockPrice(asset.yahooSymbol);
+        } else if (
+          (asset.type === 'th' || asset.type === 'us') &&
+          asset.yahooSymbol
+        ) {
+          const data = await this.pricesService.getStockPrice(
+            asset.yahooSymbol,
+          );
           if (data) {
             currentPrice = Number(data.price || 0);
             change24h = Number(data.chg || 0);
@@ -197,7 +221,8 @@ export class AssetsService {
     name?: string,
     manualPrice?: number,
   ): Promise<Asset> {
-    const asset = await this.assetRepo.createQueryBuilder('asset')
+    const asset = await this.assetRepo
+      .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .where('asset.id = :id', { id })
       .andWhere('portfolio.userId = :userId', { userId })

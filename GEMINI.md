@@ -63,6 +63,7 @@ Porto runs as a unified service in production (e.g. Railway):
    - Default base currency is USD.
    - Enforce USD values are formatted to exactly 2 decimal places.
    - Secondary currency (shown in parentheses, e.g. `(฿495)`) is formatted using `text-[0.72em] text-faint ml-1.5 font-semibold` to distinguish it visually from the primary currency.
+   - **Per-asset native currency**: Each asset is denominated in its own native currency (`THB` or `USD`), chosen in `AssetModal` at creation (defaults: crypto/us = USD, th/fund/deposit = THB; th/us should match the Yahoo listing currency) and locked afterwards. Transactions (price/fee and deposit amounts) are stored in the asset's native currency; modals convert from the display currency on entry via `toNative`/`fromNative` helpers. The backend reads crypto prices in the asset's native currency (`val[currency]`) and aggregation converts native→THB base via `multiplier = asset.currency === 'USD' ? fx : 1`.
 4. **SVG Visualizations (No D3/Libraries)**:
    - All charts are constructed manually with SVG primitives (e.g., SVG paths, linear gradients, and conic-gradients).
 5. **Modals Size & Dimensions**:
