@@ -48,6 +48,7 @@ export const TransactionModal: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
   const selectedAsset = assets.find((a) => a.id === assetId);
@@ -55,7 +56,12 @@ export const TransactionModal: React.FC = () => {
   const assetCcy = selectedAsset?.currency || 'USD';
 
   useEffect(() => {
-    if (modals.tx) {
+    if (!modals.tx) {
+      setHasInitialized(false);
+      return;
+    }
+
+    if (modals.tx && !hasInitialized && assets.length > 0) {
       if (activeTransactionId && activeTransaction) {
         setAssetId(activeTransaction.assetId);
         
@@ -87,21 +93,23 @@ export const TransactionModal: React.FC = () => {
         setFee('');
         setDate(new Date().toISOString().slice(0, 10));
       }
+      setHasInitialized(true);
     }
-  }, [modals.tx, activeTransactionId, activeTransaction, activeAssetId, assets]);
+  }, [modals.tx, hasInitialized, activeTransactionId, activeTransaction, activeAssetId, assets]);
 
   useEffect(() => {
-    if (selectedAsset && !activeTransactionId) {
-      if (selectedAsset.type === 'deposit') {
+    const asset = assets.find((a) => a.id === assetId);
+    if (asset && !activeTransactionId) {
+      if (asset.type === 'deposit') {
         setPrice('1');
         setFee('0');
       } else {
-        let val = selectedAsset.currentPrice || 0;
+        let val = asset.currentPrice || 0;
         setPrice(val ? Number(val.toFixed(8)).toString() : '');
         setFee('');
       }
     }
-  }, [selectedAsset, activeTransactionId]);
+  }, [assetId, activeTransactionId]);
 
   if (!modals.tx) return null;
 
