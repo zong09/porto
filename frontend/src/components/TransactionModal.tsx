@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { useAssets, useTransactions, useNetWorth } from '../hooks/useApi';
+import { useAssets, useTransactions } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
 const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
@@ -34,13 +34,10 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
 };
 
 export const TransactionModal: React.FC = () => {
-  const { modals, closeModal, activeAssetId, activeTransactionId, openModal, currency } = useStore();
+  const { modals, closeModal, activeAssetId, activeTransactionId, openModal } = useStore();
   const { data: assets = [] } = useAssets();
   const { data: transactions = [], createTransaction, updateTransaction } = useTransactions();
-  const { summary } = useNetWorth();
   const { t, language } = useTranslation();
-
-  const fx = summary.data?.fx || 35.84;
 
   const [assetId, setAssetId] = useState('');
   const [side, setSide] = useState<'buy' | 'sell'>('buy'); // Buy/Deposit -> 'buy', Sell/Withdraw -> 'sell'
@@ -55,6 +52,7 @@ export const TransactionModal: React.FC = () => {
   const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
   const selectedAsset = assets.find((a) => a.id === assetId);
   const isDeposit = selectedAsset?.type === 'deposit';
+  const assetCcy = selectedAsset?.currency || 'USD';
 
   useEffect(() => {
     if (modals.tx) {
@@ -69,27 +67,11 @@ export const TransactionModal: React.FC = () => {
           setSide(activeTransaction.side as 'buy' | 'sell');
         }
         
-        // Convert quantities, prices, and fees if displaying in USD while asset is THB (and vice versa)
-        // Values are stored in the asset's native currency; convert to the display currency for the form.
-        const fromNative = (v: number) =>
-          !asset || currency === asset.currency ? v : currency === 'USD' ? v / fx : v * fx;
         let prefilledQty = Number(activeTransaction.quantity);
-        if (isDep) {
-          prefilledQty = fromNative(Number(activeTransaction.quantity));
-        }
         setQuantity(prefilledQty ? Number(prefilledQty.toFixed(8)).toString() : '');
 
         let prefilledPrice = Number(activeTransaction.price);
         let prefilledFee = Number(activeTransaction.fee || 0);
-        if (!isDep && asset) {
-          if (currency === 'USD' && asset.currency === 'THB') {
-            prefilledPrice = Number(activeTransaction.price) / fx;
-            prefilledFee = Number(activeTransaction.fee || 0) / fx;
-          } else if (currency === 'THB' && asset.currency === 'USD') {
-            prefilledPrice = Number(activeTransaction.price) * fx;
-            prefilledFee = Number(activeTransaction.fee || 0) * fx;
-          }
-        }
         
         setPrice(prefilledPrice ? Number(prefilledPrice.toFixed(8)).toString() : (Number(activeTransaction.price) === 0 ? '0' : ''));
         setFee(prefilledFee ? Number(prefilledFee.toFixed(8)).toString() : (Number(activeTransaction.fee) === 0 ? '0' : ''));
@@ -106,7 +88,7 @@ export const TransactionModal: React.FC = () => {
         setDate(new Date().toISOString().slice(0, 10));
       }
     }
-  }, [modals.tx, activeTransactionId, activeTransaction, activeAssetId, assets, currency, fx]);
+  }, [modals.tx, activeTransactionId, activeTransaction, activeAssetId, assets]);
 
   useEffect(() => {
     if (selectedAsset && !activeTransactionId) {
@@ -115,16 +97,11 @@ export const TransactionModal: React.FC = () => {
         setFee('0');
       } else {
         let val = selectedAsset.currentPrice || 0;
-        if (currency === 'USD' && selectedAsset.currency === 'THB') {
-          val = val / fx;
-        } else if (currency === 'THB' && selectedAsset.currency === 'USD') {
-          val = val * fx;
-        }
         setPrice(val ? Number(val.toFixed(8)).toString() : '');
         setFee('');
       }
     }
-  }, [selectedAsset, currency, fx, activeTransactionId]);
+  }, [selectedAsset, activeTransactionId]);
 
   if (!modals.tx) return null;
 
@@ -158,23 +135,9 @@ export const TransactionModal: React.FC = () => {
       return;
     }
 
-    // Deposit quantity is a cash amount in the asset's native currency; convert from the display currency.
     let q = qInput;
-    if (isDeposit && selectedAsset && currency !== selectedAsset.currency) {
-      q = currency === 'USD' ? qInput * fx : qInput / fx;
-    }
-
     let p = pInput;
     let f = fInput;
-    if (!isDeposit && selectedAsset) {
-      if (currency === 'USD' && selectedAsset.currency === 'THB') {
-        p = pInput * fx;
-        f = fInput * fx;
-      } else if (currency === 'THB' && selectedAsset.currency === 'USD') {
-        p = pInput / fx;
-        f = fInput / fx;
-      }
-    }
 
     // Verify sell limit
     if (side === 'sell' && selectedAsset) {
@@ -300,13 +263,13 @@ export const TransactionModal: React.FC = () => {
           <div>
             <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
               {isDeposit
-                ? (language === 'th' ? `จำนวนเงิน (${currency === 'USD' ? '$' : '฿'})` : `Amount (${currency === 'USD' ? '$' : '฿'})`)
+                ? (language === 'th' ? `จำนวนเงิน (${assetCcy === 'USD' ? '$' : '฿'})` : `Amount (${assetCcy === 'USD' ? '$' : '฿'})`)
                 : (language === 'th' ? 'จำนวน (หน่วย/เหรียญ/หุ้น)' : 'Quantity (units/coins/shares)')}
             </label>
             <input
               type="text"
               placeholder="0.00"
-              value={focusedField === 'qty' ? quantity : formatInputWithCommas(quantity, 8, 8)}
+              value={focusedField === 'qty' ? quantity : formatInputWithCommas(quantity, isDeposit ? 2 : 0, isDeposit ? 2 : 8)}
               onChange={(e) => setQuantity(e.target.value.replace(/,/g, ''))}
               onFocus={() => setFocusedField('qty')}
               onBlur={() => setFocusedField(null)}
@@ -321,8 +284,8 @@ export const TransactionModal: React.FC = () => {
               <div>
                 <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
                   {language === 'th'
-                    ? `ราคาต่อหน่วย (${currency === 'USD' ? '$' : '฿'})`
-                    : `Price per Unit (${currency === 'USD' ? '$' : '฿'})`}
+                    ? `ราคาต่อหน่วย (${assetCcy === 'USD' ? '$' : '฿'})`
+                    : `Price per Unit (${assetCcy === 'USD' ? '$' : '฿'})`}
                 </label>
                 <input
                   type="text"
@@ -338,7 +301,7 @@ export const TransactionModal: React.FC = () => {
 
               <div>
                 <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
-                  {language === 'th' ? 'ค่าธรรมเนียม (ถ้ามี)' : 'Fee (Optional)'}
+                  {language === 'th' ? `ค่าธรรมเนียม (ถ้ามี) (${assetCcy === 'USD' ? '$' : '฿'})` : `Fee (Optional) (${assetCcy === 'USD' ? '$' : '฿'})`}
                 </label>
                 <input
                   type="text"
