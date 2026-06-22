@@ -168,7 +168,7 @@ export const AssetModal: React.FC = () => {
     // Inputs are entered in the display currency; everything is stored in the asset's native currency (assetCcy).
     const toNative = (v: number) => (currency === assetCcy ? v : currency === 'USD' ? v * fx : v / fx);
 
-    let manualPrice = type === 'fund' && nav ? toNative(parseFloat(nav.replace(/[$,]/g, ''))) : undefined;
+    let manualPrice = type === 'fund' && nav ? Number.parseFloat(nav.replace(/[$,]/g, '')) : undefined;
 
     // Validate opening buy details if filled
     let qty = parseFloat(oQty);
@@ -398,7 +398,7 @@ export const AssetModal: React.FC = () => {
           {type === 'fund' && (
             <div>
               <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
-                {language === 'th' ? `NAV เริ่มต้น (${currency === 'USD' ? '$' : '฿'}/หน่วย)` : `Initial NAV (${currency === 'USD' ? '$' : '฿'}/Unit)`}
+                {language === 'th' ? `NAV เริ่มต้น (${assetCcy === 'USD' ? '$' : '฿'}/หน่วย)` : `Initial NAV (${assetCcy === 'USD' ? '$' : '฿'}/Unit)`}
               </label>
               <input
                 type="text"
