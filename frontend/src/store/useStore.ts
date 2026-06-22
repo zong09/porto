@@ -123,7 +123,10 @@ export const useStore = create<StoreState>((set) => {
     closeModal: (modalName) =>
       set((state) => ({
         modals: { ...state.modals, [modalName]: false },
-        activeAssetId: modalName === 'price' || modalName === 'chart' ? null : state.activeAssetId,
+        activeAssetId:
+          modalName === 'price' || modalName === 'chart' || modalName === 'asset'
+            ? null
+            : state.activeAssetId,
         activePortfolioId: modalName === 'asset' ? null : state.activePortfolioId,
         activeTransactionId: modalName === 'tx' ? null : state.activeTransactionId,
       })),

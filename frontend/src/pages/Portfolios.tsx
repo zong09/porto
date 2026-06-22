@@ -14,14 +14,16 @@ export const Portfolios: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoneyPrimary = (val: number, showDecimals = false) => {
+  const formatMoneyPrimary = (val: number, showDecimals = false, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
     const absUsd = Math.abs(usd);
     const absThb = Math.abs(thb);
+    // When nativeCcy is given, primary follows the asset's own currency; otherwise the global display.
+    const useThb = nativeCcy ? nativeCcy === 'THB' : isThb;
 
-    if (isThb) {
+    if (useThb) {
       const formatted = absThb.toLocaleString('en-US', {
         maximumFractionDigits: showDecimals ? 2 : 0,
         minimumFractionDigits: showDecimals ? 2 : 0,
@@ -36,14 +38,15 @@ export const Portfolios: React.FC = () => {
     }
   };
 
-  const formatMoneySecondary = (val: number, showDecimals = false) => {
+  const formatMoneySecondary = (val: number, showDecimals = false, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
     const absUsd = Math.abs(usd);
     const absThb = Math.abs(thb);
+    const useThb = nativeCcy ? nativeCcy === 'THB' : isThb;
 
-    if (isThb) {
+    if (useThb) {
       const formatted = absUsd.toLocaleString('en-US', {
         maximumFractionDigits: 2,
         minimumFractionDigits: 2,
@@ -76,7 +79,8 @@ export const Portfolios: React.FC = () => {
     const usd = isUSD ? val : val / fx;
     const thb = isUSD ? val * fx : val;
 
-    if (isThb) {
+    // Primary shows the asset's own native currency, regardless of global display.
+    if (ccy === 'THB') {
       const decimalLimit = forceDecimals || Math.abs(thb) < 1000 ? 2 : 0;
       return '฿' + thb.toLocaleString('en-US', {
         minimumFractionDigits: decimalLimit,
@@ -95,7 +99,8 @@ export const Portfolios: React.FC = () => {
     const usd = isUSD ? val : val / fx;
     const thb = isUSD ? val * fx : val;
 
-    if (isThb) {
+    // Secondary shows the converted (non-native) currency in parentheses.
+    if (ccy === 'THB') {
       return '$' + usd.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -335,7 +340,7 @@ export const Portfolios: React.FC = () => {
                 <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2">
                   <table className="min-w-[860px] w-full border-collapse">
                     <thead>
-                      <tr className="grid grid-cols-[1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
+                      <tr className="grid grid-cols-[1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
                         <th>{language === 'th' ? 'สินทรัพย์' : 'Asset'}</th>
                         <th className="text-right">{t('portfolios.tableQty')}</th>
                         <th className="text-right">{t('portfolios.tableAvgCost')}</th>
@@ -353,7 +358,7 @@ export const Portfolios: React.FC = () => {
                         return (
                           <tr
                             key={h.id}
-                            className="grid grid-cols-[1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
+                            className="grid grid-cols-[1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
                           >
                             <td className="flex flex-col select-none">
                               <span className="font-bold text-dark leading-none">{h.symbol}</span>
@@ -385,8 +390,8 @@ export const Portfolios: React.FC = () => {
                               )}
                             </td>
                             <td className="text-right tabular-nums flex flex-col items-end">
-                              <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb)}</span>
-                              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb)}</span>
+                              <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb, false, h.currency)}</span>
+                              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb, false, h.currency)}</span>
                             </td>
                             <td className="text-right tabular-nums flex flex-col items-end">
                               {isDep ? (
@@ -394,10 +399,10 @@ export const Portfolios: React.FC = () => {
                               ) : (
                                 <>
                                   <span className={`font-bold text-xs.5 ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
-                                    {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb)}
+                                    {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, false, h.currency)}
                                   </span>
                                   <span className="text-[10.5px] text-faint font-bold mt-0.5">
-                                    {isUp ? '+' : ''}{formatMoneySecondary(h.plThb)}
+                                    {isUp ? '+' : ''}{formatMoneySecondary(h.plThb, false, h.currency)}
                                   </span>
                                 </>
                               )}
@@ -425,6 +430,13 @@ export const Portfolios: React.FC = () => {
                                   NAV
                                 </button>
                               )}
+                              <button
+                                onClick={() => openModal('asset', { assetId: h.id })}
+                                className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
+                                title={language === 'th' ? 'แก้ไข' : 'Edit'}
+                              >
+                                ✎
+                              </button>
                               <button
                                 onClick={() => handleDeleteAsset(h.id, h.symbol)}
                                 className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
