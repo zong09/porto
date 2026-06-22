@@ -168,7 +168,7 @@ export const AssetModal: React.FC = () => {
     // Inputs are entered in the display currency; everything is stored in the asset's native currency (assetCcy).
     const toNative = (v: number) => (currency === assetCcy ? v : currency === 'USD' ? v * fx : v / fx);
 
-    let manualPrice = type === 'fund' && nav ? toNative(parseFloat(nav.replace(/[$,]/g, ''))) : undefined;
+    let manualPrice = type === 'fund' && nav ? Number.parseFloat(nav.replace(/[$,]/g, '')) : undefined;
 
     // Validate opening buy details if filled
     let qty = parseFloat(oQty);
