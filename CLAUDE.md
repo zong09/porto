@@ -42,6 +42,8 @@ Single Railway service: NestJS serves the React SPA from `backend/public/` and e
 
 **Currency Display** — Default base currency is USD. All USD numbers are strictly formatted to 2 decimal places. Dual-currency display shows both USD and THB inline/stacked, with the secondary currency (in parentheses) styled smaller (`text-[0.72em]`) for hierarchical clarity.
 
+**Per-Asset Native Currency** — Each asset is denominated in its own native currency (`THB` or `USD`), chosen in `AssetModal` at creation (defaults: crypto/us = USD, th/fund/deposit = THB; th/us should match the Yahoo listing currency). Currency is locked after creation. Transactions (price/fee, and deposit amounts) are stored in the asset's native currency; modals convert from the display currency on entry via `toNative`/`fromNative` helpers. The backend fetches crypto prices in the asset's native currency (`val[currency]`), and aggregation converts native→THB base via `multiplier = asset.currency === 'USD' ? fx : 1`.
+
 **Modal Layout** — Modals (Asset, Transaction, Portfolio, Liability, Price) use `max-w-[440px]`, `py-[26px] px-[28px]`, and `rounded-[24px]`. The Chart modal uses `max-w-[640px]`. Forms use `gap-[14px]`. Labels use `text-[12.5px] font-semibold text-muted mb-[6px]`. Inputs/selects use `py-[10px] px-[14px] rounded-[12px] text-[14px]`. Segmented toggles use `py-[9px] rounded-[12px]`. Cancel/Save footer buttons use `py-[9px] px-[18px]` / `py-[9px] px-[22px]` with `text-[13.5px]`.
 
 **State split** — TanStack Query for all server state (portfolios, assets, transactions, prices). Zustand (`src/store/useStore.ts`) for: `user`, `token`, `page`, `currency` (THB|USD), and modal open/close state. After price refetch, call `POST /api/net-worth/snapshot` to record history.
