@@ -14,7 +14,7 @@ export const Portfolios: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoneyPrimary = (val: number, showDecimals = true, nativeCcy?: 'THB' | 'USD') => {
+  const formatMoneyPrimary = (val: number, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
@@ -38,7 +38,7 @@ export const Portfolios: React.FC = () => {
     }
   };
 
-  const formatMoneySecondary = (val: number, showDecimals = true, nativeCcy?: 'THB' | 'USD') => {
+  const formatMoneySecondary = (val: number, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
@@ -61,9 +61,9 @@ export const Portfolios: React.FC = () => {
     }
   };
 
-  const formatMoney = (val: number, showDecimals = true) => {
-    const primary = formatMoneyPrimary(val, showDecimals);
-    const secondary = formatMoneySecondary(val, showDecimals);
+  const formatMoney = (val: number) => {
+    const primary = formatMoneyPrimary(val);
+    const secondary = formatMoneySecondary(val);
     return (
       <span className="tabular-nums">
         {primary}
@@ -74,7 +74,7 @@ export const Portfolios: React.FC = () => {
     );
   };
 
-  const formatNativePrimary = (val: number, ccy: 'THB' | 'USD', forceDecimals = false) => {
+  const formatNativePrimary = (val: number, ccy: 'THB' | 'USD') => {
     const isUSD = ccy === 'USD';
     const usd = isUSD ? val : val / fx;
     const thb = isUSD ? val * fx : val;
@@ -94,7 +94,7 @@ export const Portfolios: React.FC = () => {
     }
   };
 
-  const formatNativeSecondary = (val: number, ccy: 'THB' | 'USD', forceDecimals = false) => {
+  const formatNativeSecondary = (val: number, ccy: 'THB' | 'USD') => {
     const isUSD = ccy === 'USD';
     const usd = isUSD ? val : val / fx;
     const thb = isUSD ? val * fx : val;
@@ -390,8 +390,8 @@ export const Portfolios: React.FC = () => {
                               )}
                             </td>
                             <td className="text-right tabular-nums flex flex-col items-end">
-                              <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb, false, h.currency)}</span>
-                              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb, false, h.currency)}</span>
+                              <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb, h.currency)}</span>
+                              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb, h.currency)}</span>
                             </td>
                             <td className="text-right tabular-nums flex flex-col items-end">
                               {isDep ? (
@@ -399,10 +399,10 @@ export const Portfolios: React.FC = () => {
                               ) : (
                                 <>
                                   <span className={`font-bold text-xs.5 ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
-                                    {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, false, h.currency)}
+                                    {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, h.currency)}
                                   </span>
                                   <span className="text-[10.5px] text-faint font-bold mt-0.5">
-                                    {isUp ? '+' : ''}{formatMoneySecondary(h.plThb, false, h.currency)}
+                                    {isUp ? '+' : ''}{formatMoneySecondary(h.plThb, h.currency)}
                                   </span>
                                 </>
                               )}
