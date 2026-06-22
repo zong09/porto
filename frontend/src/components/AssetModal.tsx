@@ -256,7 +256,7 @@ export const AssetModal: React.FC = () => {
   const cleanOPrice = oPrice.replace(/[$,]/g, '');
   const cleanOFee = oFee.replace(/[$,]/g, '');
   const oTotal = (parseFloat(oQty) || 0) * (isDep ? 1 : (parseFloat(cleanOPrice) || 0)) + (isDep ? 0 : (parseFloat(cleanOFee) || 0));
-  const totalSpentFmt = (currency === 'USD' ? '$' : '฿') + oTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalSpentFmt = (assetCcy === 'USD' ? '$' : '฿') + oTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div
@@ -410,7 +410,7 @@ export const AssetModal: React.FC = () => {
             <div className="grid grid-cols-2 gap-3.5">
               <div>
                 <label className="block text-[12px] font-semibold text-muted mb-[5px]">
-                  {isDep ? (language === 'th' ? `จำนวนเงินเริ่มต้น (${currency === 'USD' ? '$' : '฿'})` : `Initial Balance (${currency === 'USD' ? '$' : '฿'})`) : (language === 'th' ? 'จำนวน' : 'Quantity')}
+                  {isDep ? (language === 'th' ? `จำนวนเงินเริ่มต้น (${assetCcy === 'USD' ? '$' : '฿'})` : `Initial Balance (${assetCcy === 'USD' ? '$' : '฿'})`) : (language === 'th' ? 'จำนวน' : 'Quantity')}
                 </label>
                 <input
                   type="number"
@@ -439,7 +439,7 @@ export const AssetModal: React.FC = () => {
               <div className="grid grid-cols-2 gap-3.5 mt-3">
                 <div>
                   <label className="block text-[12px] font-semibold text-muted mb-[5px]">
-                    {language === 'th' ? `ราคาต่อหน่วย (${currency === 'USD' ? '$' : '฿'})` : `Price per Unit (${currency === 'USD' ? '$' : '฿'})`}
+                    {language === 'th' ? `ราคาต่อหน่วย (${assetCcy === 'USD' ? '$' : '฿'})` : `Price per Unit (${assetCcy === 'USD' ? '$' : '฿'})`}
                   </label>
                   <input
                     type="text"
