@@ -71,8 +71,10 @@ export class NetWorthService {
             const data = await this.pricesService.getCryptoPrices([asset.cgId], ['thb', 'usd']);
             const val = data?.[asset.cgId];
             if (val) {
-              price = Number(val.thb || 0);
-              chg24h = Number(val.thb_24h_change || 0);
+              // Pick the price in the asset's native currency so the fx multiplier below converts correctly.
+              const q = (asset.currency || 'THB').toLowerCase(); // 'thb' | 'usd'
+              price = Number(val[q] || 0);
+              chg24h = Number(val[`${q}_24h_change`] || 0);
             }
           } else if ((asset.type === 'th' || asset.type === 'us') && asset.yahooSymbol) {
             const data = await this.pricesService.getStockPrice(asset.yahooSymbol);
