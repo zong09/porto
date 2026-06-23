@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
 import { PortfoliosService } from './portfolios.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
-import { IsNotEmpty, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsInt, Min, Max, IsArray, IsUUID } from 'class-validator';
 
 class CreatePortfolioDto {
   @IsNotEmpty({ message: 'ชื่อพอร์ตห้ามเป็นค่าว่าง' })
@@ -25,6 +25,12 @@ class UpdatePortfolioDto {
   color?: number;
 }
 
+class ReorderPortfolioDto {
+  @IsArray()
+  @IsUUID(4, { each: true })
+  orderedIds: string[];
+}
+
 @Controller('portfolios')
 export class PortfoliosController {
   constructor(private portfoliosService: PortfoliosService) {}
@@ -42,6 +48,12 @@ export class PortfoliosController {
   @Post()
   async create(@Body() body: CreatePortfolioDto, @CurrentUser() user: any) {
     return this.portfoliosService.create(user.userId, body.name, body.color);
+  }
+
+  @Patch('reorder')
+  async reorder(@Body() body: ReorderPortfolioDto, @CurrentUser() user: any) {
+    await this.portfoliosService.reorder(user.userId, body.orderedIds);
+    return { success: true };
   }
 
   @Patch(':id')

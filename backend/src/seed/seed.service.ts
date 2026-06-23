@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Portfolio } from '../portfolios/entities/portfolio.entity';
@@ -9,6 +9,7 @@ import { NetWorthHistory } from '../net-worth/entities/net-worth-history.entity'
 
 @Injectable()
 export class SeedService {
+  private readonly logger = new Logger(SeedService.name);
   constructor(
     @InjectRepository(Portfolio)
     private portfolioRepo: Repository<Portfolio>,
@@ -23,6 +24,7 @@ export class SeedService {
   ) {}
 
   async seedDemoUser(userId: string): Promise<void> {
+    this.logger.log(`Starting to seed demo data for user=${userId}`);
     const now = new Date();
     const dayMs = 86400000;
     const dateNDaysAgo = (n: number) => {
@@ -312,5 +314,6 @@ export class SeedService {
       );
     }
     await this.netWorthRepo.save(histories);
+    this.logger.log(`Successfully seeded demo data for user=${userId}: 3 portfolios, 10 assets, 15 transactions, 3 liabilities, 12 months history`);
   }
 }

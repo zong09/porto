@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Asset } from '../assets/entities/asset.entity';
@@ -10,6 +10,7 @@ import { PricesService } from '../prices/prices.service';
 
 @Injectable()
 export class NetWorthService {
+  private readonly logger = new Logger(NetWorthService.name);
   constructor(
     @InjectRepository(Asset)
     private assetRepo: Repository<Asset>,
@@ -24,6 +25,7 @@ export class NetWorthService {
   ) {}
 
   async getSummary(userId: string): Promise<any> {
+    this.logger.log(`Computing net-worth summary for user=${userId}`);
     // 1. Fetch assets and their transactions
     const assets = await this.assetRepo.find({
       where: { portfolio: { userId } },
@@ -97,7 +99,7 @@ export class NetWorthService {
         } catch (e) {
           // Fallback to manualPrice or position avg cost
           price = Number(asset.manualPrice || position.avgCost || 0);
-          console.warn(
+          this.logger.warn(
             `Failed to fetch price for asset ${asset.symbol}: ${e.message}`,
           );
         }
@@ -120,6 +122,7 @@ export class NetWorthService {
     }
 
     const netWorthThb = totalAssetsThb - totalLiabilitiesThb;
+    this.logger.log(`Net-worth summary: assets=฿${totalAssetsThb.toFixed(2)} liabilities=฿${totalLiabilitiesThb.toFixed(2)} netWorth=฿${netWorthThb.toFixed(2)} fx=${fx}`);
 
     return {
       totalAssetsThb,
@@ -149,6 +152,7 @@ export class NetWorthService {
   }
 
   async recordSnapshot(userId: string): Promise<NetWorthHistory> {
+    this.logger.log(`Recording net-worth snapshot for user=${userId}`);
     const summary = await this.getSummary(userId);
     const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -157,11 +161,13 @@ export class NetWorthService {
     });
 
     if (history) {
+      this.logger.log(`Updating existing snapshot for date=${todayStr}`);
       history.totalAssetsThb = summary.totalAssetsThb;
       history.totalLiabilitiesThb = summary.totalLiabilitiesThb;
       history.netWorthThb = summary.netWorthThb;
       history.fxRate = summary.fx;
     } else {
+      this.logger.log(`Creating new snapshot for date=${todayStr}`);
       history = this.netWorthHistoryRepo.create({
         userId,
         date: todayStr,

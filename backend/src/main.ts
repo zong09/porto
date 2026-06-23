@@ -4,8 +4,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { WinstonLogger } from './logger/winston-logger';
 
 async function bootstrap() {
+  const logger = new WinstonLogger();
   const app = await NestFactory.create(AppModule, {
-    logger: new WinstonLogger(),
+    logger,
   });
 
   // Set global prefix for API routes
@@ -29,6 +30,6 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3002;
   await app.listen(port);
-  console.log(`Porto backend listening on port ${port}`);
+  logger.log(`Porto backend listening on port ${port}`, 'Bootstrap');
 }
 bootstrap();

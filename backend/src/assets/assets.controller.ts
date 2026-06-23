@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
-import { IsNotEmpty, IsEnum, IsOptional, IsString, IsNumber, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsEnum, IsOptional, IsString, IsNumber, IsUUID, IsArray } from 'class-validator';
 
 class CreateAssetDto {
   @IsUUID(4, { message: 'portfolioId ต้องเป็น UUID ที่ถูกต้อง' })
@@ -43,6 +43,12 @@ class UpdateAssetDto {
   manualPrice?: number;
 }
 
+class ReorderAssetsDto {
+  @IsArray()
+  @IsUUID(4, { each: true })
+  orderedIds: string[];
+}
+
 @Controller('assets')
 export class AssetsController {
   constructor(private assetsService: AssetsService) {}
@@ -70,6 +76,12 @@ export class AssetsController {
       body.yahooSymbol,
       body.manualPrice,
     );
+  }
+
+  @Patch('reorder')
+  async reorder(@Body() body: ReorderAssetsDto, @CurrentUser() user: any) {
+    await this.assetsService.reorder(user.userId, body.orderedIds);
+    return { success: true };
   }
 
   @Patch(':id')
