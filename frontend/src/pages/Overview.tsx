@@ -407,7 +407,7 @@ export const Overview: React.FC = () => {
       {hasAssets && (
         <>
           {/* Portfolio List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
             {portfolioSummaries.map((c) => {
               const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
               const tints = ['#EFF3E6', '#F3E9DC', '#F2E0D8', '#E2EDEA', '#EAE4F0', '#F2E2E8'];
@@ -417,74 +417,76 @@ export const Overview: React.FC = () => {
                 <div
                   key={c.id}
                   onClick={() => setPage('ports')}
-                  className="rounded-2.5xl p-5.5 flex flex-col gap-2.5 cursor-pointer shadow-sm hover:-translate-y-0.5 transition-all border border-transparent duration-200"
+                  className="rounded-md p-4 flex flex-col shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                   style={{ backgroundColor: tints[i % 6] }}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-[15px] font-bold text-dark">{c.name}</span>
                     <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ color: c.returnPct >= 0 ? '#4f7136' : '#b4543c', backgroundColor: 'rgba(255,255,255,0.7)' }}
+                      className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/90 shadow-sm"
+                      style={{ color: c.returnPct >= 0 ? '#4f7136' : '#b4543c' }}
                     >
                       {c.returnPct >= 0 ? '+' : ''}
                       {c.returnPct.toFixed(1)}%
                     </span>
                   </div>
-                  <span className="text-2xl font-bold text-dark tabular-nums leading-none">
+                  <span className="text-[26px] font-bold text-dark tabular-nums tracking-tight leading-none mb-1">
                     {formatMoney(c.valueThb)}
                   </span>
-                  <p className="text-[12px] text-muted font-medium">{c.desc}</p>
+                  <p className="text-[11.5px] text-muted font-medium mb-3">{c.desc}</p>
                   
                   {/* Progress bar */}
-                  <div className="h-1.5 bg-white/75 rounded-full overflow-hidden mt-1 select-none">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max(2, Math.min(100, c.pctOfTotal))}%`,
-                        backgroundColor: palette[i % 6],
-                      }}
-                    ></div>
+                  <div className="mt-auto flex flex-col gap-1.5">
+                    <div className="h-2 bg-white rounded-full overflow-hidden select-none">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(2, Math.min(100, c.pctOfTotal))}%`,
+                          backgroundColor: palette[i % 6],
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-[10px] text-faint-darker font-bold">
+                      {c.pctOfTotal.toFixed(1)}% {t('overview.pctOfTotalAssets')}
+                    </span>
                   </div>
-                  <span className="text-[10.5px] text-faint-darker font-bold">
-                    {c.pctOfTotal.toFixed(1)}% {t('overview.pctOfTotalAssets')}
-                  </span>
                 </div>
               );
             })}
           </div>
 
-          {/* Detailed Charts Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5 mt-6 items-stretch">
+          {/* Detailed Charts Row - Unified Container */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 mt-6 items-stretch border border-inputBorder/20 shadow-sm rounded-md overflow-hidden bg-white">
             {/* Allocation Donut */}
-            <div className="bg-white rounded-2.5xl p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-4">
-              <h3 className="text-xs.5 font-bold text-dark">{t('overview.portsAllocation')}</h3>
-              <div className="flex flex-col items-center gap-5 my-auto">
-                <div className="relative w-[150px] height-[150px] shrink-0">
+            <div className="p-5 md:p-6 flex flex-col gap-4 border-b lg:border-b-0 lg:border-r border-inputBorder/20">
+              <h3 className="text-[15px] font-bold text-dark">{t('overview.portsAllocation')}</h3>
+              <div className="flex flex-col items-center gap-6 my-auto">
+                <div className="relative w-[140px] h-[140px] shrink-0 mt-2">
                   <div
-                    className="w-[150px] h-[150px] rounded-full shadow-inner"
+                    className="w-[140px] h-[140px] rounded-full shadow-inner"
                     style={{ background: donutGradient }}
                   ></div>
-                  <div className="absolute inset-[26px] rounded-full bg-white shadow-sm flex flex-col items-center justify-center">
+                  <div className="absolute inset-[24px] rounded-full bg-white shadow-sm flex flex-col items-center justify-center">
                     <span className="text-[10px] text-faint font-bold select-none">{portfoliosCount} {t('overview.portsCount')}</span>
-                    <span className="text-sm.5 font-bold text-dark tabular-nums select-none leading-none mt-0.5">
+                    <span className="text-[13px] font-bold text-dark tabular-nums select-none leading-none mt-0.5">
                       {formatAbbrMoney(totalAssets)}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5 text-xs font-semibold w-full">
+                <div className="flex flex-col gap-2 text-[11.5px] font-semibold w-full px-2">
                   {portfolioSummaries
                     .filter((p) => p.valueThb > 0)
                     .map((p) => {
                       const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
                       return (
-                        <div key={p.id} className="flex items-center gap-2 text-dark/90 select-none">
+                        <div key={p.id} className="flex items-center gap-2.5 text-dark/90 select-none">
                           <div
-                            className="w-2.5 h-2.5 rounded-full"
+                            className="w-2.5 h-2.5 rounded-full shadow-sm"
                             style={{ backgroundColor: palette[p.color % 6] }}
                           ></div>
                           <span>{p.name}</span>
-                          <span className="ml-auto font-bold tabular-nums">
+                          <span className="ml-auto font-bold tabular-nums text-dark">
                             {p.pctOfTotal.toFixed(1)}%
                           </span>
                         </div>
@@ -495,28 +497,28 @@ export const Overview: React.FC = () => {
             </div>
 
             {/* Asset P&L Bars */}
-            <div className="bg-white rounded-2.5xl p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-4">
-              <h3 className="text-xs.5 font-bold text-dark">{t('overview.unrealizedPl')}</h3>
+            <div className="p-5 md:p-6 flex flex-col gap-4 border-b lg:border-b-0 lg:border-r border-inputBorder/20">
+              <h3 className="text-[15px] font-bold text-dark">{t('overview.unrealizedPl')}</h3>
               {barChartData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center h-[200px] text-muted text-xs.5">
                   {t('overview.noUnrealizedPl')}
                 </div>
               ) : (
-                <div className="flex items-end justify-around h-[170px] px-1 my-auto">
+                <div className="flex items-end justify-around h-[220px] px-1 my-auto">
                   {barChartData.map((b, idx) => (
                     <div key={idx} className="flex flex-col items-center gap-1.5 h-full justify-end select-none">
-                      <span className="text-[10px] font-bold" style={{ color: b.isProfit ? '#4f7136' : '#b4543c' }}>
+                      <span className="text-[10px] font-bold text-center leading-[1.1] max-w-[40px]" style={{ color: b.isProfit ? '#4f7136' : '#b4543c' }}>
                         {b.valLabel}
                       </span>
                       <div
-                        className="w-[34px] transition-all duration-300"
+                        className="w-[28px] md:w-[34px] transition-all duration-300 shadow-sm"
                         style={{
-                          height: `${b.heightPercent * 1.1}px`,
+                          height: `${b.heightPercent * 1.3}px`,
                           backgroundColor: b.color,
-                          borderRadius: b.isProfit ? '9px 9px 4px 4px' : '4px 4px 9px 9px',
+                          borderRadius: b.isProfit ? '4px 4px 0 0' : '0 0 4px 4px',
                         }}
                       ></div>
-                      <span className="text-[11px] font-bold text-muted mt-1">{b.symbol}</span>
+                      <span className="text-[10px] font-bold text-muted mt-1 text-center max-w-[40px] truncate">{b.symbol}</span>
                     </div>
                   ))}
                 </div>
@@ -524,25 +526,25 @@ export const Overview: React.FC = () => {
             </div>
 
             {/* Assets vs Liabilities */}
-            <div className="bg-dark rounded-2.5xl p-5 shadow-sm flex flex-col gap-4 text-[#faf5ec]">
-              <h3 className="text-xs.5 font-bold text-[#faf5ec]/90">{t('overview.assetsVsLiabilities')}</h3>
-              <div className="flex flex-col gap-4 my-auto justify-center select-none">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex text-xs.5 text-[#cdbfa8]">
+            <div className="bg-dark p-5 md:p-6 flex flex-col gap-4 text-[#faf5ec]">
+              <h3 className="text-[15px] font-bold text-[#faf5ec]/90">{t('overview.assetsVsLiabilities')}</h3>
+              <div className="flex flex-col gap-6 my-auto justify-center select-none pt-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex text-[12.5px] font-semibold text-[#cdbfa8]">
                     <span>{t('overview.assetsLabel')}</span>
                     <span className="ml-auto font-bold text-[#faf5ec]">{formatMoney(totalAssets)}</span>
                   </div>
-                  <div className="h-4 bg-white/12 rounded-full overflow-hidden">
+                  <div className="h-4 bg-white/10 rounded-full overflow-hidden">
                     <div className="w-full h-full bg-[#a3b87a] rounded-full"></div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex text-xs.5 text-[#cdbfa8]">
+                <div className="flex flex-col gap-2">
+                  <div className="flex text-[12.5px] font-semibold text-[#cdbfa8]">
                     <span>{t('overview.liabilitiesLabel')}</span>
                     <span className="ml-auto font-bold text-[#faf5ec]">{formatMoney(totalLiabilities)}</span>
                   </div>
-                  <div className="h-4 bg-white/12 rounded-full overflow-hidden">
+                  <div className="h-4 bg-white/10 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#d98f70] rounded-full transition-all duration-300"
                       style={{ width: `${Math.max(2, Math.min(100, debtRatio))}%` }}
@@ -550,10 +552,12 @@ export const Overview: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="border-t border-dashed border-white/20 pt-4 flex flex-col gap-1 mt-2">
+                <div className="border-t border-dashed border-white/10 pt-5 flex flex-col gap-1 mt-2">
                   <span className="text-[11.5px] text-[#cdbfa8] font-bold">{t('overview.debtRatio')}</span>
-                  <span className="text-2xl font-bold text-[#faf5ec] tabular-nums mt-0.5">{debtRatio.toFixed(1)}%</span>
-                  <span className={`text-[11px] font-bold ${debtNoteColor} mt-1`}>{debtNoteText}</span>
+                  <div className="flex items-end gap-3 mt-0.5">
+                    <span className="text-[28px] font-bold text-[#faf5ec] tabular-nums leading-none tracking-tight">{debtRatio.toFixed(1)}%</span>
+                    <span className={`text-[12px] font-bold ${debtNoteColor} leading-[1.3]`}>{debtNoteText}</span>
+                  </div>
                 </div>
               </div>
             </div>
