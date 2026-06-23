@@ -95,7 +95,7 @@ export const TransactionModal: React.FC = () => {
       }
       setHasInitialized(true);
     }
-  }, [modals.tx, hasInitialized, activeTransactionId, activeTransaction, activeAssetId, assets]);
+  }, [modals.tx, hasInitialized, activeTransactionId, activeAssetId]);
 
   useEffect(() => {
     const asset = assets.find((a) => a.id === assetId);
