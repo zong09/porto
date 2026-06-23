@@ -200,8 +200,11 @@ export const Portfolios: React.FC = () => {
   };
 
 
-  const formatQty = (qty: number, type: string) => {
-    if (type === 'deposit') return `฿${qty.toLocaleString('en-US')}`;
+  const formatQty = (qty: number, type: string, ccy?: string) => {
+    if (type === 'deposit') {
+      const sign = ccy === 'USD' ? '$' : '฿';
+      return `${sign}${qty.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
     return qty.toLocaleString('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 8,
@@ -627,7 +630,7 @@ interface AssetRowContentProps {
   formatMoneySecondary: (val: number, nativeCcy?: 'THB' | 'USD') => string;
   formatNativePrimary: (val: number, ccy: 'THB' | 'USD') => string;
   formatNativeSecondary: (val: number, ccy: 'THB' | 'USD') => string;
-  formatQty: (qty: number, type: string) => string;
+  formatQty: (qty: number, type: string, ccy?: string) => string;
   openModal: (...args: any[]) => void;
   handleDeleteAsset: (id: string, symbol: string) => void;
   dragListeners?: any;
@@ -675,7 +678,7 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
         </span>
       </td>
       <td className="text-right font-bold tabular-nums text-dark/90 text-sm">
-        {formatQty(h.quantity, h.type)}
+        {formatQty(h.quantity, h.type, h.currency)}
       </td>
       <td className="text-right tabular-nums flex flex-col items-end">
         {isDep ? (
