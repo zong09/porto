@@ -91,9 +91,16 @@ export const AssetModal: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
-    if (!modals.asset) return;
+    if (!modals.asset) {
+      setHasInitialized(false);
+      return;
+    }
+
+    if (hasInitialized) return;
+
     setError(null);
     if (editing) {
       // Prefill from the asset being edited.
@@ -107,6 +114,7 @@ export const AssetModal: React.FC = () => {
       setOQty('');
       setOPrice('');
       setOFee('');
+      setHasInitialized(true);
     } else {
       if (activePortfolioId) {
         setPortfolioId(activePortfolioId);
@@ -123,8 +131,12 @@ export const AssetModal: React.FC = () => {
       setOPrice('');
       setOFee('');
       setODate(new Date().toISOString().slice(0, 10));
+      // Only mark initialized when portfolios are loaded (needed for fallback portfolioId)
+      if (portfolios.length > 0 || activePortfolioId) {
+        setHasInitialized(true);
+      }
     }
-  }, [modals.asset, activeAssetId, activePortfolioId, portfolios, assets]);
+  }, [modals.asset, activeAssetId, activePortfolioId, editing, portfolios, hasInitialized]);
 
   // Symbol auto-mapping to CoinGecko ID
   useEffect(() => {
