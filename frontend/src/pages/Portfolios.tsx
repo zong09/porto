@@ -1,18 +1,106 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { usePortfolios, useAssets, useNetWorth } from '../hooks/useApi';
-import { Trash2 } from 'lucide-react';
+import { usePortfolios, useAssets, useNetWorth, type Asset } from '../hooks/useApi';
+import { Trash2, GripVertical } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
+// ─── Sortable Portfolio Card ───────────────────────────────────────────────────
+interface SortablePortfolioProps {
+  portfolio: any;
+  children: React.ReactNode;
+}
+const SortablePortfolioCard: React.FC<SortablePortfolioProps> = ({ portfolio, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: portfolio.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: 'relative' as const,
+    zIndex: isDragging ? 50 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {React.Children.map(children, (child) =>
+        React.isValidElement(child)
+          ? React.cloneElement(child as React.ReactElement<any>, { dragListeners: listeners })
+          : child,
+      )}
+    </div>
+  );
+};
+
+// ─── Sortable Asset Row ────────────────────────────────────────────────────────
+interface SortableAssetRowProps {
+  asset: any;
+  children: React.ReactNode;
+}
+const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: asset.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className="grid grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
+    >
+      {React.Children.map(children, (child) =>
+        React.isValidElement(child)
+          ? React.cloneElement(child as React.ReactElement<any>, { dragListeners: listeners })
+          : child,
+      )}
+    </tr>
+  );
+};
+
+// ─── Main Portfolios Component ─────────────────────────────────────────────────
 export const Portfolios: React.FC = () => {
   const { currency, openModal } = useStore();
-  const { data: portfolios = [], deletePortfolio, isLoading: loadingPorts } = usePortfolios();
-  const { data: assets = [], deleteAsset, isLoading: loadingAssets } = useAssets();
+  const { data: portfolios = [], deletePortfolio, isLoading: loadingPorts, reorderPortfolios } = usePortfolios();
+  const { data: assets = [], deleteAsset, isLoading: loadingAssets, reorderAssets } = useAssets();
   const { summary } = useNetWorth();
   const { t, language } = useTranslation();
 
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
+
+  // DnD sensors: require 5px movement before drag starts (prevents accidental drags)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  // Drag overlay state
+  const [activePortfolioId, setActivePortfolioId] = React.useState<string | null>(null);
+  const [_activeAssetId, setActiveAssetId] = React.useState<string | null>(null);
 
   const formatMoneyPrimary = (val: number, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
@@ -20,7 +108,6 @@ export const Portfolios: React.FC = () => {
     const isNeg = val < 0;
     const absUsd = Math.abs(usd);
     const absThb = Math.abs(thb);
-    // When nativeCcy is given, primary follows the asset's own currency; otherwise the global display.
     const useThb = nativeCcy ? nativeCcy === 'THB' : isThb;
 
     if (useThb) {
@@ -79,7 +166,6 @@ export const Portfolios: React.FC = () => {
     const usd = isUSD ? val : val / fx;
     const thb = isUSD ? val * fx : val;
 
-    // Primary shows the asset's own native currency, regardless of global display.
     if (ccy === 'THB') {
       const decimalLimit = 2;
       return '฿' + thb.toLocaleString('en-US', {
@@ -99,7 +185,6 @@ export const Portfolios: React.FC = () => {
     const usd = isUSD ? val : val / fx;
     const thb = isUSD ? val * fx : val;
 
-    // Secondary shows the converted (non-native) currency in parentheses.
     if (ccy === 'THB') {
       return '$' + usd.toLocaleString('en-US', {
         minimumFractionDigits: 2,
@@ -162,6 +247,43 @@ export const Portfolios: React.FC = () => {
         alert(err.response?.data?.message || t('common.error'));
       }
     }
+  };
+
+  // ─── Portfolio DnD Handlers ──────────────────────────────────────────────────
+  const handlePortfolioDragStart = (event: DragStartEvent) => {
+    setActivePortfolioId(event.active.id as string);
+  };
+
+  const handlePortfolioDragEnd = (event: DragEndEvent) => {
+    setActivePortfolioId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = portfolios.findIndex((p) => p.id === active.id);
+    const newIndex = portfolios.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(portfolios, oldIndex, newIndex);
+    reorderPortfolios.mutate(newOrder.map((p) => p.id));
+  };
+
+  // ─── Asset DnD Handlers (scoped per portfolio) ───────────────────────────────
+  const handleAssetDragStart = (event: DragStartEvent) => {
+    setActiveAssetId(event.active.id as string);
+  };
+
+  const handleAssetDragEnd = (portfolioId: string) => (event: DragEndEvent) => {
+    setActiveAssetId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const pAssets = assets.filter((a) => a.portfolioId === portfolioId);
+    const oldIndex = pAssets.findIndex((a) => a.id === active.id);
+    const newIndex = pAssets.findIndex((a) => a.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(pAssets, oldIndex, newIndex);
+    reorderAssets.mutate(newOrder.map((a) => a.id));
   };
 
   if (loadingPorts || loadingAssets) {
@@ -238,6 +360,8 @@ export const Portfolios: React.FC = () => {
     };
   });
 
+  const portfolioIds = portfolioSections.map((p) => p.id);
+
   return (
     <div className="flex flex-col py-6 select-none" data-screen-label="Portfolios">
       {/* Header */}
@@ -272,190 +396,345 @@ export const Portfolios: React.FC = () => {
         </div>
       )}
 
-      {/* Portfolios List */}
-      <div className="flex flex-col gap-5 mt-6">
-        {portfolioSections.map((p) => {
-          return (
-            <div key={p.id} className="bg-white rounded-2.5xl p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-4">
-              {/* Portfolio header info */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.colorHex }}></div>
-                <span className="text-md.5 font-bold text-dark">{p.name}</span>
-                <span className="text-base font-bold text-dark tabular-nums ml-1">
-                  {formatMoney(p.valueThb)}
+      {/* Portfolios List (Drag & Drop) */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handlePortfolioDragStart}
+        onDragEnd={handlePortfolioDragEnd}
+      >
+        <SortableContext items={portfolioIds} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col gap-5 mt-6">
+            {portfolioSections.map((p) => (
+              <SortablePortfolioCard key={p.id} portfolio={p}>
+                <PortfolioCardContent
+                  p={p}
+                  assets={assets}
+                  sensors={sensors}
+                  language={language}
+                  t={t}
+                  formatMoney={formatMoney}
+                  formatMoneyPrimary={formatMoneyPrimary}
+                  formatMoneySecondary={formatMoneySecondary}
+                  formatNativePrimary={formatNativePrimary}
+                  formatNativeSecondary={formatNativeSecondary}
+                  formatQty={formatQty}
+                  openModal={openModal}
+                  handleDeletePortfolio={handleDeletePortfolio}
+                  handleDeleteAsset={handleDeleteAsset}
+                  onAssetDragStart={handleAssetDragStart}
+                  onAssetDragEnd={handleAssetDragEnd(p.id)}
+                />
+              </SortablePortfolioCard>
+            ))}
+          </div>
+        </SortableContext>
+
+        {/* Portfolio Drag Overlay */}
+        <DragOverlay>
+          {activePortfolioId ? (
+            <div className="bg-white rounded-2.5xl p-5 border-2 border-terracotta/40 shadow-xl opacity-90">
+              <div className="flex items-center gap-3">
+                <GripVertical size={16} className="text-terracotta" />
+                <span className="text-md.5 font-bold text-dark">
+                  {portfolioSections.find((p) => p.id === activePortfolioId)?.name}
                 </span>
-                {p.valueThb > 0 && (
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full select-none ${
-                      p.returnPct >= 0 ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
-                    }`}
-                  >
-                    {p.returnPct >= 0 ? '+' : ''}
-                    {p.returnPct.toFixed(1)}%
-                  </span>
-                )}
-                
-                {/* Actions */}
-                <div className="ml-auto flex items-center gap-3">
-                  <button
-                    onClick={() => openModal('asset', { portfolioId: p.id })}
-                    className="px-3.5 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11.5px] font-bold border-none cursor-pointer transition-colors"
-                  >
-                    + {language === 'th' ? 'สินทรัพย์' : 'Asset'}
-                  </button>
-                  <button
-                    onClick={() => handleDeletePortfolio(p.id, p.name)}
-                    className="bg-transparent border-none text-faint-darker hover:text-negative-text cursor-pointer text-[12px] font-semibold transition-colors flex items-center gap-0.5"
-                  >
-                    <Trash2 size={12} />
-                    <span>{t('common.delete')}</span>
-                  </button>
-                </div>
               </div>
-
-              {/* Allocation stacked bar */}
-              {p.hasAllocation && (
-                <div className="flex flex-col gap-2 border-t border-inputBorder/10 pt-4">
-                  <div className="flex h-3 rounded-full overflow-hidden bg-[#f7f0e3]">
-                    {p.allocationSegments.map((s, idx) => (
-                      <div key={idx} className="h-full" style={{ width: s.width, backgroundColor: s.color }}></div>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1.5">
-                    {p.allocationLegend.map((legend, idx) => (
-                      <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold select-none">
-                        <div className="w-2.5 h-2.5 rounded-[2px]" style={{ backgroundColor: legend.color }}></div>
-                        <span className="text-dark/95">{legend.symbol}</span>
-                        <span className="text-faint-darker">{legend.pct.toFixed(0)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Holdings list */}
-              {!p.hasHoldings ? (
-                <span className="text-xs.5 text-faint-darker font-medium py-2">{t('portfolios.noAssetsInPort')}</span>
-              ) : (
-                <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2">
-                  <table className="min-w-[860px] w-full border-collapse">
-                    <thead>
-                      <tr className="grid grid-cols-[1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
-                        <th>{language === 'th' ? 'สินทรัพย์' : 'Asset'}</th>
-                        <th className="text-right">{t('portfolios.tableQty')}</th>
-                        <th className="text-right">{t('portfolios.tableAvgCost')}</th>
-                        <th className="text-right">{t('portfolios.tablePrice')}</th>
-                        <th className="text-right">{t('portfolios.tableValue')}</th>
-                        <th className="text-right">{t('portfolios.tablePl')}</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody className="flex flex-col gap-1 mt-1">
-                      {p.holdings.map((h) => {
-                        const isDep = h.type === 'deposit';
-                        const isUp = h.plThb >= 0;
-
-                        return (
-                          <tr
-                            key={h.id}
-                            className="grid grid-cols-[1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
-                          >
-                            <td className="flex flex-col select-none">
-                              <span className="font-bold text-dark leading-none">{h.symbol}</span>
-                              <span className="text-[11px] text-faint font-semibold mt-1">
-                                {h.name && h.name !== h.symbol ? `${h.name}` : h.type.toUpperCase()}
-                              </span>
-                            </td>
-                            <td className="text-right font-bold tabular-nums text-dark/90 text-sm">
-                              {formatQty(h.quantity, h.type)}
-                            </td>
-                            <td className="text-right tabular-nums flex flex-col items-end">
-                              {isDep ? (
-                                <span className="font-semibold text-muted text-xs.5">—</span>
-                              ) : (
-                                <>
-                                  <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(h.avgCost, h.currency)}</span>
-                                  <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.avgCost, h.currency)}</span>
-                                </>
-                              )}
-                            </td>
-                            <td className="text-right tabular-nums flex flex-col items-end">
-                              {isDep ? (
-                                <span className="font-semibold text-dark/95 text-xs.5">—</span>
-                              ) : (
-                                <>
-                                  <span className="font-semibold text-dark/95 text-xs.5">{formatNativePrimary(h.currentPrice, h.currency)}</span>
-                                  <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.currentPrice, h.currency)}</span>
-                                </>
-                              )}
-                            </td>
-                            <td className="text-right tabular-nums flex flex-col items-end">
-                              <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb, h.currency)}</span>
-                              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb, h.currency)}</span>
-                            </td>
-                            <td className="text-right tabular-nums flex flex-col items-end">
-                              {isDep ? (
-                                <span className="font-bold text-faint text-xs.5">—</span>
-                              ) : (
-                                <>
-                                  <span className={`font-bold text-xs.5 ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
-                                    {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, h.currency)}
-                                  </span>
-                                  <span className="text-[10.5px] text-faint font-bold mt-0.5">
-                                    {isUp ? '+' : ''}{formatMoneySecondary(h.plThb, h.currency)}
-                                  </span>
-                                </>
-                              )}
-                            </td>
-                            <td className="flex justify-end gap-1.5">
-                              <button
-                                onClick={() => openModal('tx', { assetId: h.id })}
-                                className="px-3 py-1.5 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[11px] font-bold border-none cursor-pointer transition-colors shadow-sm"
-                              >
-                                {language === 'th' ? 'ซื้อ/ขาย' : 'Buy/Sell'}
-                              </button>
-                              {h.type !== 'fund' && h.type !== 'deposit' && (
-                                <button
-                                  onClick={() => openModal('chart', { assetId: h.id })}
-                                  className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
-                                >
-                                  {language === 'th' ? 'กราฟ' : 'Chart'}
-                                </button>
-                              )}
-                              {h.type === 'fund' && (
-                                <button
-                                  onClick={() => openModal('price', { assetId: h.id })}
-                                  className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
-                                >
-                                  NAV
-                                </button>
-                              )}
-                              <button
-                                onClick={() => openModal('asset', { assetId: h.id })}
-                                className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
-                                title={language === 'th' ? 'แก้ไข' : 'Edit'}
-                              >
-                                ✎
-                              </button>
-                              <button
-                                onClick={() => handleDeleteAsset(h.id, h.symbol)}
-                                className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
-                              >
-                                ✕
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 };
 
+// ─── Portfolio Card Content (extracted for SortablePortfolioCard) ───────────────
+interface PortfolioCardContentProps {
+  p: any;
+  assets: Asset[];
+  sensors: any;
+  language: string;
+  t: (key: string) => string;
+  formatMoney: (val: number) => React.ReactNode;
+  formatMoneyPrimary: (val: number, nativeCcy?: 'THB' | 'USD') => string;
+  formatMoneySecondary: (val: number, nativeCcy?: 'THB' | 'USD') => string;
+  formatNativePrimary: (val: number, ccy: 'THB' | 'USD') => string;
+  formatNativeSecondary: (val: number, ccy: 'THB' | 'USD') => string;
+  formatQty: (qty: number, type: string) => string;
+  openModal: (...args: any[]) => void;
+  handleDeletePortfolio: (id: string, name: string) => void;
+  handleDeleteAsset: (id: string, symbol: string) => void;
+  onAssetDragStart: (event: DragStartEvent) => void;
+  onAssetDragEnd: (event: DragEndEvent) => void;
+  dragListeners?: any;
+}
+
+const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
+  p,
+  assets: _assets,
+  sensors,
+  language,
+  t,
+  formatMoney,
+  formatMoneyPrimary,
+  formatMoneySecondary,
+  formatNativePrimary,
+  formatNativeSecondary,
+  formatQty,
+  openModal,
+  handleDeletePortfolio,
+  handleDeleteAsset,
+  onAssetDragStart,
+  onAssetDragEnd,
+  dragListeners,
+}) => {
+  const assetIds = p.holdings.map((h: any) => h.id);
+
+  return (
+    <div className="bg-white rounded-2.5xl p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-4">
+      {/* Portfolio header info */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Drag handle */}
+        <button
+          {...dragListeners}
+          className="bg-transparent border-none text-faint-darker hover:text-terracotta cursor-grab active:cursor-grabbing transition-colors p-0.5 -ml-1 touch-none"
+          title={language === 'th' ? 'ลากเพื่อจัดลำดับ' : 'Drag to reorder'}
+        >
+          <GripVertical size={18} />
+        </button>
+        <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.colorHex }}></div>
+        <span className="text-md.5 font-bold text-dark">{p.name}</span>
+        <span className="text-base font-bold text-dark tabular-nums ml-1">
+          {formatMoney(p.valueThb)}
+        </span>
+        {p.valueThb > 0 && (
+          <span
+            className={`text-xs font-bold px-2 py-0.5 rounded-full select-none ${
+              p.returnPct >= 0 ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
+            }`}
+          >
+            {p.returnPct >= 0 ? '+' : ''}
+            {p.returnPct.toFixed(1)}%
+          </span>
+        )}
+        
+        {/* Actions */}
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => openModal('asset', { portfolioId: p.id })}
+            className="px-3.5 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11.5px] font-bold border-none cursor-pointer transition-colors"
+          >
+            + {language === 'th' ? 'สินทรัพย์' : 'Asset'}
+          </button>
+          <button
+            onClick={() => handleDeletePortfolio(p.id, p.name)}
+            className="bg-transparent border-none text-faint-darker hover:text-negative-text cursor-pointer text-[12px] font-semibold transition-colors flex items-center gap-0.5"
+          >
+            <Trash2 size={12} />
+            <span>{t('common.delete')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Allocation stacked bar */}
+      {p.hasAllocation && (
+        <div className="flex flex-col gap-2 border-t border-inputBorder/10 pt-4">
+          <div className="flex h-3 rounded-full overflow-hidden bg-[#f7f0e3]">
+            {p.allocationSegments.map((s: any, idx: number) => (
+              <div key={idx} className="h-full" style={{ width: s.width, backgroundColor: s.color }}></div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1.5">
+            {p.allocationLegend.map((legend: any, idx: number) => (
+              <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold select-none">
+                <div className="w-2.5 h-2.5 rounded-[2px]" style={{ backgroundColor: legend.color }}></div>
+                <span className="text-dark/95">{legend.symbol}</span>
+                <span className="text-faint-darker">{legend.pct.toFixed(0)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Holdings list (with asset-level DnD) */}
+      {!p.hasHoldings ? (
+        <span className="text-xs.5 text-faint-darker font-medium py-2">{t('portfolios.noAssetsInPort')}</span>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={onAssetDragStart}
+          onDragEnd={onAssetDragEnd}
+        >
+          <SortableContext items={assetIds} strategy={verticalListSortingStrategy}>
+            <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2">
+              <table className="min-w-[860px] w-full border-collapse">
+                <thead>
+                  <tr className="grid grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
+                    <th></th>
+                    <th>{language === 'th' ? 'สินทรัพย์' : 'Asset'}</th>
+                    <th className="text-right">{t('portfolios.tableQty')}</th>
+                    <th className="text-right">{t('portfolios.tableAvgCost')}</th>
+                    <th className="text-right">{t('portfolios.tablePrice')}</th>
+                    <th className="text-right">{t('portfolios.tableValue')}</th>
+                    <th className="text-right">{t('portfolios.tablePl')}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody className="flex flex-col gap-1 mt-1">
+                  {p.holdings.map((h: any) => (
+                    <SortableAssetRow key={h.id} asset={h}>
+                      <AssetRowContent
+                        h={h}
+                        language={language}
+                        t={t}
+                        formatMoneyPrimary={formatMoneyPrimary}
+                        formatMoneySecondary={formatMoneySecondary}
+                        formatNativePrimary={formatNativePrimary}
+                        formatNativeSecondary={formatNativeSecondary}
+                        formatQty={formatQty}
+                        openModal={openModal}
+                        handleDeleteAsset={handleDeleteAsset}
+                      />
+                    </SortableAssetRow>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
+  );
+};
+
+// ─── Asset Row Content (extracted for SortableAssetRow) ─────────────────────────
+interface AssetRowContentProps {
+  h: any;
+  language: string;
+  t: (key: string) => string;
+  formatMoneyPrimary: (val: number, nativeCcy?: 'THB' | 'USD') => string;
+  formatMoneySecondary: (val: number, nativeCcy?: 'THB' | 'USD') => string;
+  formatNativePrimary: (val: number, ccy: 'THB' | 'USD') => string;
+  formatNativeSecondary: (val: number, ccy: 'THB' | 'USD') => string;
+  formatQty: (qty: number, type: string) => string;
+  openModal: (...args: any[]) => void;
+  handleDeleteAsset: (id: string, symbol: string) => void;
+  dragListeners?: any;
+}
+
+const AssetRowContent: React.FC<AssetRowContentProps> = ({
+  h,
+  language,
+  t: _t,
+  formatMoneyPrimary,
+  formatMoneySecondary,
+  formatNativePrimary,
+  formatNativeSecondary,
+  formatQty,
+  openModal,
+  handleDeleteAsset,
+  dragListeners,
+}) => {
+  const isDep = h.type === 'deposit';
+  const isUp = h.plThb >= 0;
+
+  return (
+    <>
+      {/* Drag handle cell */}
+      <td className="flex items-center justify-center">
+        <button
+          {...dragListeners}
+          className="bg-transparent border-none text-faint-darker/60 hover:text-terracotta cursor-grab active:cursor-grabbing transition-colors p-0 touch-none"
+          title={language === 'th' ? 'ลากเพื่อจัดลำดับ' : 'Drag to reorder'}
+        >
+          <GripVertical size={14} />
+        </button>
+      </td>
+      <td className="flex flex-col select-none">
+        <span className="font-bold text-dark leading-none">{h.symbol}</span>
+        <span className="text-[11px] text-faint font-semibold mt-1">
+          {h.name && h.name !== h.symbol ? `${h.name}` : h.type.toUpperCase()}
+        </span>
+      </td>
+      <td className="text-right font-bold tabular-nums text-dark/90 text-sm">
+        {formatQty(h.quantity, h.type)}
+      </td>
+      <td className="text-right tabular-nums flex flex-col items-end">
+        {isDep ? (
+          <span className="font-semibold text-muted text-xs.5">—</span>
+        ) : (
+          <>
+            <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(h.avgCost, h.currency)}</span>
+            <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.avgCost, h.currency)}</span>
+          </>
+        )}
+      </td>
+      <td className="text-right tabular-nums flex flex-col items-end">
+        {isDep ? (
+          <span className="font-semibold text-dark/95 text-xs.5">—</span>
+        ) : (
+          <>
+            <span className="font-semibold text-dark/95 text-xs.5">{formatNativePrimary(h.currentPrice, h.currency)}</span>
+            <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.currentPrice, h.currency)}</span>
+          </>
+        )}
+      </td>
+      <td className="text-right tabular-nums flex flex-col items-end">
+        <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb, h.currency)}</span>
+        <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb, h.currency)}</span>
+      </td>
+      <td className="text-right tabular-nums flex flex-col items-end">
+        {isDep ? (
+          <span className="font-bold text-faint text-xs.5">—</span>
+        ) : (
+          <>
+            <span className={`font-bold text-xs.5 ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
+              {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, h.currency)}
+            </span>
+            <span className="text-[10.5px] text-faint font-bold mt-0.5">
+              {isUp ? '+' : ''}{formatMoneySecondary(h.plThb, h.currency)}
+            </span>
+          </>
+        )}
+      </td>
+      <td className="flex justify-end gap-1.5">
+        <button
+          onClick={() => openModal('tx', { assetId: h.id })}
+          className="px-3 py-1.5 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[11px] font-bold border-none cursor-pointer transition-colors shadow-sm"
+        >
+          {language === 'th' ? 'ซื้อ/ขาย' : 'Buy/Sell'}
+        </button>
+        {h.type !== 'fund' && h.type !== 'deposit' && (
+          <button
+            onClick={() => openModal('chart', { assetId: h.id })}
+            className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
+          >
+            {language === 'th' ? 'กราฟ' : 'Chart'}
+          </button>
+        )}
+        {h.type === 'fund' && (
+          <button
+            onClick={() => openModal('price', { assetId: h.id })}
+            className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
+          >
+            NAV
+          </button>
+        )}
+        <button
+          onClick={() => openModal('asset', { assetId: h.id })}
+          className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
+          title={language === 'th' ? 'แก้ไข' : 'Edit'}
+        >
+          ✎
+        </button>
+        <button
+          onClick={() => handleDeleteAsset(h.id, h.symbol)}
+          className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
+        >
+          ✕
+        </button>
+      </td>
+    </>
+  );
+};

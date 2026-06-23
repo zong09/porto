@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 
 interface CacheEntry {
   data: any;
@@ -7,6 +7,7 @@ interface CacheEntry {
 
 @Injectable()
 export class PricesService {
+  private readonly logger = new Logger(PricesService.name);
   private cache = new Map<string, CacheEntry>();
   private yahooCookie: string | null = null;
   private yahooCrumb: string | null = null;
@@ -32,6 +33,7 @@ export class PricesService {
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
+    this.logger.log(`Fetching crypto prices from CoinGecko for ids=${ids.join(',')}`);
     try {
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=${vsCurrencies.join(',')}&include_24hr_change=true`;
       const response = await fetch(url);
@@ -40,9 +42,10 @@ export class PricesService {
       }
       const data = await response.json();
       this.setCached(cacheKey, data, 60000); // 60s cache
+      this.logger.log(`Successfully fetched crypto prices for ids=${ids.join(',')}`);
       return data;
     } catch (e) {
-      console.error('Error fetching crypto prices:', e.message);
+      this.logger.error(`Error fetching crypto prices: ${e.message}`);
       // Return partial or empty data if failed, caller handles fallback
       throw new HttpException('Failed to fetch crypto prices', HttpStatus.BAD_GATEWAY);
     }
@@ -63,7 +66,7 @@ export class PricesService {
       this.setCached(cacheKey, data, 300000); // 5 mins cache for history
       return data;
     } catch (e) {
-      console.error('Error fetching crypto history:', e.message);
+      this.logger.error(`Error fetching crypto history: ${e.message}`);
       throw new HttpException('Failed to fetch crypto history', HttpStatus.BAD_GATEWAY);
     }
   }
@@ -73,6 +76,7 @@ export class PricesService {
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
+    this.logger.log(`Fetching stock price from Yahoo Finance for symbol=${symbol}`);
     const data = await this.fetchYahooChart(symbol, '1d', '1d');
     if (data) {
       const meta = data?.chart?.result?.[0]?.meta;
@@ -83,6 +87,7 @@ export class PricesService {
           chg: prev ? (meta.regularMarketPrice / prev - 1) * 100 : 0,
         };
         this.setCached(cacheKey, result, 90000); // 90s cache
+        this.logger.log(`Successfully fetched stock price for symbol=${symbol}: price=${result.price}`);
         return result;
       }
     }
@@ -134,16 +139,18 @@ export class PricesService {
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
+    this.logger.log('Deriving live FX rate...');
     try {
       // Always include bitcoin in coingecko simple price to derive FX
       const data = await this.getCryptoPrices(['bitcoin'], ['thb', 'usd']);
       if (data?.bitcoin?.thb && data?.bitcoin?.usd) {
         const fx = data.bitcoin.thb / data.bitcoin.usd;
         this.setCached(cacheKey, fx, 60000); // 60s cache
+        this.logger.log(`Derived live FX rate successfully: ${fx}`);
         return fx;
       }
     } catch (e) {
-      console.warn('Failed to derive live FX rate, using fallback 35.84:', e.message);
+      this.logger.warn(`Failed to derive live FX rate, using fallback 35.84: ${e.message}`);
     }
     return 35.84; // Fallback FX rate
   }
@@ -154,7 +161,7 @@ export class PricesService {
       const result = await this.doYahooRequest(symbol, range, interval);
       if (result) return result;
     } catch (e) {
-      console.warn(`Yahoo Finance direct query failed for ${symbol}:`, e.message);
+      this.logger.warn(`Yahoo Finance direct query failed for ${symbol}: ${e.message}`);
     }
 
     // Try Crumb Fetch if we get unauthorized or failed
@@ -168,7 +175,7 @@ export class PricesService {
         if (result) return result;
       }
     } catch (e) {
-      console.error(`Yahoo Finance query with crumb failed for ${symbol}:`, e.message);
+      this.logger.error(`Yahoo Finance query with crumb failed for ${symbol}: ${e.message}`);
     }
 
     return null;
@@ -228,12 +235,12 @@ export class PricesService {
       const crumbResponse = await fetch(crumbUrl, { headers });
       if (crumbResponse.ok) {
         this.yahooCrumb = await crumbResponse.text();
-        console.log('Yahoo Finance crumb refreshed successfully');
+        this.logger.log('Yahoo Finance crumb refreshed successfully');
       } else {
-        console.warn(`Yahoo Finance crumb endpoint failed: ${crumbResponse.status}`);
+        this.logger.warn(`Yahoo Finance crumb endpoint failed: ${crumbResponse.status}`);
       }
     } catch (e) {
-      console.error('Failed to get Yahoo crumb:', e.message);
+      this.logger.error(`Failed to get Yahoo crumb: ${e.message}`);
     } finally {
       this.isFetchingCrumb = false;
     }

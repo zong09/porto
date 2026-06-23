@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +14,7 @@ import { PricesService } from '../prices/prices.service';
 
 @Injectable()
 export class AssetsService {
+  private readonly logger = new Logger(AssetsService.name);
   constructor(
     @InjectRepository(Asset)
     private assetRepo: Repository<Asset>,
@@ -22,12 +25,14 @@ export class AssetsService {
   ) {}
 
   async findAll(userId: string): Promise<any[]> {
+    this.logger.log(`Fetching all assets for user=${userId}`);
     const assets = await this.assetRepo
       .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .leftJoinAndSelect('asset.transactions', 'transactions')
       .where('portfolio.userId = :userId', { userId })
-      .orderBy('asset.symbol', 'ASC')
+      .orderBy('asset.sortOrder', 'ASC')
+      .addOrderBy('asset.symbol', 'ASC')
       .getMany();
 
     const enriched: any[] = [];
@@ -88,6 +93,7 @@ export class AssetsService {
         cgId: asset.cgId,
         yahooSymbol: asset.yahooSymbol,
         manualPrice: asset.manualPrice,
+        sortOrder: asset.sortOrder,
         portfolio: {
           id: asset.portfolio.id,
           name: asset.portfolio.name,
@@ -99,6 +105,7 @@ export class AssetsService {
       });
     }
 
+    this.logger.log(`Returning ${enriched.length} enriched assets for user=${userId}`);
     return enriched;
   }
 
@@ -172,6 +179,7 @@ export class AssetsService {
       cgId: asset.cgId,
       yahooSymbol: asset.yahooSymbol,
       manualPrice: asset.manualPrice,
+      sortOrder: asset.sortOrder,
       portfolio: {
         id: asset.portfolio.id,
         name: asset.portfolio.name,
@@ -194,6 +202,7 @@ export class AssetsService {
     yahooSymbol?: string,
     manualPrice?: number,
   ): Promise<Asset> {
+    this.logger.log(`Creating asset symbol=${symbol} type=${type} currency=${currency} in portfolio=${portfolioId}`);
     // Verify portfolio ownership
     const portfolio = await this.portfolioRepo.findOne({
       where: { id: portfolioId, userId },
@@ -201,6 +210,9 @@ export class AssetsService {
     if (!portfolio) {
       throw new ForbiddenException('คุณไม่มีสิทธิ์เข้าถึงพอร์ตการลงทุนนี้');
     }
+
+    // Auto-set sortOrder to append at end within same portfolio
+    const count = await this.assetRepo.count({ where: { portfolioId } });
 
     const asset = this.assetRepo.create({
       portfolioId,
@@ -211,9 +223,12 @@ export class AssetsService {
       cgId: cgId || null,
       yahooSymbol: yahooSymbol || null,
       manualPrice: manualPrice !== undefined ? manualPrice : null,
+      sortOrder: count,
     } as any) as any as Asset;
 
-    return this.assetRepo.save(asset);
+    const saved = await this.assetRepo.save(asset);
+    this.logger.log(`Asset created id=${saved.id} symbol=${symbol}`);
+    return saved;
   }
 
   async update(
@@ -222,6 +237,7 @@ export class AssetsService {
     name?: string,
     manualPrice?: number,
   ): Promise<Asset> {
+    this.logger.log(`Updating asset id=${id}`);
     const asset = await this.assetRepo
       .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
@@ -240,11 +256,41 @@ export class AssetsService {
       asset.manualPrice = manualPrice;
     }
 
-    return this.assetRepo.save(asset);
+    const saved = await this.assetRepo.save(asset);
+    this.logger.log(`Asset updated successfully id=${id}`);
+    return saved;
+  }
+
+  async reorder(userId: string, orderedIds: string[]): Promise<void> {
+    this.logger.log(`Reordering ${orderedIds.length} assets for user=${userId}`);
+    // Verify all IDs belong to this user by joining with portfolio
+    const assets = await this.assetRepo
+      .createQueryBuilder('asset')
+      .innerJoin('asset.portfolio', 'portfolio')
+      .where('portfolio.userId = :userId', { userId })
+      .andWhere('asset.id IN (:...ids)', { ids: orderedIds })
+      .select('asset.id')
+      .getMany();
+
+    const userAssetIds = new Set(assets.map((a) => a.id));
+    for (const id of orderedIds) {
+      if (!userAssetIds.has(id)) {
+        throw new BadRequestException('สินทรัพย์บางรายการไม่ถูกต้อง');
+      }
+    }
+
+    // Bulk update sortOrder
+    const updates = orderedIds.map((id, index) =>
+      this.assetRepo.update(id, { sortOrder: index }),
+    );
+    await Promise.all(updates);
+    this.logger.log(`Successfully reordered ${orderedIds.length} assets for user=${userId}`);
   }
 
   async remove(id: string, userId: string): Promise<void> {
+    this.logger.log(`Deleting asset id=${id} for user=${userId}`);
     await this.findOne(id, userId);
     await this.assetRepo.delete(id);
+    this.logger.log(`Asset deleted id=${id}`);
   }
 }

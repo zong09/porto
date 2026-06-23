@@ -13,6 +13,9 @@ export class Portfolio {
   @Column({ default: 0 })
   color: number;
 
+  @Column({ default: 0 })
+  sortOrder: number;
+
   @Column()
   userId: string;
 

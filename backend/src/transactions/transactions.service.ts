@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction } from './entities/transaction.entity';
@@ -7,6 +7,7 @@ import { PositionService } from '../position/position.service';
 
 @Injectable()
 export class TransactionsService {
+  private readonly logger = new Logger(TransactionsService.name);
   constructor(
     @InjectRepository(Transaction)
     private transactionRepo: Repository<Transaction>,
@@ -48,6 +49,7 @@ export class TransactionsService {
     fee: number,
     date: string,
   ): Promise<Transaction> {
+    this.logger.log(`Creating transaction side=${side} qty=${quantity} price=${price} asset=${assetId}`);
     // 1. Verify asset ownership
     const asset = await this.assetRepo.createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
@@ -98,6 +100,7 @@ export class TransactionsService {
       }
     }
 
+    this.logger.log(`Transaction validated – persisting side=${dbSide} for asset=${assetId}`);
     const tx = this.transactionRepo.create({
       assetId,
       side: dbSide,
@@ -107,7 +110,9 @@ export class TransactionsService {
       date: date || new Date().toISOString().slice(0, 10),
     });
 
-    return this.transactionRepo.save(tx);
+    const saved = await this.transactionRepo.save(tx);
+    this.logger.log(`Transaction created successfully id=${saved.id} side=${dbSide} asset=${assetId}`);
+    return saved;
   }
 
   async update(
@@ -120,6 +125,7 @@ export class TransactionsService {
     fee: number,
     date: string,
   ): Promise<Transaction> {
+    this.logger.log(`Updating transaction id=${id} side=${side} qty=${quantity} price=${price} asset=${assetId} for user=${userId}`);
     // 1. Verify transaction ownership and existence
     const tx = await this.findOne(id, userId);
 
@@ -175,11 +181,15 @@ export class TransactionsService {
     tx.fee = asset.type === 'deposit' ? 0 : fee;
     tx.date = date || new Date().toISOString().slice(0, 10);
 
-    return this.transactionRepo.save(tx);
+    const saved = await this.transactionRepo.save(tx);
+    this.logger.log(`Transaction updated successfully id=${id}`);
+    return saved;
   }
 
   async remove(id: string, userId: string): Promise<void> {
+    this.logger.log(`Deleting transaction id=${id} for user=${userId}`);
     await this.findOne(id, userId);
     await this.transactionRepo.delete(id);
+    this.logger.log(`Transaction deleted id=${id}`);
   }
 }

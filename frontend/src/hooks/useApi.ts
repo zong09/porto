@@ -39,7 +39,31 @@ export function usePortfolios() {
     },
   });
 
-  return { ...query, createPortfolio: createMutation, deletePortfolio: deleteMutation };
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      const res = await apiClient.patch('/portfolios/reorder', { orderedIds });
+      return res.data;
+    },
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: ['portfolios'] });
+      const prev = queryClient.getQueryData<Portfolio[]>(['portfolios']);
+      if (prev) {
+        const ordered = orderedIds
+          .map((id) => prev.find((p) => p.id === id))
+          .filter(Boolean) as Portfolio[];
+        queryClient.setQueryData(['portfolios'], ordered);
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['portfolios'], ctx.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
+    },
+  });
+
+  return { ...query, createPortfolio: createMutation, deletePortfolio: deleteMutation, reorderPortfolios: reorderMutation };
 }
 
 // --- Assets Hooks ---
@@ -60,6 +84,7 @@ export interface Asset {
   cgId: string | null;
   yahooSymbol: string | null;
   manualPrice: number | null;
+  sortOrder?: number;
   portfolio?: Portfolio;
   currentPrice?: number;
   change24h?: number;
@@ -121,11 +146,38 @@ export function useAssets() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      const res = await apiClient.patch('/assets/reorder', { orderedIds });
+      return res.data;
+    },
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: ['assets'] });
+      const prev = queryClient.getQueryData<Asset[]>(['assets']);
+      if (prev) {
+        const reorderedSet = new Set(orderedIds);
+        const reordered = orderedIds
+          .map((id) => prev.find((a) => a.id === id))
+          .filter(Boolean) as Asset[];
+        const rest = prev.filter((a) => !reorderedSet.has(a.id));
+        queryClient.setQueryData(['assets'], [...reordered, ...rest]);
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['assets'], ctx.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+    },
+  });
+
   return {
     ...query,
     createAsset: createMutation,
     updateAsset: updateMutation,
     deleteAsset: deleteMutation,
+    reorderAssets: reorderMutation,
   };
 }
 

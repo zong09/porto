@@ -45,6 +45,9 @@ export class Asset {
   })
   manualPrice: number | null;
 
+  @Column({ default: 0 })
+  sortOrder: number;
+
   @OneToMany(() => Transaction, (transaction) => transaction.asset)
   transactions: Transaction[];
 }
