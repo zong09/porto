@@ -77,6 +77,19 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
+    "coveragePathIgnorePatterns": [
+      "node_modules",
+      "dist",
+      "\\.module\\.ts$",
+      "\\.entity\\.ts$",
+      "\\.controller\\.ts$",
+      "main\\.ts$",
+      "winston-logger\\.ts$",
+      "current-user\\.decorator\\.ts$",
+      "public\\.decorator\\.ts$",
+      "jwt-auth\\.guard\\.ts$",
+      "seed\\.service\\.ts$"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }
