@@ -270,16 +270,16 @@ export const TransactionModal: React.FC = () => {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setSide('buy')}
-                className={toggleSideBtn(side === 'buy')}
+                onClick={() => setSide(isShort ? 'sell' : 'buy')}
+                className={toggleSideBtn(side === (isShort ? 'sell' : 'buy'))}
                 id="btn-txn-side-buy"
               >
                 {isDeposit ? (language === 'th' ? 'ฝากเงิน' : 'Deposit') : isShort ? (language === 'th' ? 'ขาย (เปิด)' : 'Sell (Open)') : (language === 'th' ? 'ซื้อ' : 'Buy')}
               </button>
               <button
                 type="button"
-                onClick={() => setSide('sell')}
-                className={toggleSideBtn(side === 'sell')}
+                onClick={() => setSide(isShort ? 'buy' : 'sell')}
+                className={toggleSideBtn(side === (isShort ? 'buy' : 'sell'))}
                 id="btn-txn-side-sell"
               >
                 {isDeposit ? (language === 'th' ? 'ถอนเงิน' : 'Withdraw') : isShort ? (language === 'th' ? 'ซื้อ (ปิด)' : 'Buy (Cover)') : (language === 'th' ? 'ขาย' : 'Sell')}
