@@ -18,6 +18,7 @@ const mockAsset = {
   cgId: 'bitcoin',
   yahooSymbol: null,
   manualPrice: null,
+  direction: 'long',
   sortOrder: 0,
   portfolio: {
     id: 'port-1',
@@ -71,7 +72,7 @@ describe('AssetsService', () => {
         {
           provide: PositionService,
           useValue: {
-            calculate: jest.fn().mockReturnValue({ quantity: 1, avgCost: 50000 }),
+            calculate: jest.fn().mockReturnValue({ quantity: 1, avgCost: 50000, direction: 'long' }),
           },
         },
         {

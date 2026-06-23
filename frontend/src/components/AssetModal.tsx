@@ -81,6 +81,8 @@ export const AssetModal: React.FC = () => {
   const [nav, setNav] = useState('');
   // Native currency the asset is denominated in (stored on the asset; transactions are stored in this currency).
   const [assetCcy, setAssetCcy] = useState<'THB' | 'USD'>('USD');
+  // Position direction: long (buy-to-open) or short (sell-to-open)
+  const [direction, setDirection] = useState<'long' | 'short'>('long');
 
   // Opening Transaction Fields
   const [oQty, setOQty] = useState('');
@@ -107,6 +109,7 @@ export const AssetModal: React.FC = () => {
       setPortfolioId(editing.portfolioId);
       setType(editing.type);
       setAssetCcy(editing.currency);
+      setDirection(editing.direction || 'long');
       setSymbol(editing.symbol);
       setName(editing.name && editing.name !== editing.symbol ? editing.name : '');
       setCgId(editing.cgId || '');
@@ -123,6 +126,7 @@ export const AssetModal: React.FC = () => {
       }
       setType('crypto');
       setAssetCcy('USD');
+      setDirection('long');
       setSymbol('');
       setName('');
       setCgId('');
@@ -153,6 +157,10 @@ export const AssetModal: React.FC = () => {
     setError(null);
     // Sensible default native currency per type; user can still override (th/us follow the Yahoo listing currency).
     setAssetCcy(newType === 'th' || newType === 'fund' || newType === 'deposit' ? 'THB' : 'USD');
+    // Force long for fund/deposit types (short doesn't make sense for them)
+    if (newType === 'fund' || newType === 'deposit') {
+      setDirection('long');
+    }
     if (newType === 'deposit') {
       setOPrice('1');
       setOFee('0');
@@ -256,6 +264,7 @@ export const AssetModal: React.FC = () => {
         symbol: type === 'crypto' || type === 'us' || type === 'th' ? trimSymbol.toUpperCase() : trimSymbol,
         name: name.trim(),
         currency: assetCcy,
+        direction,
         cgId: type === 'crypto' ? cgId.trim().toLowerCase() : undefined,
         yahooSymbol,
         manualPrice,
@@ -265,7 +274,7 @@ export const AssetModal: React.FC = () => {
       if (hasOpeningTransaction) {
         await createTransaction.mutateAsync({
           assetId: createdAsset.id,
-          side: type === 'deposit' ? 'deposit' : 'buy',
+          side: type === 'deposit' ? 'deposit' : (direction === 'short' ? 'sell' : 'buy'),
           quantity: qty,
           price: pr,
           fee: fe,
@@ -391,6 +400,56 @@ export const AssetModal: React.FC = () => {
             )}
           </div>
 
+          {/* Direction Toggle (only for crypto/th/us) */}
+          {!isEdit && (type === 'crypto' || type === 'th' || type === 'us') && (
+            <div>
+              <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
+                {language === 'th' ? 'ทิศทาง' : 'Direction'}
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDirection('long')}
+                  className={`flex-1 py-[9px] rounded-[12px] border font-bold text-[13.5px] text-center transition-colors cursor-pointer ${
+                    direction === 'long'
+                      ? 'bg-terracotta border-terracotta text-white'
+                      : 'bg-white border-inputBorder text-muted hover:bg-surface'
+                  }`}
+                  id="btn-asset-dir-long"
+                >
+                  ▲ Long
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDirection('short')}
+                  className={`flex-1 py-[9px] rounded-[12px] border font-bold text-[13.5px] text-center transition-colors cursor-pointer ${
+                    direction === 'short'
+                      ? 'bg-[#c4654a] border-[#c4654a] text-white'
+                      : 'bg-white border-inputBorder text-muted hover:bg-surface'
+                  }`}
+                  id="btn-asset-dir-short"
+                >
+                  ▼ Short
+                </button>
+              </div>
+              {direction === 'short' && (
+                <p className="text-[11.5px] text-muted mt-[6px] leading-snug">
+                  {language === 'th'
+                    ? 'Short position — รายการซื้อ/ขายจะกลับทิศ (ขายเปิด/ซื้อปิด) และกำไรเมื่อราคาลดลง'
+                    : 'Short position — transactions are reversed (Sell to Open / Buy to Cover) and profit when price drops'}
+                </p>
+              )}
+            </div>
+          )}
+          {isEdit && editing && (editing.direction || 'long') === 'short' && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#f3ded6] rounded-[12px]">
+              <span className="text-[12px] font-bold text-[#c4654a]">▼ SHORT</span>
+              <span className="text-[11.5px] text-[#84422e] font-medium">
+                {language === 'th' ? 'ไม่สามารถเปลี่ยนทิศทางหลังสร้างแล้ว' : 'Direction cannot be changed after creation'}
+              </span>
+            </div>
+          )}
+
           {/* Symbol */}
           <div>
             <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('modals.asset.symbolLabel')}</label>
@@ -460,9 +519,9 @@ export const AssetModal: React.FC = () => {
           <div className="border-t border-dashed border-inputBorder pt-4 mt-0.5 mb-3.5">
             <div className="text-[13px] font-bold text-chipBg-text mb-2.5">
               {language === 'th' ? (
-                <>รายการซื้อเริ่มต้น <span className="font-medium text-faint">(ไม่บังคับ — บันทึกยอดที่ถืออยู่ตอนนี้)</span></>
+                <>{direction === 'short' ? 'รายการ Short เริ่มต้น' : 'รายการซื้อเริ่มต้น'} <span className="font-medium text-faint">(ไม่บังคับ — บันทึกยอดที่ถืออยู่ตอนนี้)</span></>
               ) : (
-                <>Opening Buy <span className="font-medium text-faint">(Optional — record current holdings)</span></>
+                <>{direction === 'short' ? 'Opening Short' : 'Opening Buy'} <span className="font-medium text-faint">(Optional — record current holdings)</span></>
               )}
             </div>
             

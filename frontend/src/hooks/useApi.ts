@@ -72,6 +72,7 @@ export interface PositionSummary {
   avgCost: number;
   totalCost: number;
   realizedPnl: number;
+  direction: 'long' | 'short';
 }
 
 export interface Asset {
@@ -81,6 +82,7 @@ export interface Asset {
   symbol: string;
   name: string;
   currency: 'THB' | 'USD';
+  direction?: 'long' | 'short';
   cgId: string | null;
   yahooSymbol: string | null;
   manualPrice: number | null;
@@ -109,6 +111,7 @@ export function useAssets() {
       symbol: string;
       name?: string;
       currency: 'THB' | 'USD';
+      direction?: 'long' | 'short';
       cgId?: string;
       yahooSymbol?: string;
       manualPrice?: number;
