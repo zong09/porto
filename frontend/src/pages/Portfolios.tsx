@@ -309,24 +309,34 @@ export const Portfolios: React.FC = () => {
       const quantity = a.position?.quantity || 0;
       const currentPrice = a.currentPrice || 0;
       const avgCost = a.position?.avgCost || 0;
+      const isShort = (a.direction || 'long') === 'short';
 
       const assetValueThb = quantity * currentPrice * multiplier;
       const assetCostThb = quantity * avgCost * multiplier;
       
-      pValueThb += assetValueThb;
+      // Short positions: subtract from portfolio value (they are obligations)
+      if (isShort) {
+        pValueThb -= assetValueThb;
+      } else {
+        pValueThb += assetValueThb;
+      }
       pCostThb += assetCostThb;
 
-      const plThb = assetValueThb - assetCostThb;
-      const returnPct = avgCost > 0 ? (plThb / assetCostThb) * 100 : 0;
+      // P&L: short profits when price drops (avgCost - currentPrice), long profits when price rises
+      const plThb = isShort
+        ? (avgCost - currentPrice) * quantity * multiplier
+        : assetValueThb - assetCostThb;
+      const returnPct = assetCostThb > 0 ? (plThb / assetCostThb) * 100 : 0;
 
       return {
         ...a,
         quantity,
         avgCost,
         currentPrice,
-        valueThb: assetValueThb,
+        valueThb: isShort ? -assetValueThb : assetValueThb,
         plThb,
         returnPct,
+        isShort,
       };
     });
 
@@ -652,7 +662,14 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
         </button>
       </td>
       <td className="flex flex-col select-none">
-        <span className="font-bold text-dark leading-none">{h.symbol}</span>
+        <span className="font-bold text-dark leading-none">
+          {h.symbol}
+          {h.isShort && (
+            <span className="ml-1.5 text-[10px] font-bold text-[#c4654a] bg-[#f3ded6] px-1.5 py-0.5 rounded-md align-middle">
+              SHORT
+            </span>
+          )}
+        </span>
         <span className="text-[11px] text-faint font-semibold mt-1">
           {h.name && h.name !== h.symbol ? `${h.name}` : h.type.toUpperCase()}
         </span>
@@ -703,7 +720,7 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
           onClick={() => openModal('tx', { assetId: h.id })}
           className="px-3 py-1.5 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[11px] font-bold border-none cursor-pointer transition-colors shadow-sm"
         >
-          {language === 'th' ? 'ซื้อ/ขาย' : 'Buy/Sell'}
+          {language === 'th' ? (h.isShort ? 'ขาย/ปิด' : 'ซื้อ/ขาย') : (h.isShort ? 'Sell/Cover' : 'Buy/Sell')}
         </button>
         {h.type !== 'fund' && h.type !== 'deposit' && (
           <button

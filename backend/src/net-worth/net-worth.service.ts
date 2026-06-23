@@ -57,7 +57,7 @@ export class NetWorthService {
         side: t.side,
         date: t.date,
       }));
-      const position = this.positionService.calculate(simpleTxs);
+      const position = this.positionService.calculate(simpleTxs, asset.direction || 'long');
 
       if (position.quantity <= 0) continue;
 
@@ -110,14 +110,22 @@ export class NetWorthService {
       // So if asset.currency is USD, we multiply by fx.
       const multiplier = asset.currency === 'USD' ? fx : 1;
       const assetValThb = position.quantity * price * multiplier;
+      const isShort = (asset.direction || 'long') === 'short';
 
-      totalAssetsThb += assetValThb;
+      // Short positions are subtracted (they represent a liability/obligation to buy back)
+      if (isShort) {
+        totalAssetsThb -= assetValThb;
+      } else {
+        totalAssetsThb += assetValThb;
+      }
       totalCostThb += position.quantity * position.avgCost * multiplier;
 
       // 24h P&L Calculation:
       // profit/loss of today = currentVal - currentVal / (1 + changePercent / 100)
+      // For short positions, profit is reversed (price drop = profit)
       if (chg24h !== 0) {
-        todayPlThb += assetValThb - assetValThb / (1 + chg24h / 100);
+        const rawPl = assetValThb - assetValThb / (1 + chg24h / 100);
+        todayPlThb += isShort ? -rawPl : rawPl;
       }
     }
 

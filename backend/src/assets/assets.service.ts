@@ -44,7 +44,7 @@ export class AssetsService {
         side: t.side,
         date: t.date,
       }));
-      const position = this.positionService.calculate(simpleTxs);
+      const position = this.positionService.calculate(simpleTxs, asset.direction || 'long');
 
       let currentPrice = 0;
       let change24h = 0;
@@ -94,6 +94,7 @@ export class AssetsService {
         yahooSymbol: asset.yahooSymbol,
         manualPrice: asset.manualPrice,
         sortOrder: asset.sortOrder,
+        direction: asset.direction || 'long',
         portfolio: {
           id: asset.portfolio.id,
           name: asset.portfolio.name,
@@ -129,7 +130,7 @@ export class AssetsService {
       side: t.side,
       date: t.date,
     }));
-    const position = this.positionService.calculate(simpleTxs);
+    const position = this.positionService.calculate(simpleTxs, asset.direction || 'long');
 
     let currentPrice = 0;
     let change24h = 0;
@@ -180,6 +181,7 @@ export class AssetsService {
       yahooSymbol: asset.yahooSymbol,
       manualPrice: asset.manualPrice,
       sortOrder: asset.sortOrder,
+      direction: asset.direction || 'long',
       portfolio: {
         id: asset.portfolio.id,
         name: asset.portfolio.name,
@@ -201,8 +203,9 @@ export class AssetsService {
     cgId?: string,
     yahooSymbol?: string,
     manualPrice?: number,
+    direction?: 'long' | 'short',
   ): Promise<Asset> {
-    this.logger.log(`Creating asset symbol=${symbol} type=${type} currency=${currency} in portfolio=${portfolioId}`);
+    this.logger.log(`Creating asset symbol=${symbol} type=${type} currency=${currency} direction=${direction || 'long'} in portfolio=${portfolioId}`);
     // Verify portfolio ownership
     const portfolio = await this.portfolioRepo.findOne({
       where: { id: portfolioId, userId },
@@ -223,6 +226,7 @@ export class AssetsService {
       cgId: cgId || null,
       yahooSymbol: yahooSymbol || null,
       manualPrice: manualPrice !== undefined ? manualPrice : null,
+      direction: direction || 'long',
       sortOrder: count,
     } as any) as any as Asset;
 

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
-import { IsNotEmpty, IsEnum, IsOptional, IsString, IsNumber, IsUUID, IsArray } from 'class-validator';
+import { IsNotEmpty, IsEnum, IsOptional, IsString, IsNumber, IsUUID, IsArray, IsIn } from 'class-validator';
 
 class CreateAssetDto {
   @IsUUID(4, { message: 'portfolioId ต้องเป็น UUID ที่ถูกต้อง' })
@@ -31,6 +31,10 @@ class CreateAssetDto {
   @IsOptional()
   @IsNumber()
   manualPrice?: number;
+
+  @IsOptional()
+  @IsIn(['long', 'short'], { message: 'direction ต้องเป็น long หรือ short' })
+  direction?: 'long' | 'short';
 }
 
 class UpdateAssetDto {
@@ -75,6 +79,7 @@ export class AssetsController {
       body.cgId,
       body.yahooSymbol,
       body.manualPrice,
+      body.direction,
     );
   }
 

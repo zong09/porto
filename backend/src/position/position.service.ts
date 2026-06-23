@@ -13,11 +13,12 @@ export interface PositionSummary {
   avgCost: number;
   totalCost: number;
   realizedPnl: number;
+  direction: 'long' | 'short';
 }
 
 @Injectable()
 export class PositionService {
-  calculate(transactions: SimpleTransaction[]): PositionSummary {
+  calculate(transactions: SimpleTransaction[], direction: 'long' | 'short' = 'long'): PositionSummary {
     // Sort transactions oldest to newest by date if dates are available,
     // otherwise preserve order (we assume it's sorted)
     const sorted = [...transactions].sort((a, b) => {
@@ -36,19 +37,40 @@ export class PositionService {
       const p = Number(tx.price);
       const f = Number(tx.fee || 0);
 
-      if (tx.side === 'buy' || tx.side === 'deposit') {
-        totalCost += q * p + f;
-        quantity += q;
-      } else if (tx.side === 'sell' || tx.side === 'withdraw') {
-        const avgCost = quantity > 0 ? totalCost / quantity : 0;
-        realizedPnl += q * (p - avgCost) - f;
-        totalCost -= avgCost * q;
-        quantity -= q;
+      if (direction === 'short') {
+        // Short position: sell opens (adds qty), buy covers (removes qty)
+        if (tx.side === 'sell') {
+          // Sell to open — enter short position
+          totalCost += q * p + f;
+          quantity += q;
+        } else if (tx.side === 'buy') {
+          // Buy to cover — exit short position
+          const avgCost = quantity > 0 ? totalCost / quantity : 0;
+          realizedPnl += q * (avgCost - p) - f; // Profit when cover price < avg entry
+          totalCost -= avgCost * q;
+          quantity -= q;
 
-        // Prevent floating point errors from leaving small quantities
-        if (quantity < 1e-9) {
-          quantity = 0;
-          totalCost = 0;
+          if (quantity < 1e-9) {
+            quantity = 0;
+            totalCost = 0;
+          }
+        }
+      } else {
+        // Long position (original logic)
+        if (tx.side === 'buy' || tx.side === 'deposit') {
+          totalCost += q * p + f;
+          quantity += q;
+        } else if (tx.side === 'sell' || tx.side === 'withdraw') {
+          const avgCost = quantity > 0 ? totalCost / quantity : 0;
+          realizedPnl += q * (p - avgCost) - f;
+          totalCost -= avgCost * q;
+          quantity -= q;
+
+          // Prevent floating point errors from leaving small quantities
+          if (quantity < 1e-9) {
+            quantity = 0;
+            totalCost = 0;
+          }
         }
       }
     }
@@ -60,6 +82,7 @@ export class PositionService {
       avgCost,
       totalCost,
       realizedPnl,
+      direction,
     };
   }
 }

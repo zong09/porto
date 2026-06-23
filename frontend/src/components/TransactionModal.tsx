@@ -53,6 +53,7 @@ export const TransactionModal: React.FC = () => {
   const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
   const selectedAsset = assets.find((a) => a.id === assetId);
   const isDeposit = selectedAsset?.type === 'deposit';
+  const isShort = (selectedAsset?.direction || 'long') === 'short';
   const assetCcy = selectedAsset?.currency || 'USD';
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export const TransactionModal: React.FC = () => {
         } else if (assets.length > 0) {
           setAssetId(assets[0].id);
         }
-        setSide('buy');
+        setSide(isShort ? 'sell' : 'buy');
         setQuantity('');
         setFee('');
         setDate(new Date().toISOString().slice(0, 10));
@@ -147,19 +148,38 @@ export const TransactionModal: React.FC = () => {
     let p = pInput;
     let f = fInput;
 
-    // Verify sell limit
-    if (side === 'sell' && selectedAsset) {
-      const currentQty = selectedAsset.position?.quantity || 0;
-      // If editing, we subtract the old transaction quantity from validation to get current actual excluding it
-      const oldQty = activeTransactionId && activeTransaction ? Number(activeTransaction.quantity) : 0;
-      if (q > (currentQty + oldQty) + 1e-9) {
-        const formattedQty = (currentQty + oldQty).toLocaleString('en-US', { maximumFractionDigits: 8 });
-        setError(
-          language === 'th'
-            ? `ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${formattedQty} หน่วย)`
-            : `Cannot sell more than you hold (currently holding ${formattedQty} units)`
-        );
-        return;
+    // Verify quantity limit
+    if (selectedAsset) {
+      if (isShort) {
+        // Short: validate buy (cover) does not exceed short quantity
+        if (side === 'buy') {
+          const currentQty = selectedAsset.position?.quantity || 0;
+          const oldQty = activeTransactionId && activeTransaction ? Number(activeTransaction.quantity) : 0;
+          if (q > (currentQty + oldQty) + 1e-9) {
+            const formattedQty = (currentQty + oldQty).toLocaleString('en-US', { maximumFractionDigits: 8 });
+            setError(
+              language === 'th'
+                ? `ไม่สามารถ cover เกินจำนวนที่ short อยู่ได้ (ปัจจุบัน short อยู่ ${formattedQty} หน่วย)`
+                : `Cannot cover more than you are short (currently short ${formattedQty} units)`
+            );
+            return;
+          }
+        }
+      } else {
+        // Long: validate sell does not exceed held quantity
+        if (side === 'sell') {
+          const currentQty = selectedAsset.position?.quantity || 0;
+          const oldQty = activeTransactionId && activeTransaction ? Number(activeTransaction.quantity) : 0;
+          if (q > (currentQty + oldQty) + 1e-9) {
+            const formattedQty = (currentQty + oldQty).toLocaleString('en-US', { maximumFractionDigits: 8 });
+            setError(
+              language === 'th'
+                ? `ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${formattedQty} หน่วย)`
+                : `Cannot sell more than you hold (currently holding ${formattedQty} units)`
+            );
+            return;
+          }
+        }
       }
     }
 
@@ -254,7 +274,7 @@ export const TransactionModal: React.FC = () => {
                 className={toggleSideBtn(side === 'buy')}
                 id="btn-txn-side-buy"
               >
-                {isDeposit ? (language === 'th' ? 'ฝากเงิน' : 'Deposit') : (language === 'th' ? 'ซื้อ' : 'Buy')}
+                {isDeposit ? (language === 'th' ? 'ฝากเงิน' : 'Deposit') : isShort ? (language === 'th' ? 'ขาย (เปิด)' : 'Sell (Open)') : (language === 'th' ? 'ซื้อ' : 'Buy')}
               </button>
               <button
                 type="button"
@@ -262,7 +282,7 @@ export const TransactionModal: React.FC = () => {
                 className={toggleSideBtn(side === 'sell')}
                 id="btn-txn-side-sell"
               >
-                {isDeposit ? (language === 'th' ? 'ถอนเงิน' : 'Withdraw') : (language === 'th' ? 'ขาย' : 'Sell')}
+                {isDeposit ? (language === 'th' ? 'ถอนเงิน' : 'Withdraw') : isShort ? (language === 'th' ? 'ซื้อ (ปิด)' : 'Buy (Cover)') : (language === 'th' ? 'ขาย' : 'Sell')}
               </button>
             </div>
           </div>

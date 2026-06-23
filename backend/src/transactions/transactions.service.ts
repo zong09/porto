@@ -80,8 +80,13 @@ export class TransactionsService {
       dbSide = 'sell';
     }
 
-    // 3. For sells, validate quantity does not exceed currently held quantity
-    if (dbSide === 'sell') {
+    // 3. Validate quantity does not exceed position
+    // For short assets: block buy (cover) exceeding short quantity
+    // For long assets: block sell exceeding held quantity
+    const isShort = (asset as any).direction === 'short';
+    const shouldValidate = isShort ? dbSide === 'buy' : dbSide === 'sell';
+
+    if (shouldValidate) {
       const existingTxs = await this.transactionRepo.find({
         where: { assetId },
       });
@@ -93,10 +98,13 @@ export class TransactionsService {
         side: t.side,
         date: t.date,
       }));
-      const position = this.positionService.calculate(simpleTxs);
+      const position = this.positionService.calculate(simpleTxs, isShort ? 'short' : 'long');
       
       if (quantity > position.quantity + 1e-9) {
-        throw new BadRequestException(`ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${position.quantity} หน่วย)`);
+        const msg = isShort
+          ? `ไม่สามารถ cover เกินจำนวนที่ short อยู่ได้ (ปัจจุบัน short อยู่ ${position.quantity} หน่วย)`
+          : `ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${position.quantity} หน่วย)`;
+        throw new BadRequestException(msg);
       }
     }
 
@@ -152,8 +160,11 @@ export class TransactionsService {
       dbSide = 'sell';
     }
 
-    // 4. For sells, validate quantity does not exceed currently held quantity (excluding the current transaction being edited)
-    if (dbSide === 'sell') {
+    // 4. Validate quantity does not exceed position (excluding the current transaction being edited)
+    const isShort = (asset as any).direction === 'short';
+    const shouldValidate = isShort ? dbSide === 'buy' : dbSide === 'sell';
+
+    if (shouldValidate) {
       const existingTxs = await this.transactionRepo.find({
         where: { assetId },
       });
@@ -167,10 +178,13 @@ export class TransactionsService {
           side: t.side,
           date: t.date,
         }));
-      const position = this.positionService.calculate(simpleTxs);
+      const position = this.positionService.calculate(simpleTxs, isShort ? 'short' : 'long');
       
       if (quantity > position.quantity + 1e-9) {
-        throw new BadRequestException(`ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${position.quantity} หน่วย)`);
+        const msg = isShort
+          ? `ไม่สามารถ cover เกินจำนวนที่ short อยู่ได้ (ปัจจุบัน short อยู่ ${position.quantity} หน่วย)`
+          : `ไม่สามารถขายเกินจำนวนที่ถืออยู่ได้ (ปัจจุบันถืออยู่ ${position.quantity} หน่วย)`;
+        throw new BadRequestException(msg);
       }
     }
 

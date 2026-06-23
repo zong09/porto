@@ -200,7 +200,13 @@ export const Overview: React.FC = () => {
       for (const a of pAssets) {
         if (!a.position || a.position.quantity <= 0) continue;
         const multiplier = a.currency === 'USD' ? fx : 1;
-        pValueThb += a.position.quantity * (a.currentPrice || 0) * multiplier;
+        const isShort = (a.direction || 'long') === 'short';
+        const assetVal = a.position.quantity * (a.currentPrice || 0) * multiplier;
+        if (isShort) {
+          pValueThb -= assetVal;
+        } else {
+          pValueThb += assetVal;
+        }
         pCostThb += a.position.quantity * a.position.avgCost * multiplier;
         types.add(typeLabels[a.type]);
       }
@@ -244,9 +250,11 @@ export const Overview: React.FC = () => {
       .map((a) => {
         if (!a.position || a.position.quantity <= 0 || a.type === 'deposit') return null;
         const multiplier = a.currency === 'USD' ? fx : 1;
+        const isShort = (a.direction || 'long') === 'short';
         const value = a.position.quantity * (a.currentPrice || 0) * multiplier;
         const cost = a.position.quantity * a.position.avgCost * multiplier;
-        const plThb = value - cost;
+        // Short: profit when price drops (cost - value); Long: profit when price rises (value - cost)
+        const plThb = isShort ? (cost - value) : (value - cost);
         return {
           symbol: a.symbol,
           plThb,

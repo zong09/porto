@@ -45,6 +45,9 @@ export class Asset {
   })
   manualPrice: number | null;
 
+  @Column({ default: 'long' })
+  direction: 'long' | 'short';
+
   @Column({ default: 0 })
   sortOrder: number;
 
