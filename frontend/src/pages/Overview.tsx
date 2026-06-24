@@ -26,7 +26,7 @@ export const Overview: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoney = (val: number) => {
+  const formatMoney = (val: number, twoLines = false, forcePlusSign = false) => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
@@ -45,11 +45,29 @@ export const Overview: React.FC = () => {
     const primary = isThb ? thbStr : usdStr;
     const secondary = isThb ? usdStr : thbStr;
 
+    let sign = '';
+    if (isNeg) {
+      sign = '-';
+    } else if (forcePlusSign && val > 0) {
+      sign = '+';
+    }
+
+    if (twoLines) {
+      return (
+        <span className="flex flex-col tabular-nums leading-snug">
+          <span>{sign}{primary}</span>
+          <span className="text-[0.68em] text-faint font-semibold mt-0.5">
+            ({sign}{secondary})
+          </span>
+        </span>
+      );
+    }
+
     return (
       <span className="tabular-nums">
-        {isNeg ? '-' : ''}{primary}
+        {sign}{primary}
         <span className="text-[0.72em] text-faint ml-1.5 font-semibold">
-          ({isNeg ? '-' : ''}{secondary})
+          ({sign}{secondary})
         </span>
       </span>
     );
@@ -348,11 +366,11 @@ export const Overview: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 max-w-[650px] mx-auto w-full px-2">
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
           <span className="text-xs font-semibold text-muted">{t('overview.totalAssets')}</span>
-          <span className="text-lg.5 font-bold text-dark tabular-nums">{formatMoney(totalAssets)}</span>
+          <span className="text-lg.5 font-bold text-dark tabular-nums">{formatMoney(totalAssets, true)}</span>
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
           <span className="text-xs font-semibold text-muted">{t('overview.liabilities')}</span>
-          <span className="text-lg.5 font-bold text-[#84422e] tabular-nums">{formatMoney(totalLiabilities)}</span>
+          <span className="text-lg.5 font-bold text-[#84422e] tabular-nums">{formatMoney(totalLiabilities, true)}</span>
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
           <span className="text-xs font-semibold text-muted">{t('overview.todayPl')}</span>
@@ -361,8 +379,7 @@ export const Overview: React.FC = () => {
               todayPl >= 0 ? 'text-positive-text' : 'text-negative-text'
             }`}
           >
-            {todayPl >= 0 ? '+' : ''}
-            {formatMoney(todayPl)}
+            {formatMoney(todayPl, true, true)}
           </span>
         </div>
       </div>
