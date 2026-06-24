@@ -13,6 +13,14 @@ export const Overview: React.FC = () => {
   const { data: config } = useAuthConfig();
   const { t, language } = useTranslation();
 
+  const lastUpdatedTime = React.useMemo(() => {
+    if (!summary.dataUpdatedAt) return '';
+    const date = new Date(summary.dataUpdatedAt);
+    const hrs = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    return `${hrs}:${mins}`;
+  }, [summary.dataUpdatedAt]);
+
   const portfoliosCount = portfolios.length;
   const hasAssets = assets.length > 0;
   const fx = summary.data?.fx || 35.84;
@@ -107,7 +115,7 @@ export const Overview: React.FC = () => {
     if (oldPoint && Number(oldPoint.netWorthThb) > 0) {
       const pct = ((netWorth - Number(oldPoint.netWorthThb)) / Number(oldPoint.netWorthThb)) * 100;
       MoMChangeUp = pct >= 0;
-      MoMChangeLabel = `${pct >= 0 ? '▲ +' : '▼ '}${Math.abs(pct).toFixed(1)}% ${t('overview.monthAbbr')}`;
+      MoMChangeLabel = `${pct >= 0 ? '▲ +' : '▼ -'}${Math.abs(pct).toFixed(1)}% ${t('overview.monthAbbr')}`;
     }
   }
 
@@ -330,8 +338,8 @@ export const Overview: React.FC = () => {
           >
             {MoMChangeLabel}
           </div>
-          <div className="text-faint">
-            {t('overview.updatedText')}
+          <div className="text-faint select-none">
+            {language === 'th' ? `อัปเดตล่าสุด ${lastUpdatedTime} · CoinGecko + Yahoo Finance` : `Last updated ${lastUpdatedTime} · CoinGecko + Yahoo Finance`}
           </div>
         </div>
       </div>
@@ -417,7 +425,7 @@ export const Overview: React.FC = () => {
       {hasAssets && (
         <>
           {/* Portfolio List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {portfolioSummaries.map((c) => {
               const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
               const tints = ['#EFF3E6', '#F3E9DC', '#F2E0D8', '#E2EDEA', '#EAE4F0', '#F2E2E8'];
@@ -427,7 +435,7 @@ export const Overview: React.FC = () => {
                 <div
                   key={c.id}
                   onClick={() => setPage('ports')}
-                  className="rounded-md p-4 flex flex-col shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                  className="rounded-[24px] p-6 flex flex-col shadow-sm border border-inputBorder/10 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                   style={{ backgroundColor: tints[i % 6] }}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -443,7 +451,7 @@ export const Overview: React.FC = () => {
                   <span className="text-[26px] font-bold text-dark tabular-nums tracking-tight leading-none mb-1">
                     {formatMoney(c.valueThb)}
                   </span>
-                  <p className="text-[11.5px] text-muted font-medium mb-3">{c.desc}</p>
+                  <p className="text-[11.5px] text-muted font-medium mb-5">{c.desc}</p>
                   
                   {/* Progress bar */}
                   <div className="mt-auto flex flex-col gap-1.5">
@@ -465,10 +473,10 @@ export const Overview: React.FC = () => {
             })}
           </div>
 
-          {/* Detailed Charts Row - Unified Container */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 mt-6 items-stretch border border-inputBorder/20 shadow-sm rounded-md overflow-hidden bg-white">
+          {/* Detailed Charts Row - Separate Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 items-stretch">
             {/* Allocation Donut */}
-            <div className="p-5 md:p-6 flex flex-col gap-4 border-b lg:border-b-0 lg:border-r border-inputBorder/20">
+            <div className="bg-white rounded-[24px] p-6 flex flex-col gap-4 border border-inputBorder/20 shadow-sm">
               <h3 className="text-[15px] font-bold text-dark">{t('overview.portsAllocation')}</h3>
               <div className="flex flex-col items-center gap-6 my-auto">
                 <div className="relative w-[140px] h-[140px] shrink-0 mt-2">
@@ -507,36 +515,78 @@ export const Overview: React.FC = () => {
             </div>
 
             {/* Asset P&L Bars */}
-            <div className="p-5 md:p-6 flex flex-col gap-4 border-b lg:border-b-0 lg:border-r border-inputBorder/20">
+            <div className="bg-white rounded-[24px] p-6 flex flex-col gap-4 border border-inputBorder/20 shadow-sm">
               <h3 className="text-[15px] font-bold text-dark">{t('overview.unrealizedPl')}</h3>
               {barChartData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center h-[200px] text-muted text-xs.5">
                   {t('overview.noUnrealizedPl')}
                 </div>
               ) : (
-                <div className="flex items-end justify-around h-[220px] px-1 my-auto">
-                  {barChartData.map((b, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-1.5 h-full justify-end select-none">
-                      <span className="text-[10px] font-bold text-center leading-[1.1] max-w-[40px]" style={{ color: b.isProfit ? '#4f7136' : '#b4543c' }}>
-                        {b.valLabel}
-                      </span>
-                      <div
-                        className="w-[28px] md:w-[34px] transition-all duration-300 shadow-sm"
-                        style={{
-                          height: `${b.heightPercent * 1.3}px`,
-                          backgroundColor: b.color,
-                          borderRadius: b.isProfit ? '4px 4px 0 0' : '0 0 4px 4px',
-                        }}
-                      ></div>
-                      <span className="text-[10px] font-bold text-muted mt-1 text-center max-w-[40px] truncate">{b.symbol}</span>
-                    </div>
-                  ))}
+                <div className="flex flex-col gap-4 my-auto h-[220px]">
+                  <div className="relative flex-1 px-1 flex items-stretch justify-around">
+                    {/* Baseline */}
+                    <div className="absolute left-0 right-0 top-[60%] border-t border-inputBorder/20 pointer-events-none"></div>
+                    
+                    {barChartData.map((b, idx) => (
+                      <div key={idx} className="relative flex flex-col items-center w-[36px] md:w-[42px] select-none">
+                        {/* Positive Bar */}
+                        {b.isProfit && (
+                          <>
+                            <span
+                              className="absolute text-[9.5px] font-bold text-center leading-none"
+                              style={{
+                                color: '#4f7136',
+                                bottom: `calc(40% + ${b.heightPercent * 0.6}% + 4px)`,
+                              }}
+                            >
+                              {b.valLabel}
+                            </span>
+                            <div
+                              className="absolute bottom-[40%] w-[24px] md:w-[28px] transition-all duration-300 shadow-sm rounded-t-[4px]"
+                              style={{
+                                height: `${b.heightPercent * 0.6}%`,
+                                backgroundColor: b.color,
+                              }}
+                            ></div>
+                          </>
+                        )}
+
+                        {/* Negative Bar */}
+                        {!b.isProfit && (
+                          <>
+                            <span
+                              className="absolute text-[9.5px] font-bold text-center leading-none"
+                              style={{
+                                color: '#b4543c',
+                                bottom: 'calc(40% + 4px)',
+                              }}
+                            >
+                              {b.valLabel}
+                            </span>
+                            <div
+                              className="absolute top-[60%] w-[24px] md:w-[28px] transition-all duration-300 shadow-sm rounded-b-[4px]"
+                              style={{
+                                height: `${b.heightPercent * 0.4}%`,
+                                backgroundColor: b.color,
+                              }}
+                            ></div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Symbols row aligned at the bottom */}
+                  <div className="flex justify-around px-1 text-[10px] font-bold text-muted text-center select-none">
+                    {barChartData.map((b, idx) => (
+                      <span key={idx} className="w-[36px] md:w-[42px] truncate">{b.symbol}</span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Assets vs Liabilities */}
-            <div className="bg-dark p-5 md:p-6 flex flex-col gap-4 text-[#faf5ec]">
+            <div className="bg-dark rounded-[24px] p-6 flex flex-col gap-4 text-[#faf5ec] shadow-sm">
               <h3 className="text-[15px] font-bold text-[#faf5ec]/90">{t('overview.assetsVsLiabilities')}</h3>
               <div className="flex flex-col gap-6 my-auto justify-center select-none pt-2">
                 <div className="flex flex-col gap-2">
