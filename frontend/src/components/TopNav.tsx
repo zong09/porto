@@ -43,11 +43,7 @@ export const TopNav: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Language Switcher */}
-        <div className="flex bg-[#f0e7d8] rounded-full p-[3px] text-[12.5px] font-bold select-none">
-          <div onClick={() => setLanguage('th')} className={pillClass(language === 'th')} id="btn-lang-th">TH</div>
-          <div onClick={() => setLanguage('en')} className={pillClass(language === 'en')} id="btn-lang-en">EN</div>
-        </div>
+
 
         {/* Currency Switcher */}
         <div className="flex bg-[#f0e7d8] rounded-full p-[3px] text-[12.5px] font-bold select-none">
