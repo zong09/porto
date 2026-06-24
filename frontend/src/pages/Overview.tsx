@@ -306,8 +306,8 @@ export const Overview: React.FC = () => {
     for (const grp of groupRects) {
       const gData = grp.data;
       // Calculate leaves inside this group rect
-      const pad = 0.4; // 2px horizontal padding = 0.4% of 500px width
-      const headHeight = 4.8; // 24px header height = 4.8% of 500px height
+      const pad = 0.4;
+      const headHeight = 3.8; // ~24px out of 650px height
       const innerRect = {
         x: grp.x + pad,
         y: grp.y + headHeight,
@@ -616,7 +616,7 @@ export const Overview: React.FC = () => {
             </div>
 
             {/* Treemap Container */}
-            <div className="relative w-full h-[500px] mt-2 overflow-hidden rounded-[8px]">
+            <div className="relative w-full h-[450px] md:h-[650px] mt-2 overflow-hidden rounded-[8px]">
               {/* Group borders/backgrounds */}
               {treemapData.groups.map(g => (
                 <div 
@@ -628,13 +628,14 @@ export const Overview: React.FC = () => {
                     backgroundColor: g.tintColor,
                     padding: '4px 9px'
                   }}
+                  title={`${g.name} - ${isThb ? '฿' : '$'}${(isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${((g.valueThb / treemapData.globalTotal) * 100).toFixed(1)}%)`}
                 >
                   <div className="flex items-baseline gap-[7px] whitespace-nowrap overflow-hidden">
                     <span className="text-[12.5px] font-bold truncate" style={{ color: g.hexColor }}>{g.name}</span>
                     <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums flex items-baseline">
-                      {isThb ? '฿' : '$'}{isThb ? formatMoney(g.valueThb) : formatMoney(g.valueThb / fx)}
+                      {isThb ? '฿' : '$'}{(isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       <span className="text-[0.72em] opacity-70 ml-[5px]">
-                        ({!isThb ? '฿' : '$'}{!isThb ? formatMoney(g.valueThb) : formatMoney(g.valueThb / fx)})
+                        ({!isThb ? '฿' : '$'}{(!isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                       </span>
                     </span>
                     <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums">
