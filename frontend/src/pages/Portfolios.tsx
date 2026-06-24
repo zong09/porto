@@ -307,6 +307,7 @@ export const Portfolios: React.FC = () => {
     // Compute portfolio value and cost
     let pValueThb = 0;
     let pCostThb = 0;
+    let pPlThb = 0;
     const holdings = pAssets.map((a) => {
       const multiplier = a.currency === 'USD' ? fx : 1;
       const quantity = a.position?.quantity || 0;
@@ -329,6 +330,7 @@ export const Portfolios: React.FC = () => {
       const plThb = isShort
         ? (avgCost - currentPrice) * quantity * multiplier
         : assetValueThb - assetCostThb;
+      pPlThb += plThb;
       const returnPct = assetCostThb > 0 ? (plThb / assetCostThb) * 100 : 0;
 
       return {
@@ -343,7 +345,7 @@ export const Portfolios: React.FC = () => {
       };
     });
 
-    const pReturnPct = pCostThb > 0 ? ((pValueThb - pCostThb) / pCostThb) * 100 : 0;
+    const pReturnPct = pCostThb > 0 ? (pPlThb / pCostThb) * 100 : 0;
     const activeHoldings = holdings.filter((h) => h.quantity > 0).sort((a, b) => b.valueThb - a.valueThb);
 
     // Stacked allocation bar config

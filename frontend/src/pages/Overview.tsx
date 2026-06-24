@@ -187,6 +187,7 @@ export const Overview: React.FC = () => {
       const pAssets = assets.filter((a) => a.portfolioId === p.id);
       let pValueThb = 0;
       let pCostThb = 0;
+      let pPlThb = 0;
       const types = new Set<string>();
 
       const typeLabels: Record<string, string> = {
@@ -207,11 +208,20 @@ export const Overview: React.FC = () => {
         } else {
           pValueThb += assetVal;
         }
-        pCostThb += a.position.quantity * a.position.avgCost * multiplier;
+        const avgCost = a.position.avgCost || 0;
+        const currentPrice = a.currentPrice || 0;
+        const assetCost = a.position.quantity * avgCost * multiplier;
+        pCostThb += assetCost;
+
+        const assetPl = isShort
+          ? (avgCost - currentPrice) * a.position.quantity * multiplier
+          : assetVal - assetCost;
+        pPlThb += assetPl;
+
         types.add(typeLabels[a.type]);
       }
 
-      const pReturnPct = pCostThb > 0 ? ((pValueThb - pCostThb) / pCostThb) * 100 : 0;
+      const pReturnPct = pCostThb > 0 ? (pPlThb / pCostThb) * 100 : 0;
       const assetPctOfTotal = totalAssets > 0 ? (pValueThb / totalAssets) * 100 : 0;
 
       return {
