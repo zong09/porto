@@ -62,7 +62,7 @@
           <sc-if value="{{ authErr }}">
             <div style="background: #f3ded6; color: #84422e; font-size: 13px; padding: 9px 14px; border-radius: 12px;">{{ authErrText }}</div>
           </sc-if>
-          <button onClick="{{ authSubmit }}" style-hover="opacity: 0.9;" style="{{ authBtnStyle }}">{{ authSubmitLabel }}</button>
+          <button onClick="{{ authSubmit }}" style-hover="opacity: 0.9;" style="{{ authBtnStyle }}">{{ authTitle }}</button>
           <div style="display: flex; align-items: center; gap: 12px; color: #c9bca5; font-size: 12px;">
             <div style="flex: 1; height: 1px; background: #e8dccb;"></div>หรือ<div style="flex: 1; height: 1px; background: #e8dccb;"></div>
           </div>
@@ -126,10 +126,14 @@
         <!-- Hero -->
         <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 36px 0 8px;">
           <div style="font-size: 14px; color: #8a7d6c;">ความมั่งคั่งสุทธิของคุณ (Net Worth)</div>
-          <div style="font-size: clamp(34px, 6vw, 52px); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">{{ netWorthFmt }}</div>
-          <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; flex-wrap: wrap; justify-content: center;">
+          <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; justify-content: center;">
+            <div style="font-size: clamp(34px, 6vw, 50px); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">{{ netWorthFmt }}</div>
+            <div style="font-size: 16px; color: #a89a86;">{{ nwSecondaryFmt }}</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 9px; font-size: 13px; flex-wrap: wrap; justify-content: center;">
+            <div style="{{ plTotalPill }}">{{ plTotalFmt }} ({{ plTotalPctFmt }})</div>
             <div style="{{ nwChangeStyle }}">{{ nwChangeLabel }}</div>
-            <div style="color: #a89a86;">{{ updatedLabel }} · CoinGecko + Yahoo Finance</div>
+            <div style="color: #a89a86;">{{ updatedLabel }}</div>
           </div>
         </div>
 
@@ -151,19 +155,26 @@
 
         <!-- Net worth chart -->
         <sc-if value="{{ hasHistory }}" hint-placeholder-val="{{ true }}">
-          <div style="display: flex; flex-direction: column; align-items: center; padding: 8px 0 0;">
-            <svg viewBox="0 0 1100 170" style="width: 100%; max-width: 1100px; height: auto; display: block;">
+          <div style="background: #fff; border-radius: 20px; padding: 20px 24px; margin-top: 16px;">
+            <div style="display: flex; align-items: center; margin-bottom: 12px;">
+              <div style="font-size: 14px; font-weight: 700;">การเติบโตของ Net Worth</div>
+              <div style="margin-left: auto;"><span style="{{ heroGrowthStyle }}">{{ heroGrowthLabel }}</span></div>
+            </div>
+            <svg viewBox="0 0 1100 170" style="width: 100%; height: auto; display: block;">
               <defs>
                 <linearGradient id="nw-area" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0" style="stop-color: #c97a52; stop-opacity: 0.32;"></stop>
                   <stop offset="1" style="stop-color: #c97a52; stop-opacity: 0;"></stop>
                 </linearGradient>
               </defs>
+              <line x1="0" y1="42" x2="1100" y2="42" style="stroke: #f0e7d8; stroke-width: 1;"></line>
+              <line x1="0" y1="85" x2="1100" y2="85" style="stroke: #f0e7d8; stroke-width: 1;"></line>
+              <line x1="0" y1="128" x2="1100" y2="128" style="stroke: #f0e7d8; stroke-width: 1;"></line>
               <path d="{{ nwAreaPath }}" style="fill: url(#nw-area);"></path>
               <path d="{{ nwLinePath }}" style="fill: none; stroke: #b45a3c; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"></path>
-              <circle cx="{{ nwDotX }}" cy="{{ nwDotY }}" r="5" style="fill: #b45a3c; stroke: #faf5ec; stroke-width: 3;"></circle>
+              <circle cx="{{ nwDotX }}" cy="{{ nwDotY }}" r="5" style="fill: #b45a3c; stroke: #fff; stroke-width: 3;"></circle>
             </svg>
-            <div style="width: 100%; max-width: 1100px; display: flex; justify-content: space-between; font-size: 12px; color: #b3a692;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #b3a692; margin-top: 6px;">
               <sc-for list="{{ nwXLabels }}" as="x" hint-placeholder-count="5">
                 <div>{{ x.label }}</div>
               </sc-for>
@@ -201,64 +212,67 @@
           </sc-for>
         </div>
 
-        <!-- Charts row -->
+        <!-- Combined Treemap: portfolio · type · asset -->
         <sc-if value="{{ hasAssets }}" hint-placeholder-val="{{ true }}">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; padding-top: 16px;">
-
-            <!-- Donut -->
-            <div style="background: #ffffff; border-radius: 22px; padding: 22px 24px;">
-              <div style="font-size: 14px; font-weight: 700; margin-bottom: 16px;">สัดส่วนตามพอร์ต</div>
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-                <div style="position: relative; width: 150px; height: 150px;">
-                  <div style="{{ donutStyle }}"></div>
-                  <div style="position: absolute; inset: 26px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <div style="font-size: 11px; color: #a89a86;">{{ donutCenterTop }}</div>
-                    <div style="font-size: 16px; font-weight: 700;">{{ donutCenterVal }}</div>
-                  </div>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 7px; font-size: 12.5px; width: 100%;">
-                  <sc-for list="{{ donutLegend }}" as="l" hint-placeholder-count="3">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <div style="{{ l.dotStyle }}"></div>
-                      <div style="color: #5c5240;">{{ l.name }}</div>
-                      <div style="margin-left: auto; font-weight: 700;">{{ l.pctFmt }}</div>
-                    </div>
-                  </sc-for>
-                </div>
-              </div>
+          <div style="background: #ffffff; border-radius: 22px; padding: 14px 18px; margin-top: 16px;">
+            <div style="display: flex; align-items: baseline; margin-bottom: 8px; padding: 0 8px; gap: 10px; flex-wrap: wrap;">
+              <div style="font-size: 14px; font-weight: 700;">ภาพรวมสินทรัพย์</div>
+              <div style="font-size: 12px; color: #a89a86;">กลุ่ม = พอร์ต · สี = พอร์ต · ขนาด = มูลค่า</div>
+              <div style="margin-left: auto; font-size: 12px; color: #a89a86;">{{ holdingCount }} รายการ</div>
             </div>
+            <div style="position: relative; width: 100%; height: 620px; margin-top: 4px;">
+              <sc-for list="{{ tmGroups }}" as="g" hint-placeholder-count="3">
+                <div style="{{ g.style }}">
+                  <div style="{{ g.labelStyle }}"><span style="{{ g.nameStyle }}">{{ g.name }}</span><span style="{{ g.gvalStyle }}">{{ g.valueFmt }}</span><span style="{{ g.gvalStyle }}">{{ g.pctFmt }}</span></div>
+                </div>
+              </sc-for>
+              <sc-for list="{{ tmLeaves }}" as="t" hint-placeholder-count="12">
+                <div style="{{ t.tileStyle }}" title="{{ t.title }}">
+                  <div style="{{ t.symStyle }}">{{ t.sym }}</div>
+                  <sc-if value="{{ t.showVal }}">
+                    <div style="{{ t.valStyle }}">{{ t.valueFmt }}</div>
+                  </sc-if>
+                  <sc-if value="{{ t.showPct }}">
+                    <div style="{{ t.pctStyle }}">{{ t.pctFmt }}</div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 8px 2px; font-size: 11.5px; color: #8a7d6c;">
+              <sc-for list="{{ tmTypeLegend }}" as="l" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <div style="{{ l.dotStyle }}"></div>
+                  <span>{{ l.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
 
-            <!-- P&L bars -->
-            <div style="background: #ffffff; border-radius: 22px; padding: 22px 24px;">
-              <div style="font-size: 14px; font-weight: 700; margin-bottom: 18px;">กำไร / ขาดทุน รายสินทรัพย์ (Unrealized)</div>
-              <div style="display: flex; align-items: flex-end; justify-content: space-around; height: 170px; padding: 0 4px;">
-                <sc-for list="{{ plRows }}" as="b" hint-placeholder-count="6">
-                  <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; height: 100%; justify-content: flex-end;">
-                    <div style="{{ b.valStyle }}">{{ b.valLabel }}</div>
-                    <div style="{{ b.barStyle }}"></div>
-                    <div style="font-size: 11.5px; font-weight: 600; color: #8a7d6c;">{{ b.sym }}</div>
+        <!-- Holdings table -->
+        <sc-if value="{{ hasAssets }}" hint-placeholder-val="{{ true }}">
+          <div style="background: #ffffff; border-radius: 22px; padding: 14px 18px; margin-top: 16px;">
+            <div style="display: flex; align-items: center; margin-bottom: 6px; padding: 0 8px;">
+              <div style="font-size: 14px; font-weight: 700;">ตารางสินทรัพย์ทั้งหมด</div>
+              <div style="margin-left: auto; font-size: 12px; color: #a89a86;">{{ holdingCount }} รายการ · เรียงตามมูลค่า</div>
+            </div>
+            <div style="overflow-x: auto;">
+              <div style="min-width: 900px;">
+                <div style="display: grid; grid-template-columns: 1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px; gap: 10px; padding: 9px 14px; font-size: 11px; font-weight: 700; color: #b3a692; border-bottom: 1px solid #f0e7d8;">
+                  <div>สินทรัพย์</div><div>พอร์ต</div><div style="text-align: right;">ราคา</div><div style="text-align: right;">มูลค่า</div><div style="text-align: right;">วันนี้</div><div style="text-align: right;">กำไรรวม</div><div style="text-align: center;">30 วัน</div><div style="text-align: right;">น้ำหนัก</div>
+                </div>
+                <sc-for list="{{ holdingRows }}" as="h" hint-placeholder-count="8">
+                  <div style="display: grid; grid-template-columns: 1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px; gap: 10px; padding: 9px 14px; align-items: center; font-size: 13px; border-radius: 9px; background: {{ h.rowBg }};">
+                    <div style="display: flex; flex-direction: column;"><div style="font-weight: 700;">{{ h.sym }}</div><div style="font-size: 11px; color: #a89a86;">{{ h.name }}</div></div>
+                    <div style="display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: #6b5d49;"><div style="{{ h.portDot }}"></div>{{ h.port }}</div>
+                    <div style="text-align: right; font-variant-numeric: tabular-nums; color: #8a7d6c;">{{ h.priceFmt }}</div>
+                    <div style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 700;">{{ h.valueFmt }}</div>
+                    <div style="{{ h.dayStyle }}">{{ h.dayFmt }}</div>
+                    <div style="{{ h.plStyle }}">{{ h.plFmt }}</div>
+                    <div style="display: flex; justify-content: center;"><svg viewBox="0 0 130 30" style="width: 120px; height: 28px; display: block;"><path d="{{ h.sparkLine }}" style="fill: none; stroke: {{ h.sparkColor }}; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round;"></path></svg></div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;"><div style="font-size: 11.5px; font-weight: 600; color: #6b5d49; font-variant-numeric: tabular-nums;">{{ h.weightLabel }}</div><div style="width: 70px; height: 6px; background: #f3ede0; border-radius: 999px; overflow: hidden;"><div style="{{ h.weightBarStyle }}"></div></div></div>
                   </div>
                 </sc-for>
-              </div>
-            </div>
-
-            <!-- Assets vs Liabilities -->
-            <div style="background: #3d3328; border-radius: 22px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px;">
-              <div style="font-size: 14px; font-weight: 700; color: #faf5ec;">Assets vs Liabilities</div>
-              <div style="display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center;">
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                  <div style="display: flex; font-size: 12.5px; color: #cdbfa8;"><div>สินทรัพย์</div><div style="margin-left: auto; font-weight: 700; color: #faf5ec;">{{ totalAssetsFmt }}</div></div>
-                  <div style="height: 16px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;"><div style="width: 100%; height: 100%; background: #a3b87a; border-radius: 999px;"></div></div>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                  <div style="display: flex; font-size: 12.5px; color: #cdbfa8;"><div>หนี้สิน</div><div style="margin-left: auto; font-weight: 700; color: #faf5ec;">{{ totalLiabFmt }}</div></div>
-                  <div style="height: 16px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;"><div style="{{ liabBarStyle }}"></div></div>
-                </div>
-                <div style="border-top: 1px dashed rgba(255,255,255,0.25); padding-top: 14px; display: flex; flex-direction: column; gap: 4px;">
-                  <div style="font-size: 12px; color: #cdbfa8;">อัตราหนี้ต่อสินทรัพย์</div>
-                  <div style="font-size: 24px; font-weight: 700; color: #faf5ec;">{{ debtRatioFmt }}</div>
-                  <div style="{{ debtNoteStyle }}">{{ debtNote }}</div>
-                </div>
               </div>
             </div>
           </div>
@@ -701,7 +715,15 @@
   </sc-if>
   </sc-if>
 </div>
-</x-dc>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" rx="20" fill="#b45a3c"></rect>
+    <path d="M30 62 L44 50 L56 58 L72 38" fill="none" stroke="#faf5ec" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+    <circle cx="72" cy="38" r="4.5" fill="#faf5ec"></circle>
+    <rect x="30" y="70" width="42" height="5" rx="2.5" fill="#faf5ec" opacity="0.6"></rect>
+  </svg>
+</template></x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   state = { data: null, page: 'overview', modal: null, form: {}, fetching: false, fetchError: false, authed: false, authMode: 'signin', authForm: {}, chart: null };
@@ -1333,6 +1355,167 @@ class Component extends DCLogic {
     const authBtn = { width: '100%', padding: '12px 0', borderRadius: '999px', background: '#b45a3c', color: '#fff', fontSize: '14.5px', fontWeight: 700, border: 'none', cursor: 'pointer' };
     const authInput = { width: '100%', padding: '12px 16px', borderRadius: '14px', border: '1px solid #e0d5c2', background: '#fff', fontSize: '14.5px', color: '#3d3328', outline: 'none' };
 
+    // ---- Overview (Frame B): type allocation, top movers, dense holdings rows, hero growth ----
+    const typeColorB = { crypto: '#d9a35f', us: '#7aa9ae', th: '#9bb06f', fund: '#a98cbb', deposit: '#c8bca6' };
+    const walkB = (seed, trend, n) => { let s = 7; for (const ch of String(seed)) s += ch.charCodeAt(0); const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }; let v = 0.5; const out = []; for (let i = 0; i < n; i++) { v += (rnd() - 0.5) * 0.22 + trend / n; out.push(v); } return out; };
+    const sparkPathB = (vals, w, h, pad) => { const mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), rng = (mx - mn) || 1; const pts = vals.map((v, i) => [i * (w / (vals.length - 1)), (h - pad) - (v - mn) / rng * (h - pad * 2)]); return 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L'); };
+
+    const hvB = data.assets.map(a => {
+      const pos = this.position(a.id);
+      if (pos.qty <= 0) return null;
+      const pr = this.priceOf(a, pos), mult = a.ccy === 'USD' ? fx : 1;
+      const v = pos.qty * pr * mult, c = pos.qty * pos.avg * mult;
+      const pl = v - c, plPct = c > 0 ? pl / c * 100 : 0;
+      const pinfo = data.prices[a.id], day = pinfo && pinfo.chg ? pinfo.chg : 0;
+      const port = data.portfolios.find(x => x.id === a.pid) || { name: '—', color: 0 };
+      return { a, pr, v, pl, plPct, day, port };
+    }).filter(Boolean).sort((x, y) => y.v - x.v);
+
+    const holdingRows = hvB.map((r, i) => {
+      const a = r.a, up = r.plPct >= 0, dz = r.day === 0, dup = r.day >= 0;
+      const w = T.assets > 0 ? r.v / T.assets * 100 : 0;
+      return {
+        sym: a.sym, name: (a.name && a.name !== a.sym) ? a.name : (typeLabels[a.type] || ''),
+        port: r.port.name,
+        portDot: { width: '9px', height: '9px', borderRadius: '50%', background: palette[(r.port.color || 0) % 6], flexShrink: 0 },
+        priceFmt: a.type === 'deposit' ? '—' : native(r.pr, a.ccy),
+        valueFmt: money(r.v),
+        dayFmt: dz ? '—' : (dup ? '+' : '−') + nf(Math.abs(r.day), 1) + '%',
+        dayStyle: { textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: dz ? '#b3a692' : dup ? '#4f7136' : '#b4543c' },
+        plFmt: a.type === 'deposit' ? '—' : (up ? '+' : '−') + nf(Math.abs(r.plPct), 1) + '%',
+        plStyle: { textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: a.type === 'deposit' ? '#a89a86' : up ? '#4f7136' : '#b4543c' },
+        sparkLine: sparkPathB(walkB(a.sym, up ? 0.4 : -0.4, 22), 130, 30, 3),
+        sparkColor: up ? '#7a8f55' : '#c4654a',
+        weightLabel: nf(w, 1) + '%',
+        weightBarStyle: { width: Math.max(3, w) + '%', height: '100%', background: typeColorB[a.type] || '#b3a692', borderRadius: '999px' },
+        rowBg: i % 2 ? '#faf6ed' : 'transparent'
+      };
+    });
+
+    // ---- Combined nested treemap: portfolio (group) → type (color) → asset (leaf) ----
+    const TMW = 1000, TMH = 620, HEAD = 26, GPAD = 4, TYPEGAP = 3;
+    // squarified treemap: items=[{area,data}] over rect → [{x,y,w,h,data}]
+    const squarify = (items, rect) => {
+      const out = [];
+      const worst = (areas, side) => {
+        let mx = -Infinity, mn = Infinity, sum = 0;
+        for (const a of areas) { sum += a; if (a > mx) mx = a; if (a < mn) mn = a; }
+        const s2 = side * side, sum2 = sum * sum;
+        return Math.max(s2 * mx / sum2, sum2 / (s2 * mn));
+      };
+      const lay = (row, r) => {
+        const sum = row.reduce((s, o) => s + o.area, 0);
+        if (r.w <= r.h) {
+          const rh = sum / r.w; let cx = r.x;
+          for (const o of row) { const tw = o.area / rh; out.push({ x: cx, y: r.y, w: tw, h: rh, data: o.data }); cx += tw; }
+          return { x: r.x, y: r.y + rh, w: r.w, h: r.h - rh };
+        }
+        const rw = sum / r.h; let cy = r.y;
+        for (const o of row) { const th = o.area / rw; out.push({ x: r.x, y: cy, w: rw, h: th, data: o.data }); cy += th; }
+        return { x: r.x + rw, y: r.y, w: r.w - rw, h: r.h };
+      };
+      let r = { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+      let queue = items.slice().sort((a, b) => b.area - a.area), row = [];
+      while (queue.length) {
+        const next = queue[0], side = Math.min(r.w, r.h), cur = row.map(o => o.area);
+        if (row.length === 0 || worst(cur, side) >= worst(cur.concat(next.area), side)) {
+          row.push(next); queue.shift();
+        } else { r = lay(row, r); row = []; }
+      }
+      if (row.length) lay(row, r);
+      return out;
+    };
+    // color helpers: leaf hue = type, shade nudged by P/L
+    const hex2rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const mix = (h, t, amt) => { const a = hex2rgb(h), b = hex2rgb(t); return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * amt).toString(16).padStart(2, '0')).join(''); };
+    const leafColor = (type, pl, dep) => {
+      const base = typeColorB[type] || '#b3a692';
+      if (dep) return base;
+      const amt = Math.min(0.2, Math.abs(pl) / 70);
+      return pl >= 0 ? mix(base, '#ffffff', amt) : mix(base, '#7a5a48', amt);
+    };
+    const tmGroups = [], tmLeaves = [];
+    const pGroups = data.portfolios.map(p => {
+      const rows = hvB.filter(r => r.port.id === p.id && r.v > 0);
+      return { p, rows, val: rows.reduce((s, r) => s + r.v, 0) };
+    }).filter(g => g.val > 0).sort((a, b) => b.val - a.val);
+    const tmTotalAll = pGroups.reduce((s, g) => s + g.val, 0);
+    if (tmTotalAll > 0) {
+      const gScale = (TMW * TMH) / tmTotalAll;
+      const gRects = squarify(pGroups.map(g => ({ area: g.val * gScale, data: g })), { x: 0, y: 0, w: TMW, h: TMH });
+      gRects.forEach(gr => {
+        const g = gr.data, color = palette[(g.p.color || 0) % 6];
+        tmGroups.push({
+          name: g.p.name, valueFmt: money(g.val), pctFmt: nf(g.val / tmTotalAll * 100, 1) + '%',
+          style: { position: 'absolute', left: gr.x / TMW * 100 + '%', top: gr.y / TMH * 100 + '%', width: gr.w / TMW * 100 + '%', height: gr.h / TMH * 100 + '%', background: mix(color, '#ffffff', 0.93), border: '2px solid ' + color, borderRadius: '10px', boxSizing: 'border-box', padding: '4px 9px', overflow: 'hidden' },
+          labelStyle: { display: 'flex', alignItems: 'baseline', gap: '7px', whiteSpace: 'nowrap', overflow: 'hidden' },
+          nameStyle: { fontSize: '12.5px', fontWeight: 700, color: color, overflow: 'hidden', textOverflow: 'ellipsis' },
+          gvalStyle: { fontSize: '11px', fontWeight: 600, color: '#8a7d6c', fontVariantNumeric: 'tabular-nums' }
+        });
+        const inner = { x: gr.x + GPAD, y: gr.y + HEAD, w: Math.max(1, gr.w - GPAD * 2), h: Math.max(1, gr.h - HEAD - GPAD) };
+        const rankMap = new Map();
+        g.rows.slice().sort((x, y) => y.v - x.v).forEach((r, idx) => rankMap.set(r, idx));
+        const gcount = g.rows.length;
+        const byType = {};
+        g.rows.forEach(r => { (byType[r.a.type] = byType[r.a.type] || []).push(r); });
+        const typeGroups = Object.keys(byType).map(t => ({ t, rows: byType[t], val: byType[t].reduce((s, r) => s + r.v, 0) }));
+        const tScale = (inner.w * inner.h) / g.val;
+        const tRects = squarify(typeGroups.map(tg => ({ area: tg.val * tScale, data: tg })), inner);
+        tRects.forEach(tr => {
+          const tg = tr.data;
+          const ti = { x: tr.x + TYPEGAP / 2, y: tr.y + TYPEGAP / 2, w: Math.max(1, tr.w - TYPEGAP), h: Math.max(1, tr.h - TYPEGAP) };
+          const aScale = (ti.w * ti.h) / tg.val;
+          const aRects = squarify(tg.rows.map(r => ({ area: r.v * aScale, data: r })), ti);
+          aRects.forEach(ar => {
+            const r = ar.data, a = r.a, dep = a.type === 'deposit', up = r.plPct >= 0;
+            const big = ar.w >= 78 && ar.h >= 44, med = ar.w >= 48 && ar.h >= 28;
+            const plStr = dep ? '—' : (up ? '+' : '−') + nf(Math.abs(r.plPct), 1) + '%';
+            const wpct = nf(r.v / tmTotalAll * 100, 1) + '%';
+            const rank = rankMap.get(r) || 0;
+            const amt = gcount > 1 ? rank / (gcount - 1) * 0.5 : 0;
+            let tint = mix(color, '#ffffff', amt);
+            if (!up) tint = mix(tint, '#7a5a48', Math.min(0.12, Math.abs(r.plPct) / 90));
+            tmLeaves.push({
+              sym: a.sym, valueFmt: money(r.v), pctFmt: wpct,
+              title: g.p.name + ' · ' + a.sym + ' · ' + money(r.v) + ' · ' + wpct + ' · ' + plStr,
+              showVal: big, showPct: med,
+              tileStyle: { position: 'absolute', left: ar.x / TMW * 100 + '%', top: ar.y / TMH * 100 + '%', width: ar.w / TMW * 100 + '%', height: ar.h / TMH * 100 + '%', background: tint, border: '1.5px solid rgba(255,255,255,0.9)', borderRadius: '5px', padding: med ? '6px 8px' : '3px 5px', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '1px', boxSizing: 'border-box' },
+              symStyle: { fontSize: big ? '14px' : med ? '12px' : '10px', fontWeight: 700, color: '#fff', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 1px 2px rgba(0,0,0,0.28)' },
+              valStyle: { fontSize: '11px', color: 'rgba(255,255,255,0.95)', fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 2px rgba(0,0,0,0.28)' },
+              pctStyle: { fontSize: '10.5px', fontWeight: 700, color: 'rgba(255,255,255,0.92)', fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 2px rgba(0,0,0,0.28)' }
+            });
+          });
+        });
+      });
+    }
+    const tmTypeLegend = pGroups.map(g => ({
+      label: g.p.name,
+      dotStyle: { width: '13px', height: '13px', borderRadius: '3px', background: palette[(g.p.color || 0) % 6], flexShrink: 0 }
+    }));
+
+    const typeAggB = {};
+    hvB.forEach(r => { typeAggB[r.a.type] = (typeAggB[r.a.type] || 0) + r.v; });
+    const typeItemsB = Object.keys(typeAggB).map(t => ({ t, v: typeAggB[t] })).sort((a, b) => b.v - a.v);
+    const typeLegendB = typeItemsB.map(it => ({
+      label: typeLabels[it.t], pctFmt: nf(T.assets > 0 ? it.v / T.assets * 100 : 0, 1) + '%', valueFmt: money(it.v),
+      dotStyle: { width: '10px', height: '10px', borderRadius: '3px', background: typeColorB[it.t], flexShrink: 0 }
+    }));
+    let taccB = 0; const tsegB = typeItemsB.map(it => { const f = taccB; taccB += T.assets > 0 ? it.v / T.assets * 100 : 0; return typeColorB[it.t] + ' ' + f.toFixed(2) + '% ' + taccB.toFixed(2) + '%'; });
+    const typeDonutStyle = { width: '100%', height: '100%', borderRadius: '50%', background: tsegB.length ? 'conic-gradient(' + tsegB.join(', ') + ')' : '#f0e7d8' };
+    const typeDonutCenter = cur === 'THB' ? '฿' + abbr(T.assets) : '$' + abbr(T.assets / fx);
+
+    const movedB = hvB.filter(r => r.day !== 0);
+    const dotGB = { width: '9px', height: '9px', borderRadius: '50%', background: '#7a8f55', flexShrink: 0 };
+    const dotRB = { width: '9px', height: '9px', borderRadius: '50%', background: '#c4654a', flexShrink: 0 };
+    const mvB = r => ({ sym: r.a.sym, name: (r.a.name && r.a.name !== r.a.sym) ? r.a.name : (typeLabels[r.a.type] || ''), dayFmt: (r.day >= 0 ? '+' : '−') + nf(Math.abs(r.day), 1) + '%', dotStyle: r.day >= 0 ? dotGB : dotRB });
+    const gainersB = movedB.slice().sort((a, b) => b.day - a.day).slice(0, 4).map(mvB);
+    const losersB = movedB.slice().sort((a, b) => a.day - b.day).slice(0, 4).map(mvB);
+
+    let heroGrowthLabel = '—', heroGrowthUp = true;
+    if (H.length >= 2 && H[0].v > 0) { const g = (T.nw - H[0].v) / H[0].v * 100; heroGrowthUp = g >= 0; heroGrowthLabel = (g >= 0 ? '▲ +' : '▼ ') + nf(Math.abs(g), 1) + '%'; }
+
+    const plTot = T.assets - T.cost, plTotPct = T.cost > 0 ? plTot / T.cost * 100 : 0, plTotUp = plTot >= 0;
+
     return {
       // nav
       goOverview: () => this.setState({ page: 'overview' }),
@@ -1363,6 +1546,14 @@ class Component extends DCLogic {
       hasHistory: Hs.length >= 2, nwLinePath, nwAreaPath, nwDotX, nwDotY, nwXLabels,
       noAssets: data.assets.length === 0, hasAssets: data.assets.length > 0,
       portfolioCards, donutStyle, donutLegend,
+      nwSecondaryFmt: cur === 'THB' ? '$' + nf(T.nw / fx) : '฿' + nf(T.nw),
+      plTotalFmt: (plTotUp ? '+' : '−') + money(Math.abs(plTot)),
+      plTotalPctFmt: (plTotUp ? '+' : '−') + nf(Math.abs(plTotPct), 1) + '%',
+      plTotalPill: { background: plTotUp ? '#e4efdb' : '#f3ded6', color: plTotUp ? '#4f7136' : '#b4543c', fontWeight: 700, borderRadius: '999px', padding: '4px 12px' },
+      heroGrowthLabel, heroGrowthStyle: { fontSize: '13px', fontWeight: 700, color: heroGrowthUp ? '#4f7136' : '#b4543c' },
+      holdingRows, holdingCount: holdingRows.length, tmGroups, tmLeaves, tmTypeLegend,
+      typeLegend: typeLegendB, typeDonutStyle, typeDonutCenter,
+      gainers: gainersB, losers: losersB, hasMovers: movedB.length > 0, noMovers: movedB.length === 0,
       donutCenterTop: data.portfolios.length + ' พอร์ต', donutCenterVal: cur === 'THB' ? '฿' + abbr(T.assets) : '$' + abbr(T.assets / fx),
       plRows,
       liabBarStyle: { width: Math.max(1.5, Math.min(100, ratio)) + '%', height: '100%', background: '#d98f70', borderRadius: '999px' },
@@ -1435,7 +1626,6 @@ class Component extends DCLogic {
       authed: S.authed, showApp: S.authed, showLogin: !S.authed,
       isSignup: S.authMode === 'signup',
       authTitle: S.authMode === 'signup' ? 'สร้างบัญชีใหม่' : 'ยินดีต้อนรับกลับ',
-      authSubmitLabel: S.authMode === 'signup' ? 'สร้างบัญชีใหม่' : 'เข้าสู่ระบบ',
       authSub: S.authMode === 'signup' ? 'ตั้งค่าบัญชีเพื่อเริ่มติดตามพอร์ตของคุณ' : 'เข้าสู่ระบบเพื่อดูพอร์ตการลงทุนของคุณ',
       authToggleText: S.authMode === 'signup' ? 'มีบัญชีอยู่แล้ว?' : 'ยังไม่มีบัญชี?',
       authToggleLink: S.authMode === 'signup' ? 'เข้าสู่ระบบ' : 'สร้างบัญชีใหม่',
