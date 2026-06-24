@@ -314,7 +314,7 @@ export const Overview: React.FC = () => {
       const gData = grp.data;
       // Calculate leaves inside this group rect
       const pad = 0.4;
-      const headHeight = isMobile ? 4.8 : 2.4; // 24px relative to container height (500px mobile, 1000px desktop)
+      const headHeight = isMobile ? 4.8 : 3.0; // 24px relative to container height (500px mobile, 800px desktop)
       const innerRect = {
         x: grp.x + pad,
         y: grp.y + headHeight,
@@ -623,7 +623,7 @@ export const Overview: React.FC = () => {
             </div>
 
             {/* Treemap Container */}
-            <div className="relative w-full h-[500px] md:h-[1000px] mt-2 overflow-hidden rounded-[8px]">
+            <div className="relative w-full h-[500px] md:h-[800px] mt-2 overflow-hidden rounded-[8px]">
               {/* Group borders/backgrounds */}
               {treemapData.groups.map(g => (
                 <div 
