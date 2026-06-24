@@ -107,7 +107,7 @@ export const Overview: React.FC = () => {
     if (oldPoint && Number(oldPoint.netWorthThb) > 0) {
       const pct = ((netWorth - Number(oldPoint.netWorthThb)) / Number(oldPoint.netWorthThb)) * 100;
       MoMChangeUp = pct >= 0;
-      MoMChangeLabel = `${pct >= 0 ? '▲ +' : '▼ '}${Math.abs(pct).toFixed(1)}% ${t('overview.monthAbbr')}`;
+      MoMChangeLabel = `${pct >= 0 ? '▲ +' : '▼ -'}${Math.abs(pct).toFixed(1)}% ${t('overview.monthAbbr')}`;
     }
   }
 
@@ -314,6 +314,14 @@ export const Overview: React.FC = () => {
     );
   }
 
+  const lastUpdatedTime = React.useMemo(() => {
+    if (!summary.dataUpdatedAt) return '';
+    const date = new Date(summary.dataUpdatedAt);
+    const hrs = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    return `${hrs}:${mins}`;
+  }, [summary.dataUpdatedAt]);
+
   return (
     <div className="flex flex-col py-6 select-none" data-screen-label="Overview">
       {/* 1. Hero Net Worth */}
@@ -330,8 +338,8 @@ export const Overview: React.FC = () => {
           >
             {MoMChangeLabel}
           </div>
-          <div className="text-faint">
-            {t('overview.updatedText')}
+          <div className="text-faint select-none">
+            {language === 'th' ? `อัปเดตล่าสุด ${lastUpdatedTime} · CoinGecko + Yahoo Finance` : `Last updated ${lastUpdatedTime} · CoinGecko + Yahoo Finance`}
           </div>
         </div>
       </div>
