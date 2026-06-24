@@ -58,6 +58,13 @@ export const Overview: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
+  const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const formatMoney = (val: number, twoLines = false, forcePlusSign = false, alignRight = false) => {
     const usd = val / fx;
     const thb = val;
@@ -307,7 +314,7 @@ export const Overview: React.FC = () => {
       const gData = grp.data;
       // Calculate leaves inside this group rect
       const pad = 0.4;
-      const headHeight = 3.8; // ~24px out of 650px height
+      const headHeight = isMobile ? 4.8 : 2.4; // 24px relative to container height (500px mobile, 1000px desktop)
       const innerRect = {
         x: grp.x + pad,
         y: grp.y + headHeight,
@@ -347,7 +354,7 @@ export const Overview: React.FC = () => {
     }
 
     return { groups: groupRects.map(g => Object.assign({}, g.data, g)), leaves: allLeaves, globalTotal };
-  }, [assets, portfolios, fx]);
+  }, [assets, portfolios, fx, isMobile]);
 
   // 6. All Assets table data
   const allAssetsTable = React.useMemo(() => {
@@ -616,7 +623,7 @@ export const Overview: React.FC = () => {
             </div>
 
             {/* Treemap Container */}
-            <div className="relative w-full h-[450px] md:h-[650px] mt-2 overflow-hidden rounded-[8px]">
+            <div className="relative w-full h-[500px] md:h-[1000px] mt-2 overflow-hidden rounded-[8px]">
               {/* Group borders/backgrounds */}
               {treemapData.groups.map(g => (
                 <div 
@@ -653,10 +660,10 @@ export const Overview: React.FC = () => {
                 const secondarySign = !isThb ? '฿' : '$';
                 const pct = (l.valueThb / treemapData.globalTotal) * 100;
                 const formatShortVal = (val: number) => val >= 1000 ? (val/1000).toFixed(val >= 10000 ? 0 : 1)+'k' : val.toFixed(0);
-                // Only show text if box is large enough
-                const showSym = l.w > 4 && l.h > 4;
-                const showVal = l.w > 8 && l.h > 12;
-                const showPct = l.w > 6 && l.h > 18;
+                // Only show text if box is large enough (stricter on mobile due to smaller physical pixels)
+                const showSym = l.w > (isMobile ? 8 : 4) && l.h > (isMobile ? 6 : 4);
+                const showVal = l.w > (isMobile ? 14 : 8) && l.h > (isMobile ? 14 : 12);
+                const showPct = l.w > (isMobile ? 10 : 6) && l.h > (isMobile ? 20 : 18);
 
                 return (
                   <div 
@@ -671,9 +678,9 @@ export const Overview: React.FC = () => {
                     title={`${l.symbol} \n${l.name}\n${sign}${dispVal.toLocaleString('en-US', {maximumFractionDigits: 0})}\n${pct.toFixed(1)}%`}
                   >
                     {showSym && <span className="font-bold text-white text-[10px] sm:text-[14px] leading-[1.1] truncate max-w-full drop-shadow-sm">{l.symbol}</span>}
-                    {showVal && <div className="flex items-baseline text-[11px] text-white/95 font-medium tabular-nums truncate max-w-full drop-shadow-sm">
+                    {showVal && <div className={`flex ${isMobile ? 'flex-col' : 'items-baseline'} text-[11px] text-white/95 font-medium tabular-nums truncate max-w-full drop-shadow-sm`}>
                       <span>{isShort ? '-' : ''}{sign}{formatShortVal(dispVal)}</span>
-                      <span className="text-[0.8em] text-white/70 ml-1">
+                      <span className={`text-[0.8em] text-white/70 ${isMobile ? 'ml-0' : 'ml-1'}`}>
                         ({isShort ? '-' : ''}{secondarySign}{formatShortVal(secondaryDispVal)})
                       </span>
                     </div>}
@@ -704,17 +711,17 @@ export const Overview: React.FC = () => {
             </div>
 
             {/* Table Header */}
-            <div className="grid items-center text-[11px] font-bold text-muted border-b border-inputBorder/20 pb-2.5 mb-1 select-none"
-              style={{ gridTemplateColumns: '1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px' }}
+            <div className={`grid items-center text-[11px] font-bold text-muted border-b border-inputBorder/20 pb-2.5 mb-1 select-none ${isMobile ? 'gap-2' : ''}`}
+              style={{ gridTemplateColumns: isMobile ? '1.5fr 0.8fr 1.2fr' : '1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px' }}
             >
               <span>{t('overview.tableAsset')}</span>
-              <span>{t('overview.tablePort')}</span>
-              <span className="text-right">{t('overview.tablePrice')}</span>
-              <span className="text-right">{t('overview.tableValue')}</span>
-              <span className="text-right">{t('overview.tableToday')}</span>
-              <span className="text-right">{t('overview.tableTotalReturn')}</span>
-              <span className="text-center">{t('overview.table30d')}</span>
-              <span className="text-right">{t('overview.tableWeight')}</span>
+              {!isMobile && <span>{t('overview.tablePort')}</span>}
+              {!isMobile && <span className="text-right">{t('overview.tablePrice')}</span>}
+              <span className="text-right">{isMobile ? t('overview.tableTotalReturn') : t('overview.tableValue')}</span>
+              {!isMobile && <span className="text-right">{t('overview.tableToday')}</span>}
+              <span className="text-right">{isMobile ? t('overview.tableValue') : t('overview.tableTotalReturn')}</span>
+              {!isMobile && <span className="text-center">{t('overview.table30d')}</span>}
+              {!isMobile && <span className="text-right">{t('overview.tableWeight')}</span>}
             </div>
 
             {/* Table Rows */}
@@ -725,8 +732,8 @@ export const Overview: React.FC = () => {
               return (
                 <div
                   key={row.id}
-                  className="grid items-center py-3 border-b border-inputBorder/10 last:border-b-0 hover:bg-chipBg/30 transition-colors"
-                  style={{ gridTemplateColumns: '1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px' }}
+                  className={`grid items-center py-3 border-b border-inputBorder/10 last:border-b-0 hover:bg-chipBg/30 transition-colors ${isMobile ? 'gap-2' : ''}`}
+                  style={{ gridTemplateColumns: isMobile ? '1.5fr 0.8fr 1.2fr' : '1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px' }}
                 >
                   {/* Asset */}
                   <div className="flex flex-col min-w-0 pr-2">
@@ -735,64 +742,91 @@ export const Overview: React.FC = () => {
                   </div>
 
                   {/* Portfolio */}
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <div
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: row.portfolioColor }}
-                    ></div>
-                    <span className="text-[12.5px] text-dark/80 truncate">{row.portfolioName}</span>
-                  </div>
+                  {!isMobile && (
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: row.portfolioColor }}
+                      ></div>
+                      <span className="text-[12.5px] text-dark/80 truncate">{row.portfolioName}</span>
+                    </div>
+                  )}
 
                   {/* Price */}
-                  <span className="text-[12.5px] text-dark tabular-nums text-right">
-                    {formatPrice(row.currentPrice, row.currency)}
-                  </span>
+                  {!isMobile && (
+                    <span className="text-[12.5px] text-dark tabular-nums text-right">
+                      {formatPrice(row.currentPrice, row.currency)}
+                    </span>
+                  )}
 
-                  {/* Value */}
-                  <span className="text-[13px] font-bold text-dark tabular-nums text-right">
-                    {formatMoney(row.valueThb, true, false, true)}
-                  </span>
+                  {/* Value (Desktop) / Return (Mobile) */}
+                  {isMobile ? (
+                    <span className={`text-[12.5px] font-bold tabular-nums text-right ${
+                      row.returnPct === 0 ? 'text-muted' : isReturnUp ? 'text-positive-text' : 'text-negative-text'
+                    }`}>
+                      {row.returnPct === 0 ? '—' : `${isReturnUp ? '+' : ''}${row.returnPct.toFixed(1)}%`}
+                    </span>
+                  ) : (
+                    <span className="text-[13px] font-bold text-dark tabular-nums text-right">
+                      {formatMoney(row.valueThb, true, false, true)}
+                    </span>
+                  )}
 
                   {/* Today % */}
-                  <span className={`text-[12.5px] font-bold tabular-nums text-right ${
-                    row.change24h === 0 ? 'text-muted' : is24hUp ? 'text-positive-text' : 'text-negative-text'
-                  }`}>
-                    {row.change24h === 0 ? '—' : `${is24hUp ? '+' : ''}${row.change24h.toFixed(1)}%`}
-                  </span>
+                  {!isMobile && (
+                    <span className={`text-[12.5px] font-bold tabular-nums text-right ${
+                      row.change24h === 0 ? 'text-muted' : is24hUp ? 'text-positive-text' : 'text-negative-text'
+                    }`}>
+                      {row.change24h === 0 ? '—' : `${is24hUp ? '+' : ''}${row.change24h.toFixed(1)}%`}
+                    </span>
+                  )}
 
-                  {/* Total Return */}
-                  <span className={`text-[12.5px] font-bold tabular-nums text-right ${
-                    row.returnPct === 0 ? 'text-muted' : isReturnUp ? 'text-positive-text' : 'text-negative-text'
-                  }`}>
-                    {row.returnPct === 0 ? '—' : `${isReturnUp ? '+' : ''}${row.returnPct.toFixed(1)}%`}
-                  </span>
+                  {/* Total Return (Desktop) / Value (Mobile) */}
+                  {isMobile ? (
+                    <span className="text-[13px] font-bold text-dark tabular-nums text-right">
+                      {formatMoney(row.valueThb, true, false, true)}
+                    </span>
+                  ) : (
+                    <span className={`text-[12.5px] font-bold tabular-nums text-right ${
+                      row.returnPct === 0 ? 'text-muted' : isReturnUp ? 'text-positive-text' : 'text-negative-text'
+                    }`}>
+                      {row.returnPct === 0 ? '—' : `${isReturnUp ? '+' : ''}${row.returnPct.toFixed(1)}%`}
+                    </span>
+                  )}
 
                   {/* 30d Sparkline */}
-                  <div className="flex justify-center">
-                    <svg viewBox="0 0 130 30" className="w-[120px] h-[28px]">
-                      <path
-                        d={getSparkline(row.symbol, isReturnUp)}
-                        fill="none"
-                        stroke={isReturnUp ? '#7a8f55' : '#b45a3c'}
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
+                  {!isMobile && (
+                    <div className="flex justify-center">
+                      <svg viewBox="0 0 130 30" className="w-[120px] h-[28px]">
+                        <path
+                          d={getSparkline(row.symbol, isReturnUp)}
+                          fill="none"
+                          stroke={isReturnUp ? '#7a8f55' : '#b45a3c'}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  )}
 
                   {/* Weight */}
-                  <div className="flex flex-col gap-1 items-end justify-center h-full pl-2">
-                    <span className="text-[11.5px] font-bold text-dark/80 tabular-nums leading-none">
-                      {row.weightPct.toFixed(1)}%
-                    </span>
-                    <div className="w-[70px] h-[6px] bg-[#f3ede0] rounded-full overflow-hidden">
-                      <div
-                        className="h-full"
-                        style={{ width: `${Math.min(100, row.weightPct)}%`, backgroundColor: row.portfolioColor }}
-                      ></div>
+                  {!isMobile && (
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-[12px] font-bold text-dark tabular-nums w-[42px] text-right">
+                        {row.weightPct.toFixed(1)}%
+                      </span>
+                      <div className="w-[54px] h-[4.5px] bg-[#e4dfd4] rounded-full overflow-hidden shrink-0">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, row.weightPct)}%`,
+                            backgroundColor: row.portfolioColor,
+                          }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
