@@ -13,6 +13,14 @@ export const Overview: React.FC = () => {
   const { data: config } = useAuthConfig();
   const { t, language } = useTranslation();
 
+  const lastUpdatedTime = React.useMemo(() => {
+    if (!summary.dataUpdatedAt) return '';
+    const date = new Date(summary.dataUpdatedAt);
+    const hrs = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    return `${hrs}:${mins}`;
+  }, [summary.dataUpdatedAt]);
+
   const portfoliosCount = portfolios.length;
   const hasAssets = assets.length > 0;
   const fx = summary.data?.fx || 35.84;
@@ -313,14 +321,6 @@ export const Overview: React.FC = () => {
       </div>
     );
   }
-
-  const lastUpdatedTime = React.useMemo(() => {
-    if (!summary.dataUpdatedAt) return '';
-    const date = new Date(summary.dataUpdatedAt);
-    const hrs = String(date.getHours()).padStart(2, '0');
-    const mins = String(date.getMinutes()).padStart(2, '0');
-    return `${hrs}:${mins}`;
-  }, [summary.dataUpdatedAt]);
 
   return (
     <div className="flex flex-col py-6 select-none" data-screen-label="Overview">
