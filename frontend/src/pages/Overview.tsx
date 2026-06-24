@@ -318,11 +318,11 @@ export const Overview: React.FC = () => {
         const lScale = (innerRect.w * innerRect.h) / gData.valueThb;
         const lItems = gData.items.map((it: any) => ({ area: it.valueThb * lScale, data: it }));
         const leafRects = squarify(lItems, innerRect);
-        allLeaves.push(...leafRects.map(l => ({ ...l.data, ...l, groupColor: gData.hexColor, groupTint: gData.tintColor })));
+        allLeaves.push(...leafRects.map(l => Object.assign({}, l.data, l, { groupColor: gData.hexColor, groupTint: gData.tintColor })));
       }
     }
 
-    return { groups: groupRects.map(g => ({...g.data, ...g})), leaves: allLeaves, globalTotal };
+    return { groups: groupRects.map(g => Object.assign({}, g.data, g)), leaves: allLeaves, globalTotal };
   }, [assets, portfolios, fx]);
 
   // 6. All Assets table data

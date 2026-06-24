@@ -6,7 +6,7 @@ import { useTranslation } from '../hooks/useTranslation';
 export const TopNav: React.FC = () => {
   const { page, setPage, currency, setCurrency, user, logout, openModal } = useStore();
   const { data: assets } = useAssets();
-  const { t, language, setLanguage } = useTranslation();
+  const { t } = useTranslation();
 
   const handleAddClick = () => {
     if (assets && assets.length > 0) {
