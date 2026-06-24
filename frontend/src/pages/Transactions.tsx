@@ -12,6 +12,13 @@ export const Transactions: React.FC = () => {
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
+  const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const formatNativePrimary = (val: number, ccy: 'THB' | 'USD') => {
     const isUSD = ccy === 'USD';
     const usd = isUSD ? val : val / fx;
@@ -116,17 +123,17 @@ export const Transactions: React.FC = () => {
 
       {/* Table List */}
       {hasTxs && (
-        <div className="bg-white rounded-2.5xl p-4 border border-inputBorder/20 shadow-sm overflow-x-auto mt-6">
-          <table className="min-w-[820px] w-full border-collapse">
+        <div className="bg-white rounded-2.5xl p-4 border border-inputBorder/20 shadow-sm overflow-x-auto mt-6 [&::-webkit-scrollbar]:hidden">
+          <table className={`${isMobile ? 'w-full' : 'min-w-[820px] w-full'} border-collapse`}>
             <thead>
-              <tr className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
+              <tr className={`grid ${isMobile ? 'grid-cols-[70px_1fr_1fr_60px] gap-2' : 'grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5'} px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left`}>
                 <th>{t('transactions.colDate')}</th>
-                <th>{t('transactions.colType')}</th>
+                {!isMobile && <th>{t('transactions.colType')}</th>}
                 <th>{t('transactions.colAsset')}</th>
-                <th>{t('transactions.colPort')}</th>
-                <th className="text-right">{t('transactions.colQty')}</th>
-                <th className="text-right">{t('transactions.colPrice')}</th>
-                <th className="text-right">{t('transactions.colNetAmt')}</th>
+                {!isMobile && <th>{t('transactions.colPort')}</th>}
+                {!isMobile && <th className="text-right">{t('transactions.colQty')}</th>}
+                {!isMobile && <th className="text-right">{t('transactions.colPrice')}</th>}
+                <th className={isMobile ? 'text-right' : 'text-right'}>{isMobile ? t('transactions.colType') + ' / ' + t('transactions.colNetAmt') : t('transactions.colNetAmt')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -144,38 +151,58 @@ export const Transactions: React.FC = () => {
                 return (
                   <tr
                     key={txn.id}
-                    className="grid grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
+                    className={`grid ${isMobile ? 'grid-cols-[70px_1fr_1fr_60px] gap-2' : 'grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5'} px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
                   >
-                    <td className="text-muted text-xs.5 font-medium select-none">{formatDate(txn.date)}</td>
-                    <td className="select-none">
-                      <span
-                        className={`text-[11px] font-bold px-3 py-1.5 rounded-full select-none ${
-                          isBuy ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
-                        }`}
-                      >
-                        {typeLabel}
-                      </span>
+                    <td className={`text-muted ${isMobile ? 'text-[11px]' : 'text-xs.5'} font-medium select-none`}>
+                      {isMobile ? new Date(txn.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : formatDate(txn.date)}
                     </td>
-                    <td className="font-bold text-dark">{asset.symbol}</td>
-                    <td className="text-muted text-xs.5 font-medium">{asset.portfolio?.name || '—'}</td>
-                    <td className="text-right font-semibold tabular-nums text-dark/90 text-sm">
-                      {formatQty(Number(txn.quantity), asset.type)}
+                    {!isMobile && (
+                      <td className="select-none">
+                        <span
+                          className={`text-[11px] font-bold px-3 py-1.5 rounded-full select-none ${
+                            isBuy ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
+                          }`}
+                        >
+                          {typeLabel}
+                        </span>
+                      </td>
+                    )}
+                    <td className="flex flex-col">
+                      <span className="font-bold text-dark">{asset.symbol}</span>
+                      {isMobile && <span className="text-[10px] text-muted truncate">{asset.portfolio?.name || '—'}</span>}
                     </td>
-                    <td className="text-right tabular-nums flex flex-col items-end">
-                      {isDep ? (
-                        <span className="font-semibold text-muted text-xs.5">—</span>
-                      ) : (
-                        <>
-                          <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(Number(txn.price), asset.currency as any)}</span>
-                          <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(Number(txn.price), asset.currency as any)}</span>
-                        </>
+                    {!isMobile && <td className="text-muted text-xs.5 font-medium">{asset.portfolio?.name || '—'}</td>}
+                    {!isMobile && (
+                      <td className="text-right font-semibold tabular-nums text-dark/90 text-sm">
+                        {formatQty(Number(txn.quantity), asset.type)}
+                      </td>
+                    )}
+                    {!isMobile && (
+                      <td className="text-right tabular-nums flex flex-col items-end">
+                        {isDep ? (
+                          <span className="font-semibold text-muted text-xs.5">—</span>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(Number(txn.price), asset.currency as any)}</span>
+                            <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(Number(txn.price), asset.currency as any)}</span>
+                          </>
+                        )}
+                      </td>
+                    )}
+                    <td className="text-right tabular-nums flex flex-col items-end justify-center">
+                      <span className="font-bold text-dark text-sm leading-none">{formatNativePrimary(totalValue, asset.currency as any)}</span>
+                      {isMobile && (
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.5 mt-1 rounded-full select-none ${
+                            isBuy ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
+                          }`}
+                        >
+                          {typeLabel}
+                        </span>
                       )}
+                      {!isMobile && <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(totalValue, asset.currency as any)}</span>}
                     </td>
-                    <td className="text-right tabular-nums flex flex-col items-end">
-                      <span className="font-bold text-dark text-sm">{formatNativePrimary(totalValue, asset.currency as any)}</span>
-                      <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(totalValue, asset.currency as any)}</span>
-                    </td>
-                    <td className="flex gap-2 justify-center items-center">
+                    <td className={`flex ${isMobile ? 'flex-col gap-1 items-end' : 'gap-2 justify-center items-center'}`}>
                       <button
                         onClick={() => openModal('tx', { transactionId: txn.id })}
                         className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"

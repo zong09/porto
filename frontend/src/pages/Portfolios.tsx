@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { usePortfolios, useAssets, useNetWorth, type Asset } from '../hooks/useApi';
+import { usePortfolios, useAssets, useNetWorth } from '../hooks/useApi';
 import { Trash2, GripVertical } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import {
@@ -53,9 +53,10 @@ const SortablePortfolioCard: React.FC<SortablePortfolioProps> = ({ portfolio, ch
 // ─── Sortable Asset Row ────────────────────────────────────────────────────────
 interface SortableAssetRowProps {
   asset: any;
+  isMobile: boolean;
   children: React.ReactNode;
 }
-const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, children }) => {
+const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, isMobile, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: asset.id,
   });
@@ -71,7 +72,7 @@ const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, children }) 
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className="grid grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none"
+      className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3'} py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
     >
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
@@ -92,6 +93,13 @@ export const Portfolios: React.FC = () => {
 
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
+
+  const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // DnD sensors: require 5px movement before drag starts (prevents accidental drags)
   const sensors = useSensors(
@@ -424,6 +432,7 @@ export const Portfolios: React.FC = () => {
               <SortablePortfolioCard key={p.id} portfolio={p}>
                 <PortfolioCardContent
                   p={p}
+                  isMobile={isMobile}
                   assets={assets}
                   sensors={sensors}
                   language={language}
@@ -466,7 +475,8 @@ export const Portfolios: React.FC = () => {
 // ─── Portfolio Card Content (extracted for SortablePortfolioCard) ───────────────
 interface PortfolioCardContentProps {
   p: any;
-  assets: Asset[];
+  isMobile: boolean;
+  assets: any[];
   sensors: any;
   language: string;
   t: (key: string) => string;
@@ -486,6 +496,7 @@ interface PortfolioCardContentProps {
 
 const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
   p,
+  isMobile,
   assets: _assets,
   sensors,
   language,
@@ -582,25 +593,26 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
           onDragEnd={onAssetDragEnd}
         >
           <SortableContext items={assetIds} strategy={verticalListSortingStrategy}>
-            <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2">
-              <table className="min-w-[860px] w-full border-collapse">
+            <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2 [&::-webkit-scrollbar]:hidden">
+              <table className={`${isMobile ? 'w-full' : 'min-w-[860px] w-full'} border-collapse`}>
                 <thead>
-                  <tr className="grid grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3 py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left">
+                  <tr className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3'} py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left`}>
                     <th></th>
                     <th>{language === 'th' ? 'สินทรัพย์' : 'Asset'}</th>
-                    <th className="text-right">{t('portfolios.tableQty')}</th>
-                    <th className="text-right">{t('portfolios.tableAvgCost')}</th>
-                    <th className="text-right">{t('portfolios.tablePrice')}</th>
-                    <th className="text-right">{t('portfolios.tableValue')}</th>
-                    <th className="text-right">{t('portfolios.tablePl')}</th>
-                    <th></th>
+                    {!isMobile && <th className="text-right">{t('portfolios.tableQty')}</th>}
+                    {!isMobile && <th className="text-right">{t('portfolios.tableAvgCost')}</th>}
+                    {!isMobile && <th className="text-right">{t('portfolios.tablePrice')}</th>}
+                    <th className="text-right">{isMobile ? t('portfolios.tableValue') + ' / P/L' : t('portfolios.tableValue')}</th>
+                    {!isMobile && <th className="text-right">{t('portfolios.tablePl')}</th>}
+                    <th className={isMobile ? 'text-right pr-2' : ''}>{isMobile ? '' : ''}</th>
                   </tr>
                 </thead>
                 <tbody className="flex flex-col gap-1 mt-1">
                   {p.holdings.map((h: any) => (
-                    <SortableAssetRow key={h.id} asset={h}>
+                    <SortableAssetRow key={h.id} asset={h} isMobile={isMobile}>
                       <AssetRowContent
                         h={h}
+                        isMobile={isMobile}
                         language={language}
                         t={t}
                         formatMoneyPrimary={formatMoneyPrimary}
@@ -626,6 +638,7 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
 // ─── Asset Row Content (extracted for SortableAssetRow) ─────────────────────────
 interface AssetRowContentProps {
   h: any;
+  isMobile?: boolean;
   language: string;
   t: (key: string) => string;
   formatMoneyPrimary: (val: number, nativeCcy?: 'THB' | 'USD') => string;
@@ -640,6 +653,7 @@ interface AssetRowContentProps {
 
 const AssetRowContent: React.FC<AssetRowContentProps> = ({
   h,
+  isMobile,
   language,
   t: _t,
   formatMoneyPrimary,
@@ -679,55 +693,74 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
           {h.name && h.name !== h.symbol ? `${h.name}` : h.type.toUpperCase()}
         </span>
       </td>
-      <td className="text-right font-bold tabular-nums text-dark/90 text-sm">
-        {formatQty(h.quantity, h.type, h.currency)}
-      </td>
-      <td className="text-right tabular-nums flex flex-col items-end">
-        {isDep ? (
-          <span className="font-semibold text-muted text-xs.5">—</span>
-        ) : (
-          <>
-            <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(h.avgCost, h.currency)}</span>
-            <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.avgCost, h.currency)}</span>
-          </>
-        )}
-      </td>
-      <td className="text-right tabular-nums flex flex-col items-end">
-        {isDep ? (
-          <span className="font-semibold text-dark/95 text-xs.5">—</span>
-        ) : (
-          <>
-            <span className="font-semibold text-dark/95 text-xs.5">{formatNativePrimary(h.currentPrice, h.currency)}</span>
-            <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.currentPrice, h.currency)}</span>
-          </>
-        )}
-      </td>
-      <td className="text-right tabular-nums flex flex-col items-end">
+      {!isMobile && (
+        <td className="text-right font-bold tabular-nums text-dark/90 text-sm">
+          {formatQty(h.quantity, h.type, h.currency)}
+        </td>
+      )}
+      {!isMobile && (
+        <td className="text-right tabular-nums flex flex-col items-end">
+          {isDep ? (
+            <span className="font-semibold text-muted text-xs.5">—</span>
+          ) : (
+            <>
+              <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(h.avgCost, h.currency)}</span>
+              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.avgCost, h.currency)}</span>
+            </>
+          )}
+        </td>
+      )}
+      {!isMobile && (
+        <td className="text-right tabular-nums flex flex-col items-end">
+          {isDep ? (
+            <span className="font-semibold text-dark/95 text-xs.5">—</span>
+          ) : (
+            <>
+              <span className="font-semibold text-dark/95 text-xs.5">{formatNativePrimary(h.currentPrice, h.currency)}</span>
+              <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(h.currentPrice, h.currency)}</span>
+            </>
+          )}
+        </td>
+      )}
+      <td className="text-right tabular-nums flex flex-col items-end justify-center">
         <span className="font-bold text-dark text-sm">{formatMoneyPrimary(h.valueThb, h.currency)}</span>
         <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatMoneySecondary(h.valueThb, h.currency)}</span>
-      </td>
-      <td className="text-right tabular-nums flex flex-col items-end">
-        {isDep ? (
-          <span className="font-bold text-faint text-xs.5">—</span>
-        ) : (
-          <>
-            <span className={`font-bold text-xs.5 ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
-              {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, h.currency)}
-            </span>
-            <span className="text-[10.5px] text-faint font-bold mt-0.5">
-              {isUp ? '+' : ''}{formatMoneySecondary(h.plThb, h.currency)}
-            </span>
-          </>
+        {isMobile && (
+          <div className="mt-1">
+            {isDep ? (
+              <span className="font-bold text-faint text-[10px]">—</span>
+            ) : (
+              <span className={`font-bold text-[10.5px] ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
+                {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, h.currency)}
+              </span>
+            )}
+          </div>
         )}
       </td>
-      <td className="flex justify-end gap-1.5">
+      {!isMobile && (
+        <td className="text-right tabular-nums flex flex-col items-end">
+          {isDep ? (
+            <span className="font-bold text-faint text-xs.5">—</span>
+          ) : (
+            <>
+              <span className={`font-bold text-xs.5 ${isUp ? 'text-positive-text' : 'text-negative-text'}`}>
+                {isUp ? '+' : ''}{formatMoneyPrimary(h.plThb, h.currency)}
+              </span>
+              <span className="text-[10.5px] text-faint font-bold mt-0.5">
+                {isUp ? '+' : ''}{formatMoneySecondary(h.plThb, h.currency)}
+              </span>
+            </>
+          )}
+        </td>
+      )}
+      <td className={`flex justify-end gap-1.5 ${isMobile ? 'flex-col items-end' : ''}`}>
         <button
           onClick={() => openModal('tx', { assetId: h.id })}
-          className="px-3 py-1.5 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[11px] font-bold border-none cursor-pointer transition-colors shadow-sm"
+          className={`rounded-full bg-terracotta hover:bg-terracotta-hover text-white font-bold border-none cursor-pointer transition-colors shadow-sm ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-[11px]'}`}
         >
           {language === 'th' ? (h.isShort ? 'ขาย/ปิด' : 'ซื้อ/ขาย') : (h.isShort ? 'Sell/Cover' : 'Buy/Sell')}
         </button>
-        {h.type !== 'fund' && h.type !== 'deposit' && (
+        {h.type !== 'fund' && h.type !== 'deposit' && !isMobile && (
           <button
             onClick={() => openModal('chart', { assetId: h.id })}
             className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
@@ -735,7 +768,7 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
             {language === 'th' ? 'กราฟ' : 'Chart'}
           </button>
         )}
-        {h.type === 'fund' && (
+        {h.type === 'fund' && !isMobile && (
           <button
             onClick={() => openModal('price', { assetId: h.id })}
             className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
@@ -743,19 +776,21 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
             NAV
           </button>
         )}
-        <button
-          onClick={() => openModal('asset', { assetId: h.id })}
-          className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
-          title={language === 'th' ? 'แก้ไข' : 'Edit'}
-        >
-          ✎
-        </button>
-        <button
-          onClick={() => handleDeleteAsset(h.id, h.symbol)}
-          className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
-        >
-          ✕
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => openModal('asset', { assetId: h.id })}
+            className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
+            title={language === 'th' ? 'แก้ไข' : 'Edit'}
+          >
+            ✎
+          </button>
+          <button
+            onClick={() => handleDeleteAsset(h.id, h.symbol)}
+            className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
+          >
+            ✕
+          </button>
+        </div>
       </td>
     </>
   );

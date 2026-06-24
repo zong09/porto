@@ -64,7 +64,7 @@ function App() {
       <LiveTicker />
 
       {/* Main Container */}
-      <main className="max-w-[1200px] w-full mx-auto px-6 pb-16 flex-1 flex flex-col justify-start">
+      <main className="max-w-[1200px] w-full mx-auto px-4 sm:px-6 pb-16 flex-1 flex flex-col justify-start">
         {renderPage()}
 
         {/* Footer */}
