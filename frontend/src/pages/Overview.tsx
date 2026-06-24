@@ -628,13 +628,14 @@ export const Overview: React.FC = () => {
                     backgroundColor: g.tintColor,
                     padding: '4px 9px'
                   }}
+                  title={`${g.name} - ${isThb ? '฿' : '$'}${(isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${((g.valueThb / treemapData.globalTotal) * 100).toFixed(1)}%)`}
                 >
                   <div className="flex items-baseline gap-[7px] whitespace-nowrap overflow-hidden">
                     <span className="text-[12.5px] font-bold truncate" style={{ color: g.hexColor }}>{g.name}</span>
                     <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums flex items-baseline">
-                      {isThb ? '฿' : '$'}{isThb ? formatMoney(g.valueThb) : formatMoney(g.valueThb / fx)}
+                      {isThb ? '฿' : '$'}{(isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       <span className="text-[0.72em] opacity-70 ml-[5px]">
-                        ({!isThb ? '฿' : '$'}{!isThb ? formatMoney(g.valueThb) : formatMoney(g.valueThb / fx)})
+                        ({!isThb ? '฿' : '$'}{(!isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                       </span>
                     </span>
                     <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums">
