@@ -5,6 +5,39 @@ import { HelpCircle } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
 import { useTranslation } from '../hooks/useTranslation';
 
+// --- Squarify Treemap algorithm ---
+interface Rect { x: number; y: number; w: number; h: number; }
+function squarify<T>(items: { area: number; data: T }[], rect: Rect): ({ x: number; y: number; w: number; h: number; data: T })[] {
+  const out: any[] = [];
+  const worst = (areas: number[], side: number) => {
+    let mx = -Infinity, mn = Infinity, sum = 0;
+    for (const a of areas) { sum += a; if (a > mx) mx = a; if (a < mn) mn = a; }
+    const s2 = side * side, sum2 = sum * sum;
+    return Math.max((s2 * mx) / sum2, sum2 / (s2 * mn));
+  };
+  const lay = (row: any[], r: Rect) => {
+    const sum = row.reduce((s, o) => s + o.area, 0);
+    if (r.w <= r.h) {
+      const rh = sum / r.w; let cx = r.x;
+      for (const o of row) { const tw = o.area / rh; out.push({ x: cx, y: r.y, w: tw, h: rh, data: o.data }); cx += tw; }
+      return { x: r.x, y: r.y + rh, w: r.w, h: Math.max(0, r.h - rh) };
+    }
+    const rw = sum / r.h; let cy = r.y;
+    for (const o of row) { const th = o.area / rw; out.push({ x: r.x, y: cy, w: rw, h: th, data: o.data }); cy += th; }
+    return { x: r.x + rw, y: r.y, w: Math.max(0, r.w - rw), h: r.h };
+  };
+  let r = { ...rect };
+  let queue = [...items].sort((a, b) => b.area - a.area), row: any[] = [];
+  while (queue.length) {
+    const next = queue[0], side = Math.max(0.01, Math.min(r.w, r.h)), cur = row.map(o => o.area);
+    if (row.length === 0 || worst(cur, side) >= worst(cur.concat(next.area), side)) {
+      row.push(next); queue.shift();
+    } else { r = lay(row, r); row = []; }
+  }
+  if (row.length) lay(row, r);
+  return out;
+}
+
 export const Overview: React.FC = () => {
   const { currency, setPage, openModal } = useStore();
   const { data: portfolios = [], isLoading: loadingPorts } = usePortfolios();
@@ -21,12 +54,11 @@ export const Overview: React.FC = () => {
     return `${hrs}:${mins}`;
   }, [summary.dataUpdatedAt]);
 
-  const portfoliosCount = portfolios.length;
   const hasAssets = assets.length > 0;
   const fx = summary.data?.fx || 35.84;
   const isThb = currency === 'THB';
 
-  const formatMoney = (val: number, twoLines = false, forcePlusSign = false) => {
+  const formatMoney = (val: number, twoLines = false, forcePlusSign = false, alignRight = false) => {
     const usd = val / fx;
     const thb = val;
     const isNeg = val < 0;
@@ -54,7 +86,7 @@ export const Overview: React.FC = () => {
 
     if (twoLines) {
       return (
-        <span className="flex flex-col tabular-nums leading-snug">
+        <span className={`flex flex-col tabular-nums leading-snug ${alignRight ? 'items-end' : ''}`}>
           <span>{sign}{primary}</span>
           <span className="text-[0.68em] text-faint font-semibold mt-0.5">
             ({sign}{secondary})
@@ -73,53 +105,21 @@ export const Overview: React.FC = () => {
     );
   };
 
-  const formatAbbrMoney = (val: number, forcePlusSign = false) => {
-    const usd = val / fx;
-    const thb = val;
-
-    const getAbbr = (value: number, sign: string) => {
-      const absVal = Math.abs(value);
-      const isNeg = value < 0;
-      let leadingSign = '';
-      if (isNeg) {
-        leadingSign = '−';
-      } else if (forcePlusSign && value > 0) {
-        leadingSign = '+';
-      }
-
-      let formatted = '';
-      if (absVal >= 1e6) {
-        formatted = `${(absVal / 1e6).toFixed(1)}M`;
-      } else if (absVal >= 1000) {
-        formatted = `${(absVal / 1000).toFixed(0)}k`;
-      } else {
-        formatted = absVal.toFixed(0);
-      }
-      return `${leadingSign}${sign}${formatted}`;
-    };
-
-    const primary = isThb ? getAbbr(thb, '฿') : getAbbr(usd, '$');
-    const secondary = isThb ? getAbbr(usd, '$') : getAbbr(thb, '฿');
-
-    return (
-      <span className="tabular-nums">
-        {primary}
-        <span className="text-[0.72em] text-faint ml-1 font-semibold">
-          ({secondary})
-        </span>
-      </span>
-    );
-  };
-
   // 1. Current Stats
   const totalAssets = summary.data?.totalAssetsThb || 0;
   const totalLiabilities = summary.data?.totalLiabilitiesThb || 0;
   const netWorth = summary.data?.netWorthThb || 0;
   const todayPl = summary.data?.todayPlThb || 0;
 
+  const todayPlPct = React.useMemo(() => {
+    if (!totalAssets || totalAssets <= 0) return 0;
+    return (todayPl / totalAssets) * 100;
+  }, [todayPl, totalAssets]);
+
   // 2. Month-over-Month Net Worth Change
   let MoMChangeLabel = '—';
   let MoMChangeUp = true;
+  let MoMPct = 0;
   const historyData = history.data || [];
   if (historyData.length >= 2) {
     const dayMs = 86400000;
@@ -133,6 +133,7 @@ export const Overview: React.FC = () => {
     if (oldPoint && Number(oldPoint.netWorthThb) > 0) {
       const pct = ((netWorth - Number(oldPoint.netWorthThb)) / Number(oldPoint.netWorthThb)) * 100;
       MoMChangeUp = pct >= 0;
+      MoMPct = pct;
       MoMChangeLabel = `${pct >= 0 ? '▲ +' : '▼ -'}${Math.abs(pct).toFixed(1)}% ${t('overview.monthAbbr')}`;
     }
   }
@@ -190,7 +191,6 @@ export const Overview: React.FC = () => {
     nwDotX = points[points.length - 1][0];
     nwDotY = points[points.length - 1][1];
 
-    // Label coordinates
     if (chartHistoryPoints.length <= 5) {
       xLabels = chartHistoryPoints.map((p) => {
         const d = new Date(p.date + 'T00:00:00');
@@ -209,7 +209,7 @@ export const Overview: React.FC = () => {
 
   // 4. Portfolio Card data calculations
   const portfolioSummaries = React.useMemo(() => {
-    return portfolios.map((p) => {
+    const ports = portfolios.map((p) => {
       const pAssets = assets.filter((a) => a.portfolioId === p.id);
       let pValueThb = 0;
       let pCostThb = 0;
@@ -259,78 +259,148 @@ export const Overview: React.FC = () => {
         desc: `${Array.from(types).join(' · ')} · ${pAssets.length} ${t('overview.itemsCount')}`,
       };
     });
+    // Sort descending by value
+    return ports.sort((a, b) => b.valueThb - a.valueThb);
   }, [portfolios, assets, totalAssets, fx, language]);
 
-  // Donut chart CSS gradient segments
-  const donutGradient = React.useMemo(() => {
+  // 5. Treemap data calculations
+  const treemapData = React.useMemo(() => {
     const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
-    let accum = 0;
-    const segs: string[] = [];
+    const tints = ['#EFF3E6', '#F3E9DC', '#F2E0D8', '#E2EDEA', '#EAE4F0', '#F2E2E8'];
 
-    const activePortfolios = portfolioSummaries.filter((p) => p.valueThb > 0);
-    activePortfolios.forEach((pv) => {
-      if (totalAssets <= 0) return;
-      const share = (pv.valueThb / totalAssets) * 100;
-      const nextAccum = accum + share;
-      const color = palette[pv.color % 6];
-      segs.push(`${color} ${accum.toFixed(2)}% ${nextAccum.toFixed(2)}%`);
-      accum = nextAccum;
-    });
-
-    return segs.length > 0 ? `conic-gradient(${segs.join(', ')})` : '#f0e7d8';
-  }, [portfolioSummaries, totalAssets]);
-
-  // Asset P&L vertical bars (top 7 by absolute P&L)
-  const barChartData = React.useMemo(() => {
-    const items = assets
-      .map((a) => {
-        if (!a.position || a.position.quantity <= 0 || a.type === 'deposit') return null;
+    const portGroups = portfolios.map(p => {
+      const pAssets = assets.filter(a => a.portfolioId === p.id && a.position && a.position.quantity > 0);
+      const items = pAssets.map(a => {
         const multiplier = a.currency === 'USD' ? fx : 1;
         const isShort = (a.direction || 'long') === 'short';
-        const value = a.position.quantity * (a.currentPrice || 0) * multiplier;
-        const cost = a.position.quantity * a.position.avgCost * multiplier;
-        // Short: profit when price drops (cost - value); Long: profit when price rises (value - cost)
-        const plThb = isShort ? (cost - value) : (value - cost);
+        const val = a.position!.quantity * (a.currentPrice || 0) * multiplier;
+        return { ...a, valueThb: isShort ? Math.abs(val) : val };
+      }).filter(a => a.valueThb > 0).sort((a, b) => b.valueThb - a.valueThb);
+
+      const totalVal = items.reduce((sum, item) => sum + item.valueThb, 0);
+      return { 
+        id: p.id,
+        name: p.name,
+        color: p.color,
+        hexColor: palette[p.color % 6],
+        tintColor: tints[p.color % 6],
+        items,
+        valueThb: totalVal 
+      };
+    }).filter(g => g.valueThb > 0).sort((a, b) => b.valueThb - a.valueThb);
+
+    const globalTotal = portGroups.reduce((sum, g) => sum + g.valueThb, 0);
+
+    // Run layout algorithms
+    const W = 100;
+    const H = 100;
+    
+    let groupRects: any[] = [];
+    if (globalTotal > 0) {
+      const gScale = (W * H) / globalTotal;
+      const gItems = portGroups.map(g => ({ area: g.valueThb * gScale, data: g }));
+      groupRects = squarify(gItems, { x: 0, y: 0, w: W, h: H });
+    }
+    
+    const allLeaves: any[] = [];
+    for (const grp of groupRects) {
+      const gData = grp.data;
+      // Calculate leaves inside this group rect (with padding 0.6%)
+      const pad = 0.6;
+      const innerRect = {
+        x: grp.x + pad,
+        y: grp.y + pad,
+        w: Math.max(0.1, grp.w - pad * 2),
+        h: Math.max(0.1, grp.h - pad * 2)
+      };
+      
+      if (gData.valueThb > 0) {
+        const lScale = (innerRect.w * innerRect.h) / gData.valueThb;
+        const lItems = gData.items.map((it: any) => ({ area: it.valueThb * lScale, data: it }));
+        const leafRects = squarify(lItems, innerRect);
+        allLeaves.push(...leafRects.map(l => ({ ...l.data, ...l, groupColor: gData.hexColor, groupTint: gData.tintColor })));
+      }
+    }
+
+    return { groups: groupRects.map(g => ({...g.data, ...g})), leaves: allLeaves, globalTotal };
+  }, [assets, portfolios, fx]);
+
+  // 6. All Assets table data
+  const allAssetsTable = React.useMemo(() => {
+    const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
+
+    const rows = assets
+      .filter((a) => a.position && a.position.quantity > 0)
+      .map((a) => {
+        const multiplier = a.currency === 'USD' ? fx : 1;
+        const isShort = (a.direction || 'long') === 'short';
+        const assetVal = a.position!.quantity * (a.currentPrice || 0) * multiplier;
+        const valueThb = isShort ? -assetVal : assetVal;
+        const costThb = a.position!.quantity * (a.position!.avgCost || 0) * multiplier;
+        const plThb = isShort ? (costThb - assetVal) : (valueThb - costThb);
+        const returnPct = costThb > 0 ? (plThb / costThb) * 100 : 0;
+        const weightPct = totalAssets > 0 ? (Math.abs(valueThb) / totalAssets) * 100 : 0;
+
+        const portfolio = portfolios.find((p) => p.id === a.portfolioId);
+
         return {
+          id: a.id,
           symbol: a.symbol,
-          plThb,
+          name: a.name || a.symbol,
+          type: a.type,
+          currency: a.currency,
+          portfolioName: portfolio?.name || '—',
+          portfolioColor: palette[(portfolio?.color || 0) % 6],
+          currentPrice: a.currentPrice || 0,
+          valueThb,
+          change24h: a.change24h || 0,
+          returnPct,
+          weightPct,
         };
       })
-      .filter((x): x is { symbol: string; plThb: number } => x !== null && Math.abs(x.plThb) > 0.5)
-      .sort((a, b) => b.plThb - a.plThb)
-      .slice(0, 7);
+      .sort((a, b) => Math.abs(b.valueThb) - Math.abs(a.valueThb));
 
-    const maxAbs = Math.max(...items.map((x) => Math.abs(x.plThb)), 1);
+    return rows;
+  }, [assets, portfolios, totalAssets, fx]);
 
-    const greens = ['#7a8f55', '#93a86b', '#b3c48d', '#cdd9b3', '#dde5cc'];
-    const reds = ['#c4654a', '#dca08c', '#e6bcae'];
-    let gi = 0;
-    let ri = 0;
+  const getSparkline = (symbol: string, isPositive: boolean) => {
+    let seed = 0;
+    for (let i = 0; i < symbol.length; i++) seed += symbol.charCodeAt(i);
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return (seed % 1000) / 1000;
+    };
 
-    return items.map((x) => {
-      const isProfit = x.plThb >= 0;
-      const heightPercent = Math.round((Math.abs(x.plThb) / maxAbs) * 100);
-      const color = isProfit
-        ? greens[Math.min(gi++, greens.length - 1)]
-        : reds[Math.min(ri++, reds.length - 1)];
+    const pts = 20;
+    const w = 80;
+    const h = 28;
+    const trend = isPositive ? -0.3 : 0.3;
+    const vals: number[] = [];
+    let v = 0.5;
+    for (let i = 0; i < pts; i++) {
+      v += (random() - 0.5) * 0.3 + trend * (1 / pts);
+      v = Math.max(0.05, Math.min(0.95, v));
+      vals.push(v);
+    }
 
-      return {
-        symbol: x.symbol,
-        isProfit,
-        heightPercent: Math.max(10, heightPercent), // At least 10% height for visibility
-        color,
-        valLabel: formatAbbrMoney(x.plThb, true),
-      };
+    const points = vals.map((val, i) => {
+      const x = (i / (pts - 1)) * w;
+      const y = h - val * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
-  }, [assets, fx, currency]);
 
-  // Liabilities vs Assets ratios
-  const debtRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
-  const debtNoteText =
-    debtRatio < 30 ? t('overview.debtNoteGood') : debtRatio < 50 ? t('overview.debtNoteWarn') : t('overview.debtNoteBad');
-  const debtNoteColor = debtRatio < 30 ? 'text-[#a3b87a]' : debtRatio < 50 ? 'text-[#e0b46a]' : 'text-[#d98f70]';
+    return `M${points.join(' L')}`;
+  };
 
-  // Empty state loading or data
+  const formatPrice = (price: number, ccy: 'THB' | 'USD') => {
+    if (price === 0) return '—';
+    const sign = ccy === 'USD' ? '$' : '฿';
+    return sign + price.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   if (loadingPorts || loadingAssets || summary.isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -349,6 +419,19 @@ export const Overview: React.FC = () => {
           {formatMoney(netWorth)}
         </span>
         <div className="flex items-center gap-2.5 text-xs.5 md:text-sm flex-wrap justify-center mt-1">
+          {todayPl !== 0 && (
+            <div
+              className={`px-3 py-0.5 rounded-full font-bold select-none ${
+                todayPl >= 0 ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
+              }`}
+            >
+              {todayPl >= 0 ? '+' : ''}
+              {isThb
+                ? `฿${todayPl.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+                : `$${(todayPl / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              {' '}({todayPlPct >= 0 ? '+' : ''}{todayPlPct.toFixed(1)}%)
+            </div>
+          )}
           <div
             className={`px-3 py-0.5 rounded-full font-bold select-none ${
               MoMChangeUp ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
@@ -357,7 +440,7 @@ export const Overview: React.FC = () => {
             {MoMChangeLabel}
           </div>
           <div className="text-faint select-none">
-            {language === 'th' ? `อัปเดตล่าสุด ${lastUpdatedTime} · CoinGecko + Yahoo Finance` : `Last updated ${lastUpdatedTime} · CoinGecko + Yahoo Finance`}
+            {language === 'th' ? `อัปเดตล่าสุด ${lastUpdatedTime}` : `Last updated ${lastUpdatedTime}`}
           </div>
         </div>
       </div>
@@ -386,7 +469,15 @@ export const Overview: React.FC = () => {
 
       {/* 3. Net Worth Area Chart */}
       {chartHistoryPoints.length >= 2 && (
-        <div className="w-full flex flex-col items-center mt-10">
+        <div className="bg-white rounded-[24px] p-6 border border-inputBorder/20 shadow-sm mt-6 w-full">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[15px] font-bold text-dark">{t('overview.netWorthGrowth')}</h3>
+            <span
+              className={`text-sm font-bold ${MoMChangeUp ? 'text-positive-text' : 'text-negative-text'}`}
+            >
+              {MoMPct >= 0 ? '▲' : '▼'} {Math.abs(MoMPct).toFixed(1)}%
+            </span>
+          </div>
           <svg viewBox="0 0 1100 170" className="w-full max-h-[170px] select-none block overflow-visible">
             <defs>
               <linearGradient id="nw-area" x1="0" y1="0" x2="0" y2="1">
@@ -438,10 +529,10 @@ export const Overview: React.FC = () => {
         </div>
       )}
 
-      {/* 5. Content Grid */}
+      {/* Content Grid */}
       {hasAssets && (
         <>
-          {/* Portfolio List */}
+          {/* 5. Portfolio Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {portfolioSummaries.map((c) => {
               const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
@@ -465,8 +556,8 @@ export const Overview: React.FC = () => {
                       {c.returnPct.toFixed(1)}%
                     </span>
                   </div>
-                  <span className="text-[26px] font-bold text-dark tabular-nums tracking-tight leading-none mb-1">
-                    {formatMoney(c.valueThb)}
+                  <span className="text-[26px] font-bold text-dark tabular-nums tracking-tight mb-1">
+                    {formatMoney(c.valueThb, true)}
                   </span>
                   <p className="text-[11.5px] text-muted font-medium mb-5">{c.desc}</p>
                   
@@ -490,158 +581,179 @@ export const Overview: React.FC = () => {
             })}
           </div>
 
-          {/* Detailed Charts Row - Separate Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 items-stretch">
-            {/* Allocation Donut */}
-            <div className="bg-white rounded-[24px] p-6 flex flex-col gap-4 border border-inputBorder/20 shadow-sm">
-              <h3 className="text-[15px] font-bold text-dark">{t('overview.portsAllocation')}</h3>
-              <div className="flex flex-col items-center gap-6 my-auto">
-                <div className="relative w-[140px] h-[140px] shrink-0 mt-2">
-                  <div
-                    className="w-[140px] h-[140px] rounded-full shadow-inner"
-                    style={{ background: donutGradient }}
-                  ></div>
-                  <div className="absolute inset-[24px] rounded-full bg-white shadow-sm flex flex-col items-center justify-center">
-                    <span className="text-[10px] text-faint font-bold select-none">{portfoliosCount} {t('overview.portsCount')}</span>
-                    <span className="text-[13px] font-bold text-dark tabular-nums select-none leading-none mt-0.5">
-                      {formatAbbrMoney(totalAssets)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2 text-[11.5px] font-semibold w-full px-2">
-                  {portfolioSummaries
-                    .filter((p) => p.valueThb > 0)
-                    .map((p) => {
-                      const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
-                      return (
-                        <div key={p.id} className="flex items-center gap-2.5 text-dark/90 select-none">
-                          <div
-                            className="w-2.5 h-2.5 rounded-full shadow-sm"
-                            style={{ backgroundColor: palette[p.color % 6] }}
-                          ></div>
-                          <span>{p.name}</span>
-                          <span className="ml-auto font-bold tabular-nums text-dark">
-                            {p.pctOfTotal.toFixed(1)}%
-                          </span>
-                        </div>
-                      );
-                    })}
-                </div>
+          {/* 6. Treemap Chart */}
+          <div className="bg-white rounded-[24px] p-6 border border-inputBorder/20 shadow-sm mt-6">
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-3 gap-2">
+              <div className="flex items-baseline gap-3">
+                <h3 className="text-[15px] font-bold text-dark">{t('overview.assetOverview')}</h3>
+                <span className="text-[12px] text-muted">{t('overview.treemapLegend')}</span>
               </div>
+              <span className="text-[12px] text-muted font-semibold">{assets.filter(a => a.position && a.position.quantity > 0).length} {t('overview.itemsCount')}</span>
             </div>
 
-            {/* Asset P&L Bars */}
-            <div className="bg-white rounded-[24px] p-6 flex flex-col gap-4 border border-inputBorder/20 shadow-sm">
-              <h3 className="text-[15px] font-bold text-dark">{t('overview.unrealizedPl')}</h3>
-              {barChartData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center h-[200px] text-muted text-xs.5">
-                  {t('overview.noUnrealizedPl')}
+            {/* Treemap Container */}
+            <div className="relative w-full h-[500px] mt-2 overflow-hidden rounded-[8px]">
+              {/* Group borders/backgrounds */}
+              {treemapData.groups.map(g => (
+                <div 
+                  key={`group-${g.id}`} 
+                  className="absolute box-border border-2 rounded-[6px]"
+                  style={{
+                    left: `${g.x}%`, top: `${g.y}%`, width: `${g.w}%`, height: `${g.h}%`,
+                    borderColor: g.hexColor,
+                    backgroundColor: `${g.hexColor}08`
+                  }}
+                >
                 </div>
-              ) : (
-                <div className="flex flex-col gap-4 my-auto h-[220px]">
-                  <div className="relative flex-1 px-1 flex items-stretch justify-around">
-                    {/* Baseline */}
-                    <div className="absolute left-0 right-0 top-[60%] border-t border-inputBorder/20 pointer-events-none"></div>
-                    
-                    {barChartData.map((b, idx) => (
-                      <div key={idx} className="relative flex flex-col items-center w-[36px] md:w-[42px] select-none">
-                        {/* Positive Bar */}
-                        {b.isProfit && (
-                          <>
-                            <span
-                              className="absolute text-[9.5px] font-bold text-center leading-none"
-                              style={{
-                                color: '#4f7136',
-                                bottom: `calc(40% + ${b.heightPercent * 0.6}% + 4px)`,
-                              }}
-                            >
-                              {b.valLabel}
-                            </span>
-                            <div
-                              className="absolute bottom-[40%] w-[24px] md:w-[28px] transition-all duration-300 shadow-sm rounded-t-[4px]"
-                              style={{
-                                height: `${b.heightPercent * 0.6}%`,
-                                backgroundColor: b.color,
-                              }}
-                            ></div>
-                          </>
-                        )}
+              ))}
+              {/* Asset leaves */}
+              {treemapData.leaves.map(l => {
+                const isShort = (l.direction || 'long') === 'short';
+                const dispVal = isThb ? l.valueThb : l.valueThb / fx;
+                const sign = isThb ? '฿' : '$';
+                const pct = (l.valueThb / treemapData.globalTotal) * 100;
+                // Only show text if box is large enough
+                const showSym = l.w > 4 && l.h > 4;
+                const showVal = l.w > 8 && l.h > 12;
+                const showPct = l.w > 6 && l.h > 18;
 
-                        {/* Negative Bar */}
-                        {!b.isProfit && (
-                          <>
-                            <span
-                              className="absolute text-[9.5px] font-bold text-center leading-none"
-                              style={{
-                                color: '#b4543c',
-                                bottom: 'calc(40% + 4px)',
-                              }}
-                            >
-                              {b.valLabel}
-                            </span>
-                            <div
-                              className="absolute top-[60%] w-[24px] md:w-[28px] transition-all duration-300 shadow-sm rounded-b-[4px]"
-                              style={{
-                                height: `${b.heightPercent * 0.4}%`,
-                                backgroundColor: b.color,
-                              }}
-                            ></div>
-                          </>
-                        )}
-                      </div>
-                    ))}
+                return (
+                  <div 
+                    key={`leaf-${l.id}`} 
+                    className="absolute box-border border border-white rounded-[6px] flex flex-col items-center justify-center overflow-hidden transition-all duration-200 hover:brightness-95 cursor-pointer"
+                    style={{
+                      left: `${l.x}%`, top: `${l.y}%`, width: `${l.w}%`, height: `${l.h}%`,
+                      backgroundColor: l.groupTint,
+                      padding: '4px'
+                    }}
+                    title={`${l.symbol} \n${l.name}\n${sign}${dispVal.toLocaleString('en-US', {maximumFractionDigits: 0})}\n${pct.toFixed(1)}%`}
+                  >
+                    {showSym && <span className="font-bold text-dark text-[11px] sm:text-[13px] leading-tight truncate max-w-full">{l.symbol}</span>}
+                    {showVal && <span className="text-[10px] sm:text-[11px] text-muted font-bold tabular-nums truncate max-w-full">
+                      {isShort ? '-' : ''}{sign}{dispVal >= 1000 ? (dispVal/1000).toFixed(dispVal >= 10000 ? 0 : 1)+'k' : dispVal.toFixed(0)}
+                    </span>}
+                    {showPct && <span className="text-[9px] sm:text-[10px] text-muted tabular-nums mt-0.5 truncate max-w-full">{pct.toFixed(1)}%</span>}
                   </div>
-                  {/* Symbols row aligned at the bottom */}
-                  <div className="flex justify-around px-1 text-[10px] font-bold text-muted text-center select-none">
-                    {barChartData.map((b, idx) => (
-                      <span key={idx} className="w-[36px] md:w-[42px] truncate">{b.symbol}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+                );
+              })}
             </div>
 
-            {/* Assets vs Liabilities */}
-            <div className="bg-dark rounded-[24px] p-6 flex flex-col gap-4 text-[#faf5ec] shadow-sm">
-              <h3 className="text-[15px] font-bold text-[#faf5ec]/90">{t('overview.assetsVsLiabilities')}</h3>
-              <div className="flex flex-col gap-6 my-auto justify-center select-none pt-2">
-                <div className="flex flex-col gap-2">
-                  <div className="flex text-[12.5px] font-semibold text-[#cdbfa8]">
-                    <span>{t('overview.assetsLabel')}</span>
-                    <span className="ml-auto font-bold text-[#faf5ec]">{formatMoney(totalAssets)}</span>
-                  </div>
-                  <div className="h-4 bg-white/10 rounded-full overflow-hidden">
-                    <div className="w-full h-full bg-[#a3b87a] rounded-full"></div>
-                  </div>
+            {/* Treemap Legend */}
+            <div className="flex flex-wrap gap-4 mt-4 px-1">
+              {treemapData.groups.map(g => (
+                <div key={`legend-${g.id}`} className="flex items-center gap-2 text-[12px] font-semibold text-muted">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.hexColor }}></div>
+                  <span>{g.name}</span>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <div className="flex flex-col gap-2">
-                  <div className="flex text-[12.5px] font-semibold text-[#cdbfa8]">
-                    <span>{t('overview.liabilitiesLabel')}</span>
-                    <span className="ml-auto font-bold text-[#faf5ec]">{formatMoney(totalLiabilities)}</span>
+          {/* 7. All Assets Table */}
+          <div className="bg-white rounded-[24px] p-6 border border-inputBorder/20 shadow-sm mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[15px] font-bold text-dark">{t('overview.allAssets')}</h3>
+              <span className="text-[12px] text-muted font-semibold">
+                {allAssetsTable.length} {t('overview.itemsCount')} · {t('overview.sortedByValue')}
+              </span>
+            </div>
+
+            {/* Table Header */}
+            <div className="grid items-center text-[11px] font-bold text-muted border-b border-inputBorder/20 pb-2.5 mb-1 select-none"
+              style={{ gridTemplateColumns: '1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px' }}
+            >
+              <span>{t('overview.tableAsset')}</span>
+              <span>{t('overview.tablePort')}</span>
+              <span className="text-right">{t('overview.tablePrice')}</span>
+              <span className="text-right">{t('overview.tableValue')}</span>
+              <span className="text-right">{t('overview.tableToday')}</span>
+              <span className="text-right">{t('overview.tableTotalReturn')}</span>
+              <span className="text-center">{t('overview.table30d')}</span>
+              <span className="text-right">{t('overview.tableWeight')}</span>
+            </div>
+
+            {/* Table Rows */}
+            {allAssetsTable.map((row) => {
+              const is24hUp = row.change24h >= 0;
+              const isReturnUp = row.returnPct >= 0;
+
+              return (
+                <div
+                  key={row.id}
+                  className="grid items-center py-3 border-b border-inputBorder/10 last:border-b-0 hover:bg-chipBg/30 transition-colors"
+                  style={{ gridTemplateColumns: '1.9fr 1.2fr 1fr 1.1fr 0.85fr 0.95fr 130px 104px' }}
+                >
+                  {/* Asset */}
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="text-[13px] font-bold text-dark truncate">{row.symbol}</span>
+                    <span className="text-[10.5px] text-muted truncate">{row.name}</span>
                   </div>
-                  <div className="h-4 bg-white/10 rounded-full overflow-hidden">
+
+                  {/* Portfolio */}
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
                     <div
-                      className="h-full bg-[#d98f70] rounded-full transition-all duration-300"
-                      style={{ width: `${Math.max(2, Math.min(100, debtRatio))}%` }}
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: row.portfolioColor }}
                     ></div>
+                    <span className="text-[12.5px] text-dark/80 truncate">{row.portfolioName}</span>
                   </div>
-                </div>
 
-                <div className="border-t border-dashed border-white/10 pt-5 flex flex-col gap-1 mt-2">
-                  <span className="text-[11.5px] text-[#cdbfa8] font-bold">{t('overview.debtRatio')}</span>
-                  <div className="flex items-end gap-3 mt-0.5">
-                    <span className="text-[28px] font-bold text-[#faf5ec] tabular-nums leading-none tracking-tight">{debtRatio.toFixed(1)}%</span>
-                    <span className={`text-[12px] font-bold ${debtNoteColor} leading-[1.3]`}>{debtNoteText}</span>
+                  {/* Price */}
+                  <span className="text-[12.5px] text-dark tabular-nums text-right">
+                    {formatPrice(row.currentPrice, row.currency)}
+                  </span>
+
+                  {/* Value */}
+                  <span className="text-[13px] font-bold text-dark tabular-nums text-right">
+                    {formatMoney(row.valueThb, true, false, true)}
+                  </span>
+
+                  {/* Today % */}
+                  <span className={`text-[12.5px] font-bold tabular-nums text-right ${
+                    row.change24h === 0 ? 'text-muted' : is24hUp ? 'text-positive-text' : 'text-negative-text'
+                  }`}>
+                    {row.change24h === 0 ? '—' : `${is24hUp ? '+' : ''}${row.change24h.toFixed(1)}%`}
+                  </span>
+
+                  {/* Total Return */}
+                  <span className={`text-[12.5px] font-bold tabular-nums text-right ${
+                    row.returnPct === 0 ? 'text-muted' : isReturnUp ? 'text-positive-text' : 'text-negative-text'
+                  }`}>
+                    {row.returnPct === 0 ? '—' : `${isReturnUp ? '+' : ''}${row.returnPct.toFixed(1)}%`}
+                  </span>
+
+                  {/* 30d Sparkline */}
+                  <div className="flex justify-center">
+                    <svg viewBox="0 0 130 30" className="w-[120px] h-[28px]">
+                      <path
+                        d={getSparkline(row.symbol, isReturnUp)}
+                        fill="none"
+                        stroke={isReturnUp ? '#7a8f55' : '#b45a3c'}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Weight */}
+                  <div className="flex flex-col gap-1 items-end justify-center h-full pl-2">
+                    <span className="text-[11.5px] font-bold text-dark/80 tabular-nums leading-none">
+                      {row.weightPct.toFixed(1)}%
+                    </span>
+                    <div className="w-[70px] h-[6px] bg-[#f3ede0] rounded-full overflow-hidden">
+                      <div
+                        className="h-full"
+                        style={{ width: `${Math.min(100, row.weightPct)}%`, backgroundColor: row.portfolioColor }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </>
       )}
     </div>
   );
 };
-
