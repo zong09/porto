@@ -305,20 +305,44 @@ export const Overview: React.FC = () => {
     const allLeaves: any[] = [];
     for (const grp of groupRects) {
       const gData = grp.data;
-      // Calculate leaves inside this group rect (with padding 0.6%)
-      const pad = 0.6;
+      // Calculate leaves inside this group rect
+      const pad = 0.4; // 2px horizontal padding = 0.4% of 500px width
+      const headHeight = 4.8; // 24px header height = 4.8% of 500px height
       const innerRect = {
         x: grp.x + pad,
-        y: grp.y + pad,
+        y: grp.y + headHeight,
         w: Math.max(0.1, grp.w - pad * 2),
-        h: Math.max(0.1, grp.h - pad * 2)
+        h: Math.max(0.1, grp.h - headHeight - pad)
       };
       
       if (gData.valueThb > 0) {
         const lScale = (innerRect.w * innerRect.h) / gData.valueThb;
+        
+        // Setup rank map for color gradients
+        const sortedItems = [...gData.items].sort((a: any, b: any) => b.valueThb - a.valueThb);
+        const rankMap = new Map();
+        sortedItems.forEach((r, idx) => rankMap.set(r, idx));
+        const gcount = sortedItems.length;
+
+        const hex2rgb = (h: string) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+        const mix = (h: string, t: string, amt: number) => { 
+          const a = hex2rgb(h), b = hex2rgb(t); 
+          return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * amt).toString(16).padStart(2, '0')).join(''); 
+        };
+
         const lItems = gData.items.map((it: any) => ({ area: it.valueThb * lScale, data: it }));
         const leafRects = squarify(lItems, innerRect);
-        allLeaves.push(...leafRects.map(l => Object.assign({}, l.data, l, { groupColor: gData.hexColor, groupTint: gData.tintColor })));
+        
+        allLeaves.push(...leafRects.map(l => {
+          const rank = rankMap.get(l.data) || 0;
+          const amt = gcount > 1 ? (rank / (gcount - 1)) * 0.5 : 0;
+          const leafTint = mix(gData.hexColor, '#ffffff', amt);
+
+          return Object.assign({}, l.data, l, { 
+            groupColor: leafTint, 
+            groupTint: gData.tintColor 
+          });
+        }));
       }
     }
 
@@ -597,21 +621,37 @@ export const Overview: React.FC = () => {
               {treemapData.groups.map(g => (
                 <div 
                   key={`group-${g.id}`} 
-                  className="absolute box-border border-2 rounded-[6px]"
+                  className="absolute box-border border-2 rounded-[10px] overflow-hidden"
                   style={{
                     left: `${g.x}%`, top: `${g.y}%`, width: `${g.w}%`, height: `${g.h}%`,
                     borderColor: g.hexColor,
-                    backgroundColor: `${g.hexColor}08`
+                    backgroundColor: g.tintColor,
+                    padding: '4px 9px'
                   }}
                 >
+                  <div className="flex items-baseline gap-[7px] whitespace-nowrap overflow-hidden">
+                    <span className="text-[12.5px] font-bold truncate" style={{ color: g.hexColor }}>{g.name}</span>
+                    <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums flex items-baseline">
+                      {isThb ? '฿' : '$'}{isThb ? formatMoney(g.valueThb) : formatMoney(g.valueThb / fx)}
+                      <span className="text-[0.72em] opacity-70 ml-[5px]">
+                        ({!isThb ? '฿' : '$'}{!isThb ? formatMoney(g.valueThb) : formatMoney(g.valueThb / fx)})
+                      </span>
+                    </span>
+                    <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums">
+                      {((g.valueThb / treemapData.globalTotal) * 100).toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
               ))}
               {/* Asset leaves */}
               {treemapData.leaves.map(l => {
                 const isShort = (l.direction || 'long') === 'short';
                 const dispVal = isThb ? l.valueThb : l.valueThb / fx;
+                const secondaryDispVal = !isThb ? l.valueThb : l.valueThb / fx;
                 const sign = isThb ? '฿' : '$';
+                const secondarySign = !isThb ? '฿' : '$';
                 const pct = (l.valueThb / treemapData.globalTotal) * 100;
+                const formatShortVal = (val: number) => val >= 1000 ? (val/1000).toFixed(val >= 10000 ? 0 : 1)+'k' : val.toFixed(0);
                 // Only show text if box is large enough
                 const showSym = l.w > 4 && l.h > 4;
                 const showVal = l.w > 8 && l.h > 12;
@@ -620,19 +660,23 @@ export const Overview: React.FC = () => {
                 return (
                   <div 
                     key={`leaf-${l.id}`} 
-                    className="absolute box-border border border-white rounded-[6px] flex flex-col items-center justify-center overflow-hidden transition-all duration-200 hover:brightness-95 cursor-pointer"
+                    className="absolute box-border border-[1.5px] border-white/90 rounded-[5px] flex flex-col items-start justify-start overflow-hidden transition-all duration-200 hover:brightness-95 cursor-pointer"
                     style={{
                       left: `${l.x}%`, top: `${l.y}%`, width: `${l.w}%`, height: `${l.h}%`,
-                      backgroundColor: l.groupTint,
-                      padding: '4px'
+                      backgroundColor: l.groupColor,
+                      padding: showVal ? '6px 8px' : '3px 5px',
+                      gap: '1px'
                     }}
                     title={`${l.symbol} \n${l.name}\n${sign}${dispVal.toLocaleString('en-US', {maximumFractionDigits: 0})}\n${pct.toFixed(1)}%`}
                   >
-                    {showSym && <span className="font-bold text-dark text-[11px] sm:text-[13px] leading-tight truncate max-w-full">{l.symbol}</span>}
-                    {showVal && <span className="text-[10px] sm:text-[11px] text-muted font-bold tabular-nums truncate max-w-full">
-                      {isShort ? '-' : ''}{sign}{dispVal >= 1000 ? (dispVal/1000).toFixed(dispVal >= 10000 ? 0 : 1)+'k' : dispVal.toFixed(0)}
-                    </span>}
-                    {showPct && <span className="text-[9px] sm:text-[10px] text-muted tabular-nums mt-0.5 truncate max-w-full">{pct.toFixed(1)}%</span>}
+                    {showSym && <span className="font-bold text-white text-[10px] sm:text-[14px] leading-[1.1] truncate max-w-full drop-shadow-sm">{l.symbol}</span>}
+                    {showVal && <div className="flex items-baseline text-[11px] text-white/95 font-medium tabular-nums truncate max-w-full drop-shadow-sm">
+                      <span>{isShort ? '-' : ''}{sign}{formatShortVal(dispVal)}</span>
+                      <span className="text-[0.8em] text-white/70 ml-1">
+                        ({isShort ? '-' : ''}{secondarySign}{formatShortVal(secondaryDispVal)})
+                      </span>
+                    </div>}
+                    {showPct && <span className="text-[10.5px] text-white/90 font-bold tabular-nums truncate max-w-full drop-shadow-sm">{pct.toFixed(1)}%</span>}
                   </div>
                 );
               })}
