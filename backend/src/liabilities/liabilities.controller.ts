@@ -1,7 +1,23 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { LiabilitiesService } from './liabilities.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
-import { IsNotEmpty, IsNumber, Min, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  Min,
+  IsOptional,
+  IsString,
+  IsIn,
+} from 'class-validator';
 
 class CreateLiabilityDto {
   @IsNotEmpty({ message: 'ชื่อหนี้สินห้ามเป็นค่าว่าง' })
@@ -10,6 +26,10 @@ class CreateLiabilityDto {
   @IsNumber({}, { message: 'ยอดหนี้สินต้องเป็นตัวเลข' })
   @Min(0, { message: 'ยอดหนี้สินต้องไม่ต่ำกว่า 0' })
   amount: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
 }
 
 class UpdateLiabilityDto {
@@ -21,6 +41,23 @@ class UpdateLiabilityDto {
   @IsNumber({}, { message: 'ยอดหนี้สินต้องเป็นตัวเลข' })
   @Min(0, { message: 'ยอดหนี้สินต้องไม่ต่ำกว่า 0' })
   amount?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+}
+
+class AdjustLiabilityDto {
+  @IsIn(['pay', 'add'], { message: 'ประเภทรายการไม่ถูกต้อง' })
+  type: 'pay' | 'add';
+
+  @IsNumber({}, { message: 'จำนวนเงินต้องเป็นตัวเลข' })
+  @Min(0.00000001, { message: 'จำนวนเงินต้องมากกว่า 0' })
+  amount: number;
+
+  @IsNotEmpty({ message: 'วันที่ห้ามเป็นค่าว่าง' })
+  @IsString()
+  date: string;
 }
 
 @Controller('liabilities')
@@ -32,9 +69,34 @@ export class LiabilitiesController {
     return this.liabilitiesService.findAll(user.userId);
   }
 
+  @Get('transactions')
+  async findTransactions(@CurrentUser() user: any) {
+    return this.liabilitiesService.findTransactions(user.userId);
+  }
+
+  @Post(':id/transactions')
+  async adjust(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AdjustLiabilityDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.liabilitiesService.adjust(
+      id,
+      user.userId,
+      body.type,
+      body.amount,
+      body.date,
+    );
+  }
+
   @Post()
   async create(@Body() body: CreateLiabilityDto, @CurrentUser() user: any) {
-    return this.liabilitiesService.create(user.userId, body.name, body.amount);
+    return this.liabilitiesService.create(
+      user.userId,
+      body.name,
+      body.amount,
+      body.currency,
+    );
   }
 
   @Patch(':id')
@@ -43,11 +105,20 @@ export class LiabilitiesController {
     @Body() body: UpdateLiabilityDto,
     @CurrentUser() user: any,
   ) {
-    return this.liabilitiesService.update(id, user.userId, body.name, body.amount);
+    return this.liabilitiesService.update(
+      id,
+      user.userId,
+      body.name,
+      body.amount,
+      body.currency,
+    );
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     await this.liabilitiesService.remove(id, user.userId);
     return { success: true };
   }

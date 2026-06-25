@@ -23,4 +23,7 @@ export class Liability {
     transformer: NumericColumnTransformer
   })
   amount: number;
+
+  @Column({ default: 'THB' })
+  currency: string;
 }

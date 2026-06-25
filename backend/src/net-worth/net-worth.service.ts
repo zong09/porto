@@ -36,13 +36,16 @@ export class NetWorthService {
     const liabilities = await this.liabilityRepo.find({
       where: { userId },
     });
-    const totalLiabilitiesThb = liabilities.reduce(
-      (sum, l) => sum + Number(l.amount),
-      0,
-    );
-
     // 3. Fetch FX rate
     const fx = await this.pricesService.getFxRate();
+
+    const totalLiabilitiesThb = liabilities.reduce(
+      (sum, l) => {
+        const multiplier = l.currency === 'USD' ? fx : 1;
+        return sum + Number(l.amount) * multiplier;
+      },
+      0,
+    );
 
     let totalAssetsThb = 0;
     let totalCostThb = 0;

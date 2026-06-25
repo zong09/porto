@@ -137,7 +137,7 @@ export const Login: React.FC = () => {
                   placeholder={t('login.namePlaceholder')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-[14px] border border-inputBorder bg-white text-[14.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                  className="w-full px-[14px] py-[10px] rounded-[12px] border border-inputBorder bg-white text-[14.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
                   id="input-auth-name"
                 />
               </div>
@@ -150,7 +150,7 @@ export const Login: React.FC = () => {
                 placeholder="you@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-[14px] border border-inputBorder bg-white text-[14.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                className="w-full px-[14px] py-[10px] rounded-[12px] border border-inputBorder bg-white text-[14.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
                 id="input-auth-email"
               />
             </div>
@@ -162,7 +162,7 @@ export const Login: React.FC = () => {
                 placeholder="••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-[14px] border border-inputBorder bg-white text-[14.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
+                className="w-full px-[14px] py-[10px] rounded-[12px] border border-inputBorder bg-white text-[14.5px] text-dark focus:outline-none focus:border-terracotta transition-colors"
                 id="input-auth-password"
               />
             </div>
@@ -218,7 +218,7 @@ export const Login: React.FC = () => {
             </div>
           )}
 
-          <div className="text-center text-[11px] text-[#b3a692] leading-[1.6] max-w-[280px] mx-auto">
+          <div className="text-center text-[11.5px] text-[#b3a692] leading-[1.6] max-w-[280px] mx-auto">
             {t('login.secureNote')}
           </div>
         </div>

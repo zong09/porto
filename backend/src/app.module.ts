@@ -11,6 +11,7 @@ import { Portfolio } from './portfolios/entities/portfolio.entity';
 import { Asset } from './assets/entities/asset.entity';
 import { Transaction } from './transactions/entities/transaction.entity';
 import { Liability } from './liabilities/entities/liability.entity';
+import { LiabilityTransaction } from './liabilities/entities/liability-transaction.entity';
 import { NetWorthHistory } from './net-worth/entities/net-worth-history.entity';
 
 import { AuthModule } from './auth/auth.module';
@@ -35,9 +36,20 @@ import { NetWorthModule } from './net-worth/net-worth.module';
           return {
             type: 'postgres',
             url,
-            entities: [User, Portfolio, Asset, Transaction, Liability, NetWorthHistory],
+            entities: [
+              User,
+              Portfolio,
+              Asset,
+              Transaction,
+              Liability,
+              LiabilityTransaction,
+              NetWorthHistory,
+            ],
             synchronize: true,
-            ssl: url.includes('localhost') || url.includes('127.0.0.1') ? false : { rejectUnauthorized: false },
+            ssl:
+              url.includes('localhost') || url.includes('127.0.0.1')
+                ? false
+                : { rejectUnauthorized: false },
           };
         }
         return {
@@ -47,7 +59,15 @@ import { NetWorthModule } from './net-worth/net-worth.module';
           username: config.get<string>('DB_USERNAME', 'postgres'),
           password: config.get<string>('DB_PASSWORD', 'postgrespassword'),
           database: config.get<string>('DB_DATABASE', 'porto'),
-          entities: [User, Portfolio, Asset, Transaction, Liability, NetWorthHistory],
+          entities: [
+            User,
+            Portfolio,
+            Asset,
+            Transaction,
+            Liability,
+            LiabilityTransaction,
+            NetWorthHistory,
+          ],
           synchronize: true,
         };
       },
@@ -70,4 +90,3 @@ import { NetWorthModule } from './net-worth/net-worth.module';
   providers: [AppService],
 })
 export class AppModule {}
-

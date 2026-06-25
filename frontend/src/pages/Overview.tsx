@@ -1,9 +1,11 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { usePortfolios, useAssets, useNetWorth, useAuthConfig } from '../hooks/useApi';
+import { usePortfolios, useAssets, useNetWorth, useAuthConfig, useLiabilities } from '../hooks/useApi';
 import { HelpCircle } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
 import { useTranslation } from '../hooks/useTranslation';
+import { computeSankey } from '../utils/sankey';
+import { SankeyCard } from '../components/SankeyCard';
 
 // --- Squarify Treemap algorithm ---
 interface Rect { x: number; y: number; w: number; h: number; }
@@ -42,6 +44,7 @@ export const Overview: React.FC = () => {
   const { currency, setPage, openModal } = useStore();
   const { data: portfolios = [], isLoading: loadingPorts } = usePortfolios();
   const { data: assets = [], isLoading: loadingAssets } = useAssets();
+  const { data: liabilities = [] } = useLiabilities();
   const { summary, history } = useNetWorth(365);
   const { data: config } = useAuthConfig();
   const { t, language } = useTranslation();
@@ -111,6 +114,12 @@ export const Overview: React.FC = () => {
       </span>
     );
   };
+
+  // Plain currency-aware base-THB formatter for chart node labels
+  const plainMoney = (thb: number) =>
+    isThb
+      ? '฿' + thb.toLocaleString('en-US', { maximumFractionDigits: 0 })
+      : '$' + (thb / fx).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
   // 1. Current Stats
   const totalAssets = summary.data?.totalAssetsThb || 0;
@@ -356,6 +365,61 @@ export const Overview: React.FC = () => {
     return { groups: groupRects.map(g => Object.assign({}, g.data, g)), leaves: allLeaves, globalTotal };
   }, [assets, portfolios, fx, isMobile]);
 
+  // Sankey: portfolio (left) → asset type (right)
+  const typeSankey = React.useMemo(() => {
+    const groups = treemapData.groups as any[];
+    if (!groups.length) return null;
+    const typeColor: Record<string, string> = { crypto: '#d9a35f', us: '#7aa9ae', th: '#9bb06f', fund: '#a98cbb', deposit: '#c8bca6' };
+    const typeLabels: Record<string, string> = {
+      crypto: t('common.assetTypes.crypto'),
+      us: t('common.assetTypes.us'),
+      th: t('common.assetTypes.th'),
+      fund: t('common.assetTypes.fund'),
+      deposit: t('common.assetTypes.deposit'),
+    };
+    const typeAgg: Record<string, number> = {};
+    groups.forEach((g) => (g.items as any[]).forEach((it) => { typeAgg[it.type] = (typeAgg[it.type] || 0) + it.valueThb; }));
+    const typeItems = Object.keys(typeAgg).map((ty) => ({ ty, v: typeAgg[ty] })).sort((a, b) => b.v - a.v);
+    if (!typeItems.length) return null;
+    const total = groups.reduce((s, g) => s + g.valueThb, 0);
+    const left = groups.map((g) => ({ label: g.name, sub: plainMoney(g.valueThb), color: g.hexColor, value: g.valueThb }));
+    const right = typeItems.map((it) => ({
+      label: typeLabels[it.ty] || it.ty,
+      sub: `${plainMoney(it.v)} · ${total > 0 ? ((it.v / total) * 100).toFixed(1) : '0'}%`,
+      color: typeColor[it.ty] || '#b3a692',
+      value: it.v,
+    }));
+    const flows: { leftIndex: number; rightIndex: number; value: number }[] = [];
+    groups.forEach((g, li) => {
+      const byType: Record<string, number> = {};
+      (g.items as any[]).forEach((it) => { byType[it.type] = (byType[it.type] || 0) + it.valueThb; });
+      typeItems.forEach((it, ri) => { const v = byType[it.ty]; if (v) flows.push({ leftIndex: li, rightIndex: ri, value: v }); });
+    });
+    return computeSankey({ left, right, flows, SW: 1000, SH: 460, LX: 132, RX: 1000 - 132 - 13 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treemapData, fx, isThb, language]);
+
+  // Liability Sankey: each debt (left) → total (right)
+  const liabSankey = React.useMemo(() => {
+    const debtPalette = ['#d98f70', '#c4654a', '#b4543c', '#e0a07a', '#a85d77', '#8f4630'];
+    const items = liabilities
+      .map((l) => ({ l, amountThb: l.currency === 'USD' ? Number(l.amount) * fx : Number(l.amount) }))
+      .filter((x) => x.amountThb > 0)
+      .sort((a, b) => b.amountThb - a.amountThb);
+    if (!items.length) return null;
+    const leftTotal = items.reduce((s, x) => s + x.amountThb, 0);
+    const left = items.map((x, i) => ({
+      label: x.l.name,
+      sub: `${plainMoney(x.amountThb)} · ${((x.amountThb / leftTotal) * 100).toFixed(1)}%`,
+      color: debtPalette[i % 6],
+      value: x.amountThb,
+    }));
+    const right = [{ label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: '#84422e', value: leftTotal }];
+    const flows = items.map((_, i) => ({ leftIndex: i, rightIndex: 0, value: left[i].value }));
+    return computeSankey({ left, right, flows, SW: 1000, SH: 420, LX: 150, RX: 1000 - 150 - 13 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liabilities, fx, isThb, language]);
+
   // 6. All Assets table data
   const allAssetsTable = React.useMemo(() => {
     const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
@@ -500,9 +564,9 @@ export const Overview: React.FC = () => {
 
       {/* 3. Net Worth Area Chart */}
       {chartHistoryPoints.length >= 2 && (
-        <div className="bg-white rounded-[24px] p-6 border border-inputBorder/20 shadow-sm mt-6 w-full">
+        <div className="bg-white rounded-[20px] p-[20px_24px] border border-inputBorder/20 shadow-sm mt-6 w-full">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[15px] font-bold text-dark">{t('overview.netWorthGrowth')}</h3>
+            <h3 className="text-[14px] font-bold text-dark">{t('overview.netWorthGrowth')}</h3>
             <span
               className={`text-sm font-bold ${MoMChangeUp ? 'text-positive-text' : 'text-negative-text'}`}
             >
@@ -520,7 +584,7 @@ export const Overview: React.FC = () => {
             <path d={nwLinePath} fill="none" stroke="#b45a3c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"></path>
             <circle cx={nwDotX} cy={nwDotY} r="5" fill="#b45a3c" stroke="#faf5ec" strokeWidth="3"></circle>
           </svg>
-          <div className="w-full flex justify-between text-[11px] font-bold text-faint-darker px-1 mt-1.5 border-t border-inputBorder/20 pt-2">
+          <div className="w-full flex justify-between text-[12px] font-bold text-faint-darker px-1 mt-1.5 border-t border-inputBorder/20 pt-2">
             {xLabels.map((label, idx) => (
               <span key={idx}>{label}</span>
             ))}
@@ -564,7 +628,7 @@ export const Overview: React.FC = () => {
       {hasAssets && (
         <>
           {/* 5. Portfolio Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {portfolioSummaries.map((c) => {
               const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
               const tints = ['#EFF3E6', '#F3E9DC', '#F2E0D8', '#E2EDEA', '#EAE4F0', '#F2E2E8'];
@@ -574,7 +638,7 @@ export const Overview: React.FC = () => {
                 <div
                   key={c.id}
                   onClick={() => setPage('ports')}
-                  className="rounded-[24px] p-6 flex flex-col shadow-sm border border-inputBorder/10 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                  className="rounded-[22px] p-6 flex flex-col shadow-sm border border-inputBorder/10 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                   style={{ backgroundColor: tints[i % 6] }}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -594,7 +658,7 @@ export const Overview: React.FC = () => {
                   
                   {/* Progress bar */}
                   <div className="mt-auto flex flex-col gap-1.5">
-                    <div className="h-2 bg-white rounded-full overflow-hidden select-none">
+                    <div className="h-[7px] bg-white rounded-full overflow-hidden select-none">
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -613,10 +677,10 @@ export const Overview: React.FC = () => {
           </div>
 
           {/* 6. Treemap Chart */}
-          <div className="bg-white rounded-[24px] p-6 border border-inputBorder/20 shadow-sm mt-6">
+          <div className="bg-white rounded-[22px] p-[14px_18px] border border-inputBorder/20 shadow-sm mt-6">
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-3 gap-2">
               <div className="flex items-baseline gap-3">
-                <h3 className="text-[15px] font-bold text-dark">{t('overview.assetOverview')}</h3>
+                <h3 className="text-[14px] font-bold text-dark">{t('overview.assetOverview')}</h3>
                 <span className="text-[12px] text-muted">{t('overview.treemapLegend')}</span>
               </div>
               <span className="text-[12px] text-muted font-semibold">{assets.filter(a => a.position && a.position.quantity > 0).length} {t('overview.itemsCount')}</span>
@@ -701,10 +765,34 @@ export const Overview: React.FC = () => {
             </div>
           </div>
 
+          {/* Sankey: portfolio → asset type */}
+          {typeSankey && (
+            <SankeyCard
+              title={language === 'th' ? 'เส้นทางสินทรัพย์ตามประเภท' : 'Asset flow by type'}
+              subtitle={language === 'th' ? 'พอร์ต → ประเภทสินทรัพย์ · ความหนา = มูลค่า' : 'portfolio → asset type · width = value'}
+              height={480}
+              viewW={1000}
+              viewH={460}
+              data={typeSankey}
+            />
+          )}
+
+          {/* Liability Sankey */}
+          {liabSankey && (
+            <SankeyCard
+              title={language === 'th' ? 'สัดส่วนหนี้สิน' : 'Debt Allocation'}
+              subtitle={language === 'th' ? 'แต่ละรายการ → หนี้สินรวม · ความหนา = ยอดหนี้' : 'each debt → total · width = balance'}
+              height={440}
+              viewW={1000}
+              viewH={420}
+              data={liabSankey}
+            />
+          )}
+
           {/* 7. All Assets Table */}
-          <div className="bg-white rounded-[24px] p-6 border border-inputBorder/20 shadow-sm mt-6">
+          <div className="bg-white rounded-[22px] p-[14px_18px] border border-inputBorder/20 shadow-sm mt-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-bold text-dark">{t('overview.allAssets')}</h3>
+              <h3 className="text-[14px] font-bold text-dark">{t('overview.allAssets')}</h3>
               <span className="text-[12px] text-muted font-semibold">
                 {allAssetsTable.length} {t('overview.itemsCount')} · {t('overview.sortedByValue')}
               </span>
@@ -813,10 +901,10 @@ export const Overview: React.FC = () => {
                   {/* Weight */}
                   {!isMobile && (
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-[12px] font-bold text-dark tabular-nums w-[42px] text-right">
+                      <span className="text-[11.5px] font-bold text-dark tabular-nums w-[42px] text-right">
                         {row.weightPct.toFixed(1)}%
                       </span>
-                      <div className="w-[54px] h-[4.5px] bg-[#e4dfd4] rounded-full overflow-hidden shrink-0">
+                      <div className="w-[54px] h-[7px] bg-[#e4dfd4] rounded-full overflow-hidden shrink-0">
                         <div
                           className="h-full rounded-full"
                           style={{
