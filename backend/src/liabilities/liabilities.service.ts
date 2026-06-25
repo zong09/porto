@@ -26,19 +26,20 @@ export class LiabilitiesService {
     return liability;
   }
 
-  async create(userId: string, name: string, amount: number): Promise<Liability> {
-    this.logger.log(`Creating liability name="${name}" amount=${amount} for user=${userId}`);
+  async create(userId: string, name: string, amount: number, currency?: string): Promise<Liability> {
+    this.logger.log(`Creating liability name="${name}" amount=${amount} currency=${currency} for user=${userId}`);
     const liability = this.liabilityRepo.create({
       userId,
       name,
       amount,
+      currency: currency || 'THB',
     });
     const saved = await this.liabilityRepo.save(liability);
     this.logger.log(`Liability created id=${saved.id} name="${name}"`);
     return saved;
   }
 
-  async update(id: string, userId: string, name?: string, amount?: number): Promise<Liability> {
+  async update(id: string, userId: string, name?: string, amount?: number, currency?: string): Promise<Liability> {
     this.logger.log(`Updating liability id=${id}`);
     const liability = await this.findOne(id, userId);
     if (name !== undefined) {
@@ -46,6 +47,9 @@ export class LiabilitiesService {
     }
     if (amount !== undefined) {
       liability.amount = amount;
+    }
+    if (currency !== undefined) {
+      liability.currency = currency;
     }
     const saved = await this.liabilityRepo.save(liability);
     this.logger.log(`Liability updated successfully id=${id}`);

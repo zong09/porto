@@ -10,6 +10,10 @@ class CreateLiabilityDto {
   @IsNumber({}, { message: 'ยอดหนี้สินต้องเป็นตัวเลข' })
   @Min(0, { message: 'ยอดหนี้สินต้องไม่ต่ำกว่า 0' })
   amount: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
 }
 
 class UpdateLiabilityDto {
@@ -21,6 +25,10 @@ class UpdateLiabilityDto {
   @IsNumber({}, { message: 'ยอดหนี้สินต้องเป็นตัวเลข' })
   @Min(0, { message: 'ยอดหนี้สินต้องไม่ต่ำกว่า 0' })
   amount?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
 }
 
 @Controller('liabilities')
@@ -34,7 +42,7 @@ export class LiabilitiesController {
 
   @Post()
   async create(@Body() body: CreateLiabilityDto, @CurrentUser() user: any) {
-    return this.liabilitiesService.create(user.userId, body.name, body.amount);
+    return this.liabilitiesService.create(user.userId, body.name, body.amount, body.currency);
   }
 
   @Patch(':id')
@@ -43,7 +51,7 @@ export class LiabilitiesController {
     @Body() body: UpdateLiabilityDto,
     @CurrentUser() user: any,
   ) {
-    return this.liabilitiesService.update(id, user.userId, body.name, body.amount);
+    return this.liabilitiesService.update(id, user.userId, body.name, body.amount, body.currency);
   }
 
   @Delete(':id')

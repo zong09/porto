@@ -271,6 +271,7 @@ export interface Liability {
   id: string;
   name: string;
   amount: number;
+  currency: 'THB' | 'USD';
 }
 
 export function useLiabilities() {
@@ -285,7 +286,7 @@ export function useLiabilities() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; amount: number }) => {
+    mutationFn: async (data: { name: string; amount: number; currency: 'THB' | 'USD' }) => {
       const res = await apiClient.post('/liabilities', data);
       return res.data;
     },
