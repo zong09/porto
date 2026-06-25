@@ -65,8 +65,10 @@ export function computeSankey(input: SankeyInput): SankeyResult {
     return { ribbons, left: leftGeo, right: rightGeo };
   }
 
-  const lScale = (SH - GAP * (left.length - 1)) / total;
-  const rScale = (SH - GAP * (right.length - 1)) / total;
+  const PADDING_Y = 20;
+  const availSH = SH - PADDING_Y * 2;
+  const lScale = (availSH - GAP * (left.length - 1)) / total;
+  const rScale = (availSH - GAP * (right.length - 1)) / total;
   const scale = Math.min(lScale, rScale);
 
   const px = (v: number) => (v / SW) * 100 + '%';
