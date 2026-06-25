@@ -296,6 +296,29 @@ export function useLiabilities() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; amount?: number; currency?: 'THB' | 'USD' }) => {
+      const res = await apiClient.patch(`/liabilities/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['net-worth-summary'] });
+    },
+  });
+
+  const adjustMutation = useMutation({
+    mutationFn: async ({ id, type, amount, date }: { id: string; type: 'pay' | 'add'; amount: number; date: string }) => {
+      const res = await apiClient.post(`/liabilities/${id}/transactions`, { type, amount, date });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['liability-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['net-worth-summary'] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await apiClient.delete(`/liabilities/${id}`);
@@ -307,7 +330,32 @@ export function useLiabilities() {
     },
   });
 
-  return { ...query, createLiability: createMutation, deleteLiability: deleteMutation };
+  return {
+    ...query,
+    createLiability: createMutation,
+    updateLiability: updateMutation,
+    adjustLiability: adjustMutation,
+    deleteLiability: deleteMutation,
+  };
+}
+
+export interface LiabilityTransaction {
+  id: string;
+  liabilityId: string;
+  type: 'pay' | 'add';
+  amount: number;
+  date: string;
+  liability?: { id: string; name: string; currency: 'THB' | 'USD' };
+}
+
+export function useLiabilityTransactions() {
+  return useQuery<LiabilityTransaction[]>({
+    queryKey: ['liability-transactions'],
+    queryFn: async () => {
+      const res = await apiClient.get('/liabilities/transactions');
+      return res.data;
+    },
+  });
 }
 
 // --- Net Worth Summary & History Hooks ---

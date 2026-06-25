@@ -30,6 +30,7 @@ interface StoreState {
   activeAssetId: string | null;
   activePortfolioId: string | null;
   activeTransactionId: string | null;
+  activeLiabilityId: string | null;
 
   // Actions
   setPage: (page: PageType) => void;
@@ -39,7 +40,7 @@ interface StoreState {
   logout: () => void;
   openModal: (
     modalName: keyof ModalsState,
-    options?: { assetId?: string; portfolioId?: string; transactionId?: string }
+    options?: { assetId?: string; portfolioId?: string; transactionId?: string; liabilityId?: string }
   ) => void;
   closeModal: (modalName: keyof ModalsState) => void;
   closeAllModals: () => void;
@@ -78,6 +79,7 @@ export const useStore = create<StoreState>((set) => {
     activeAssetId: null,
     activePortfolioId: null,
     activeTransactionId: null,
+    activeLiabilityId: null,
 
     setPage: (page) => set({ page }),
     setCurrency: (currency) => {
@@ -111,6 +113,7 @@ export const useStore = create<StoreState>((set) => {
         activeAssetId: null,
         activePortfolioId: null,
         activeTransactionId: null,
+        activeLiabilityId: null,
       });
     },
     openModal: (modalName, options) =>
@@ -119,6 +122,7 @@ export const useStore = create<StoreState>((set) => {
         activeAssetId: options?.assetId || null,
         activePortfolioId: options?.portfolioId || null,
         activeTransactionId: options?.transactionId || null,
+        activeLiabilityId: options?.liabilityId || null,
       })),
     closeModal: (modalName) =>
       set((state) => ({
@@ -129,6 +133,7 @@ export const useStore = create<StoreState>((set) => {
             : state.activeAssetId,
         activePortfolioId: modalName === 'asset' ? null : state.activePortfolioId,
         activeTransactionId: modalName === 'tx' ? null : state.activeTransactionId,
+        activeLiabilityId: modalName === 'liability' ? null : state.activeLiabilityId,
       })),
     closeAllModals: () =>
       set({
@@ -143,6 +148,7 @@ export const useStore = create<StoreState>((set) => {
         activeAssetId: null,
         activePortfolioId: null,
         activeTransactionId: null,
+        activeLiabilityId: null,
       }),
   };
 });

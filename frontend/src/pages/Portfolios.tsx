@@ -72,7 +72,7 @@ const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, isMobile, ch
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3'} py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
+      className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
     >
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
@@ -388,19 +388,19 @@ export const Portfolios: React.FC = () => {
   return (
     <div className="flex flex-col py-6 select-none" data-screen-label="Portfolios">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 py-4.5 border-b border-inputBorder/20 flex-wrap">
-        <h2 className="text-xl font-bold text-dark">{t('portfolios.title')}</h2>
+      <div className="flex items-center justify-between gap-4 pt-[28px] pb-[18px] border-b border-inputBorder/20 flex-wrap">
+        <h2 className="text-[22px] font-bold text-dark">{t('portfolios.title')}</h2>
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => openModal('asset')}
-            className="px-5 py-2 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
+            className="px-[18px] py-[8px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13px] font-bold border-none cursor-pointer transition-colors shadow-sm"
             id="btn-add-asset-top"
           >
             {t('portfolios.addAssetBtn')}
           </button>
           <button
             onClick={() => openModal('portfolio')}
-            className="px-5 py-2 rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold border-none cursor-pointer transition-colors shadow-sm"
+            className="px-[18px] py-[8px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13px] font-bold border-none cursor-pointer transition-colors shadow-sm"
             id="btn-create-port-top"
           >
             {t('portfolios.createBtn')}
@@ -410,7 +410,7 @@ export const Portfolios: React.FC = () => {
 
       {/* Empty State */}
       {portfolios.length === 0 && (
-        <div className="bg-white border border-inputBorder/25 rounded-2.5xl p-10 text-center flex flex-col items-center gap-3 mt-6">
+        <div className="bg-white border border-inputBorder/25 rounded-[22px] p-10 text-center flex flex-col items-center gap-3 mt-6">
           <span className="text-sm.5 text-muted">
             {language === 'th'
               ? 'ยังไม่มีพอร์ตการลงทุนในระบบ กด "+ สร้างพอร์ต" เพื่อเริ่มต้น'
@@ -517,7 +517,7 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
   const assetIds = p.holdings.map((h: any) => h.id);
 
   return (
-    <div className="bg-white rounded-2.5xl p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-4">
+    <div className="bg-white rounded-[22px] p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-[18px]">
       {/* Portfolio header info */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Drag handle */}
@@ -596,7 +596,7 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
             <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2 [&::-webkit-scrollbar]:hidden">
               <table className={`${isMobile ? 'w-full' : 'min-w-[860px] w-full'} border-collapse`}>
                 <thead>
-                  <tr className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_245px] gap-2.5 px-3'} py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left`}>
+                  <tr className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left`}>
                     <th></th>
                     <th>{language === 'th' ? 'สินทรัพย์' : 'Asset'}</th>
                     {!isMobile && <th className="text-right">{t('portfolios.tableQty')}</th>}

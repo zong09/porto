@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LiabilitiesService } from './liabilities.service';
 import { Liability } from './entities/liability.entity';
+import { LiabilityTransaction } from './entities/liability-transaction.entity';
 import { NotFoundException } from '@nestjs/common';
 
 const mockLiability = {
@@ -28,6 +29,14 @@ describe('LiabilitiesService', () => {
             create: jest.fn().mockReturnValue(mockLiability),
             save: jest.fn().mockResolvedValue(mockLiability),
             delete: jest.fn().mockResolvedValue({ affected: 1 }),
+          },
+        },
+        {
+          provide: getRepositoryToken(LiabilityTransaction),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            create: jest.fn().mockImplementation((x) => x),
+            save: jest.fn().mockImplementation((x) => Promise.resolve(x)),
           },
         },
       ],
@@ -87,6 +96,7 @@ describe('LiabilitiesService', () => {
         userId: 'user-1',
         name: 'Student Loan',
         amount: 100000,
+        currency: 'THB',
       });
       expect(repo.save).toHaveBeenCalledWith(createdLiability);
     });
@@ -102,7 +112,12 @@ describe('LiabilitiesService', () => {
 
       jest.spyOn(repo, 'save').mockResolvedValue(updatedLiability as any);
 
-      const result = await service.update('uuid-1', 'user-1', 'Car Loan Updated', 450000);
+      const result = await service.update(
+        'uuid-1',
+        'user-1',
+        'Car Loan Updated',
+        450000,
+      );
       expect(result).toEqual(updatedLiability);
       expect(repo.save).toHaveBeenCalled();
     });
@@ -110,9 +125,14 @@ describe('LiabilitiesService', () => {
 
   describe('remove', () => {
     it('should successfully delete a liability', async () => {
-      const deleteSpy = jest.spyOn(repo, 'delete').mockResolvedValue({ affected: 1 } as any);
+      const deleteSpy = jest
+        .spyOn(repo, 'delete')
+        .mockResolvedValue({ affected: 1 } as any);
       await service.remove('uuid-1', 'user-1');
-      expect(deleteSpy).toHaveBeenCalledWith({ id: 'uuid-1', userId: 'user-1' });
+      expect(deleteSpy).toHaveBeenCalledWith({
+        id: 'uuid-1',
+        userId: 'user-1',
+      });
     });
   });
 });
