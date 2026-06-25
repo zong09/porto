@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
 import { usePortfolios, useAssets, useNetWorth } from '../hooks/useApi';
-import { Trash2, GripVertical } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import {
   DndContext,
