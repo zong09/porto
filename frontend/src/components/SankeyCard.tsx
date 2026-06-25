@@ -31,8 +31,8 @@ const NodeLabel: React.FC<{ node: SankeyNodeGeo; align: 'left' | 'right' }> = ({
         paddingLeft: align === 'left' ? '4px' : undefined,
       }}
     >
-      <div className="text-[13px] font-bold text-dark leading-tight truncate max-w-full">{node.label}</div>
-      {node.sub && <div className="text-[11.5px] text-muted tabular-nums truncate max-w-full">{node.sub}</div>}
+      <div className="text-[13px] font-bold text-dark leading-tight truncate max-w-full shrink-0">{node.label}</div>
+      {node.sub && <div className="text-[11.5px] text-muted tabular-nums truncate max-w-full shrink-0">{node.sub}</div>}
     </div>
   </>
 );

@@ -72,7 +72,7 @@ const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, isMobile, ch
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
+      className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.5fr_0.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
     >
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
@@ -548,16 +548,15 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
         <div className="ml-auto flex items-center gap-3">
           <button
             onClick={() => openModal('asset', { portfolioId: p.id })}
-            className="px-3.5 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11.5px] font-bold border-none cursor-pointer transition-colors"
+            className="px-[14px] py-[6px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[12.5px] font-bold border-none cursor-pointer transition-colors"
           >
             + {language === 'th' ? 'สินทรัพย์' : 'Asset'}
           </button>
           <button
             onClick={() => handleDeletePortfolio(p.id, p.name)}
-            className="bg-transparent border-none text-faint-darker hover:text-negative-text cursor-pointer text-[12px] font-semibold transition-colors flex items-center gap-0.5"
+            className="bg-transparent border-none text-faint-darker hover:text-negative-text cursor-pointer text-[12.5px] font-bold transition-colors"
           >
-            <Trash2 size={12} />
-            <span>{t('common.delete')}</span>
+            {language === 'th' ? 'ลบพอร์ต' : 'Delete'}
           </button>
         </div>
       </div>
@@ -596,9 +595,10 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
             <div className="overflow-x-auto border-t border-inputBorder/10 pt-4 mt-2 [&::-webkit-scrollbar]:hidden">
               <table className={`${isMobile ? 'w-full' : 'min-w-[860px] w-full'} border-collapse`}>
                 <thead>
-                  <tr className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left`}>
+                  <tr className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.5fr_0.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-2 text-[11.5px] font-bold text-faint-darker border-b border-inputBorder/20 text-left`}>
                     <th></th>
                     <th>{language === 'th' ? 'สินทรัพย์' : 'Asset'}</th>
+                    {!isMobile && <th>{language === 'th' ? 'ชนิด' : 'Type'}</th>}
                     {!isMobile && <th className="text-right">{t('portfolios.tableQty')}</th>}
                     {!isMobile && <th className="text-right">{t('portfolios.tableAvgCost')}</th>}
                     {!isMobile && <th className="text-right">{t('portfolios.tablePrice')}</th>}
@@ -689,10 +689,25 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
             </span>
           )}
         </span>
-        <span className="text-[11px] text-faint font-semibold mt-1">
-          {h.name && h.name !== h.symbol ? `${h.name}` : h.type.toUpperCase()}
-        </span>
+        {h.name && h.name !== h.symbol && (
+          <span className="text-[11px] text-faint font-semibold mt-1">
+            {h.name}
+          </span>
+        )}
       </td>
+      {!isMobile && (
+        <td className="flex items-center select-none">
+          <span
+            className="px-2 py-0.5 rounded-md text-[10.5px] font-bold uppercase tracking-wide"
+            style={{
+              backgroundColor: h.type === 'crypto' ? '#fdf6ed' : h.type === 'us' ? '#f2f7f7' : h.type === 'th' ? '#f5f7f0' : h.type === 'fund' ? '#f7f4f9' : '#faf9f5',
+              color: h.type === 'crypto' ? '#d9a35f' : h.type === 'us' ? '#7aa9ae' : h.type === 'th' ? '#9bb06f' : h.type === 'fund' ? '#a98cbb' : '#b3a692',
+            }}
+          >
+            {h.type}
+          </span>
+        </td>
+      )}
       {!isMobile && (
         <td className="text-right font-bold tabular-nums text-dark/90 text-sm">
           {formatQty(h.quantity, h.type, h.currency)}
