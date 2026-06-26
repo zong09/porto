@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import type { ThemeId } from '../utils/themes';
 
-export type PageType = 'overview' | 'ports' | 'tx' | 'debt';
+export type PageType = 'overview' | 'ports' | 'tx' | 'debt' | 'settings';
 export type CurrencyType = 'THB' | 'USD';
 export type LanguageType = 'th' | 'en';
 
@@ -24,6 +25,7 @@ interface StoreState {
   page: PageType;
   currency: CurrencyType;
   language: LanguageType;
+  theme: ThemeId;
   user: User | null;
   token: string | null;
   modals: ModalsState;
@@ -36,6 +38,7 @@ interface StoreState {
   setPage: (page: PageType) => void;
   setCurrency: (currency: CurrencyType) => void;
   setLanguage: (language: LanguageType) => void;
+  setTheme: (theme: ThemeId) => void;
   login: (user: User, token: string) => void;
   logout: () => void;
   openModal: (
@@ -61,11 +64,13 @@ export const useStore = create<StoreState>((set) => {
 
   const savedCurrency = localStorage.getItem('porto-currency-v1') as CurrencyType;
   const savedLanguage = localStorage.getItem('porto-language-v1') as LanguageType;
+  const savedTheme = localStorage.getItem('porto-theme-v1') as ThemeId;
 
   return {
     page: 'overview',
     currency: savedCurrency || 'USD',
     language: savedLanguage || 'th',
+    theme: savedTheme || 'sunset',
     user: initialUser,
     token: savedToken,
     modals: {
@@ -89,6 +94,10 @@ export const useStore = create<StoreState>((set) => {
     setLanguage: (language) => {
       localStorage.setItem('porto-language-v1', language);
       set({ language });
+    },
+    setTheme: (theme) => {
+      localStorage.setItem('porto-theme-v1', theme);
+      set({ theme });
     },
     login: (user, token) => {
       localStorage.setItem('porto-token-v1', token);

@@ -424,7 +424,7 @@ export const AssetModal: React.FC = () => {
                   onClick={() => setDirection('short')}
                   className={`flex-1 py-[9px] rounded-[12px] border font-bold text-[13.5px] text-center transition-colors cursor-pointer ${
                     direction === 'short'
-                      ? 'bg-[#c4654a] border-[#c4654a] text-white'
+                      ? 'bg-negative-text border-negative-text text-white'
                       : 'bg-white border-inputBorder text-muted hover:bg-surface'
                   }`}
                   id="btn-asset-dir-short"
@@ -442,9 +442,9 @@ export const AssetModal: React.FC = () => {
             </div>
           )}
           {isEdit && editing && (editing.direction || 'long') === 'short' && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#f3ded6] rounded-[12px]">
-              <span className="text-[12px] font-bold text-[#c4654a]">▼ SHORT</span>
-              <span className="text-[11.5px] text-[#84422e] font-medium">
+            <div className="flex items-center gap-2 px-3 py-2 bg-negative-bg rounded-[12px]">
+              <span className="text-[12px] font-bold text-negative-text">▼ SHORT</span>
+              <span className="text-[11.5px] text-lossD font-medium">
                 {language === 'th' ? 'ไม่สามารถเปลี่ยนทิศทางหลังสร้างแล้ว' : 'Direction cannot be changed after creation'}
               </span>
             </div>
@@ -598,7 +598,7 @@ export const AssetModal: React.FC = () => {
           )}
 
           {error && (
-            <div className="bg-[#f3ded6] text-[#84422e] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
+            <div className="bg-negative-bg text-lossD text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
               {error}
             </div>
           )}
@@ -608,7 +608,7 @@ export const AssetModal: React.FC = () => {
             <button
               type="button"
               onClick={() => closeModal('asset')}
-              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>

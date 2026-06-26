@@ -4,6 +4,7 @@ export const translations: Record<string, any> = {
     ports: { th: 'พอร์ต', en: 'Portfolios' },
     tx: { th: 'Transactions', en: 'Transactions' },
     debt: { th: 'หนี้สิน', en: 'Liabilities' },
+    settings: { th: 'ตั้งค่า', en: 'Settings' },
     logout: { th: 'ออกจากระบบ', en: 'Logout' },
     addTx: { th: '+ เพิ่มรายการ', en: '+ Add Transaction' },
     save: { th: 'บันทึก', en: 'Save' },
@@ -29,6 +30,13 @@ export const translations: Record<string, any> = {
     clearSuccess: { th: 'ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว', en: 'Successfully cleared all data' },
     demoError: { th: 'เกิดข้อผิดพลาดในการโหลดเดโม', en: 'Error loading demo' },
     clearError: { th: 'เกิดข้อผิดพลาดในการล้างข้อมูล', en: 'Error clearing data' },
+  },
+  settings: {
+    title: { th: 'ตั้งค่า', en: 'Settings' },
+    subtitle: { th: 'เลือกธีมสีของแอป — มีผลทันทีทั้งหน้าจอ และจำค่าไว้ในเบราว์เซอร์ของคุณ', en: 'Choose the app theme — applies instantly across the screen and is remembered in your browser' },
+    themeLabel: { th: 'ธีม (Theme)', en: 'Theme' },
+    themeCount: { th: '3 ธีมเริ่มต้น', en: '3 built-in themes' },
+    active: { th: 'ใช้งานอยู่', en: 'Active' },
   },
   login: {
     title: { th: 'ติดตามความมั่งคั่งของคุณในที่เดียว', en: 'Track Your Wealth in One Place' },

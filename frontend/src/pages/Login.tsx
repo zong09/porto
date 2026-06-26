@@ -76,15 +76,15 @@ export const Login: React.FC = () => {
     <div className="min-h-screen flex items-stretch flex-wrap relative" data-screen-label="Login">
       {/* Absolute Language Switcher */}
       <div className="absolute top-4 right-4 z-50">
-        <div className="flex bg-[#f0e7d8]/80 backdrop-blur-sm rounded-full p-[3px] text-[12.5px] font-bold select-none shadow-sm">
+        <div className="flex bg-chipBg backdrop-blur-sm rounded-full p-[3px] text-[12.5px] font-bold select-none shadow-sm">
           <div onClick={() => setLanguage('th')} className={`px-[12px] py-[4px] rounded-full cursor-pointer transition-all duration-150 ${language === 'th' ? 'text-surface bg-dark' : 'text-muted bg-transparent hover:text-dark'}`}>TH</div>
           <div onClick={() => setLanguage('en')} className={`px-[12px] py-[4px] rounded-full cursor-pointer transition-all duration-150 ${language === 'en' ? 'text-surface bg-dark' : 'text-muted bg-transparent hover:text-dark'}`}>EN</div>
         </div>
       </div>
 
-      <div className="flex-1 min-w-[380px] bg-gradient-to-br from-[#b45a3c] via-[#8f4630] to-[#5e3322] text-[#faf5ec] p-14 flex flex-col justify-between min-h-[350px]">
+      <div className="flex-1 min-w-[380px] bg-gradient-to-br from-terracotta via-terracotta-hover to-brandDd text-white p-14 flex flex-col justify-between min-h-[350px]">
         <div className="flex items-center gap-[11px]">
-          <div className="w-[30px] h-[30px] rounded-full bg-[#faf5ec] flex-shrink-0"></div>
+          <div className="w-[30px] h-[30px] rounded-full bg-white flex-shrink-0"></div>
           <div className="text-[19px] font-bold tracking-tight">Porto</div>
         </div>
 
@@ -97,22 +97,22 @@ export const Login: React.FC = () => {
               </React.Fragment>
             ))}
           </h1>
-          <p className="text-[14.5px] leading-relaxed text-[#faf5ec]/80 max-w-[420px]">
+          <p className="text-[14.5px] leading-relaxed text-white/80 max-w-[420px]">
             {t('login.desc')}
           </p>
 
           <div className="flex gap-8 mt-4">
             <div>
               <div className="text-2xl font-bold">5</div>
-              <div className="text-[12px] text-[#faf5ec]/70">{t('login.featuresAssets')}</div>
+              <div className="text-[12px] text-white/70">{t('login.featuresAssets')}</div>
             </div>
             <div>
               <div className="text-2xl font-bold">∞</div>
-              <div className="text-[12px] text-[#faf5ec]/70">{t('login.featuresPorts')}</div>
+              <div className="text-[12px] text-white/70">{t('login.featuresPorts')}</div>
             </div>
             <div>
               <div className="text-2xl font-bold">100%</div>
-              <div className="text-[12px] text-[#faf5ec]/70">{t('login.featuresSecure')}</div>
+              <div className="text-[12px] text-white/70">{t('login.featuresSecure')}</div>
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ export const Login: React.FC = () => {
             </div>
 
             {error && (
-              <div className="bg-[#f3ded6] text-[#84422e] text-[13px] px-[14px] py-[9px] rounded-xl border border-negative-text/10">
+              <div className="bg-negative-bg text-lossD text-[13px] px-[14px] py-[9px] rounded-xl border border-negative-text/10">
                 {error}
               </div>
             )}
@@ -185,16 +185,16 @@ export const Login: React.FC = () => {
 
           {config?.enableDemo && (
             <>
-              <div className="flex items-center gap-3 text-[#c9bca5] text-[12px]">
-                <div className="flex-1 h-[1px] bg-[#e8dccb]"></div>
+              <div className="flex items-center gap-3 text-faint text-[12px]">
+                <div className="flex-1 h-[1px] bg-inputBorder"></div>
                 <span>{t('login.orText')}</span>
-                <div className="flex-1 h-[1px] bg-[#e8dccb]"></div>
+                <div className="flex-1 h-[1px] bg-inputBorder"></div>
               </div>
 
               <button
                 onClick={handleDemo}
                 disabled={loading}
-                className="w-full py-3 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-sm font-bold border-none cursor-pointer disabled:opacity-50 transition-colors"
+                className="w-full py-3 rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-sm font-bold border-none cursor-pointer disabled:opacity-50 transition-colors"
                 id="btn-auth-demo"
               >
                 {t('login.demoBtn')}
@@ -218,7 +218,7 @@ export const Login: React.FC = () => {
             </div>
           )}
 
-          <div className="text-center text-[11.5px] text-[#b3a692] leading-[1.6] max-w-[280px] mx-auto">
+          <div className="text-center text-[11.5px] text-faint-darker leading-[1.6] max-w-[280px] mx-auto">
             {t('login.secureNote')}
           </div>
         </div>

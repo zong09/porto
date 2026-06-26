@@ -7,49 +7,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface: "#FAF5EC",
+        // Tokenized — resolved from CSS variables defined per [data-theme] in index.css
+        surface: "var(--bg)",
+        bgAlt: "var(--bg-alt)",
+        card: "var(--surface)",
         terracotta: {
-          DEFAULT: "#b45a3c",
-          hover: "#a04e32",
+          DEFAULT: "var(--brand)",
+          hover: "var(--brand-d)",
         },
-        dark: "#3d3328",
-        muted: "#8a7d6c",
+        brandDd: "var(--brand-dd)",
+        dark: "var(--text)",
+        text2: "var(--text2)",
+        muted: "var(--muted)",
         faint: {
-          DEFAULT: "#a89a86",
-          darker: "#b3a692",
+          DEFAULT: "var(--muted2)",
+          darker: "var(--muted3)",
         },
-        inputBorder: "#e0d5c2",
+        inputBorder: "var(--border)",
         chipBg: {
-          DEFAULT: "#f0e7d8",
-          text: "#6b5d49",
+          DEFAULT: "var(--soft)",
+          text: "var(--text2)",
         },
+        softH: "var(--soft-h)",
+        secondary: "var(--secondary)",
+        secondaryL: "var(--secondary-l)",
         positive: {
-          text: "#4f7136",
-          bg: "#e4efdb",
+          text: "var(--gain)",
+          bg: "var(--gain-bg)",
         },
+        gainD: "var(--gain-d)",
         negative: {
-          text: "#b4543c",
-          bg: "#f3ded6",
+          text: "var(--loss)",
+          bg: "var(--loss-bg)",
         },
+        lossD: "var(--loss-d)",
+        lossL: "var(--loss-l)",
+        tickerUp: "var(--ticker-up)",
+        gold: "var(--gold)",
+        rose: "var(--rose)",
         accentLine: "#5b8a8f",
-        // Portfolio/series colors
-        portColors: {
-          0: "#7a8f55",
-          1: "#c08b4f",
-          2: "#b45a3c",
-          3: "#5b8a8f",
-          4: "#8a6f9e",
-          5: "#a85d77",
-        },
-        // Portfolio card tints
-        portTints: {
-          0: "#EFF3E6",
-          1: "#F3E9DC",
-          2: "#F2E0D8",
-          3: "#E2EDEA",
-          4: "#EAE4F0",
-          5: "#F2E2E8",
-        },
       },
       fontFamily: {
         sans: ["Anuphan", "sans-serif"],

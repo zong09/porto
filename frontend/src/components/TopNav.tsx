@@ -40,13 +40,14 @@ export const TopNav: React.FC = () => {
         <span onClick={() => setPage('ports')} className={navLinkClass(page === 'ports')} id="nav-ports">{t('common.ports')}</span>
         <span onClick={() => setPage('tx')} className={navLinkClass(page === 'tx')} id="nav-tx">{t('common.tx')}</span>
         <span onClick={() => setPage('debt')} className={navLinkClass(page === 'debt')} id="nav-debt">{t('common.debt')}</span>
+        <span onClick={() => setPage('settings')} className={navLinkClass(page === 'settings')} id="nav-settings">{t('common.settings')}</span>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
 
 
         {/* Currency Switcher */}
-        <div className="flex bg-[#f0e7d8] rounded-full p-[3px] text-[12.5px] font-bold select-none">
+        <div className="flex bg-chipBg rounded-full p-[3px] text-[12.5px] font-bold select-none">
           <div onClick={() => setCurrency('THB')} className={pillClass(currency === 'THB')} id="btn-thb">฿ THB</div>
           <div onClick={() => setCurrency('USD')} className={pillClass(currency === 'USD')} id="btn-usd">$ USD</div>
         </div>

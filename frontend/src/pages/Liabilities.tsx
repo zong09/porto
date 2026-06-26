@@ -4,9 +4,11 @@ import { useLiabilities, useNetWorth } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 import { computeSankey } from '../utils/sankey';
 import { SankeyCard } from '../components/SankeyCard';
+import { useThemePalette } from '../utils/themes';
 
 export const Liabilities: React.FC = () => {
   const { currency, openModal } = useStore();
+  const themeColors = useThemePalette();
   const { data: liabilities = [], deleteLiability, isLoading } = useLiabilities();
   const { summary } = useNetWorth();
   const { t, language } = useTranslation();
@@ -87,7 +89,7 @@ export const Liabilities: React.FC = () => {
   const totalLiabilities = summary.data?.totalLiabilitiesThb || 0;
   const netWorth = summary.data?.netWorthThb || 0;
 
-  const debtPalette = ['#d98f70', '#c4654a', '#b4543c', '#e0a07a', '#a85d77', '#8f4630'];
+  const debtPalette = themeColors.debtPalette;
 
   // Plain currency-aware base-THB formatter for chart node labels
   const plainMoney = (thb: number) =>
@@ -110,12 +112,12 @@ export const Liabilities: React.FC = () => {
       value: x.amountThb,
     }));
     const right = [
-      { label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: '#84422e', value: leftTotal },
+      { label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: 'var(--loss-d)', value: leftTotal },
     ];
     const flows = items.map((_, i) => ({ leftIndex: i, rightIndex: 0, value: left[i].value }));
     return computeSankey({ left, right, flows, SW: 1000, SH: 420, LX: 150, RX: 1000 - 150 - 13 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liabilities, fx, isThb, language]);
+  }, [liabilities, fx, isThb, language, themeColors]);
 
   if (isLoading) {
     return (
@@ -143,20 +145,20 @@ export const Liabilities: React.FC = () => {
       </div>
 
       {/* Summary Strip (Dark Theme style) */}
-      <div className="bg-dark rounded-[22px] px-[28px] py-[24px] flex flex-wrap items-center gap-x-7 gap-y-3 mt-6 text-[#faf5ec] shadow-md border border-inputBorder/10 select-none">
+      <div className="bg-dark rounded-[22px] px-[28px] py-[24px] flex flex-wrap items-center gap-x-7 gap-y-3 mt-6 text-white shadow-md border border-inputBorder/10 select-none">
         <div className="flex flex-col gap-1">
-          <span className="text-[12px] text-[#cdbfa8] font-bold">{language === 'th' ? 'สินทรัพย์รวม' : 'Total Assets'}</span>
-          <span className="text-[24px] leading-tight font-bold text-[#a3b87a] tabular-nums">{formatMoney(totalAssets)}</span>
+          <span className="text-[12px] text-white/60 font-bold">{language === 'th' ? 'สินทรัพย์รวม' : 'Total Assets'}</span>
+          <span className="text-[24px] leading-tight font-bold text-positive-text tabular-nums">{formatMoney(totalAssets)}</span>
         </div>
-        <span className="text-[22px] text-[#8a7d6c] font-light select-none">—</span>
+        <span className="text-[22px] text-white/40 font-light select-none">—</span>
         <div className="flex flex-col gap-1">
-          <span className="text-[12px] text-[#cdbfa8] font-bold">{language === 'th' ? 'หนี้สินรวม' : 'Total Liabilities'}</span>
-          <span className="text-[24px] leading-tight font-bold text-[#d98f70] tabular-nums">{formatMoney(totalLiabilities)}</span>
+          <span className="text-[12px] text-white/60 font-bold">{language === 'th' ? 'หนี้สินรวม' : 'Total Liabilities'}</span>
+          <span className="text-[24px] leading-tight font-bold text-secondary tabular-nums">{formatMoney(totalLiabilities)}</span>
         </div>
-        <span className="text-[22px] text-[#8a7d6c] font-light select-none">=</span>
+        <span className="text-[22px] text-white/40 font-light select-none">=</span>
         <div className="flex flex-col gap-1">
-          <span className="text-[12px] text-[#cdbfa8] font-bold">Net Worth</span>
-          <span className="text-[24px] leading-tight font-bold text-[#faf5ec] tabular-nums">{formatMoney(netWorth)}</span>
+          <span className="text-[12px] text-white/60 font-bold">Net Worth</span>
+          <span className="text-[24px] leading-tight font-bold text-white tabular-nums">{formatMoney(netWorth)}</span>
         </div>
       </div>
 
@@ -204,13 +206,13 @@ export const Liabilities: React.FC = () => {
               <button
                 onClick={() => openModal('liability', { liabilityId: l.id })}
                 title={language === 'th' ? 'แก้ไข / จ่าย / เพิ่มหนี้' : 'Edit / pay / add'}
-                className="px-[14px] py-[7px] rounded-[9px] border border-[#e8dcc8] bg-white text-[#84422e] text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
+                className="px-[14px] py-[7px] rounded-[9px] border border-softH bg-white text-lossD text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
               >
                 {language === 'th' ? 'แก้ไข' : 'Edit'}
               </button>
               <button
                 onClick={() => handleDelete(l.id, l.name)}
-                className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
+                className="bg-transparent border-none text-faint hover:text-negative-text cursor-pointer transition-colors p-1"
               >
                 ✕
               </button>
