@@ -9,6 +9,7 @@ interface CacheEntry {
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
   private cache = new Map<string, CacheEntry>();
+  private inFlightRequests = new Map<string, Promise<any>>();
   private yahooCookie: string | null = null;
   private yahooCrumb: string | null = null;
   private isFetchingCrumb = false;
@@ -33,22 +34,37 @@ export class PricesService {
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
-    this.logger.log(`Fetching crypto prices from CoinGecko for ids=${ids.join(',')}`);
-    try {
-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=${vsCurrencies.join(',')}&include_24hr_change=true`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`CoinGecko returned status ${response.status}`);
-      }
-      const data = await response.json();
-      this.setCached(cacheKey, data, 60000); // 60s cache
-      this.logger.log(`Successfully fetched crypto prices for ids=${ids.join(',')}`);
-      return data;
-    } catch (e) {
-      this.logger.error(`Error fetching crypto prices: ${e.message}`);
-      // Return partial or empty data if failed, caller handles fallback
-      throw new HttpException('Failed to fetch crypto prices', HttpStatus.BAD_GATEWAY);
+    if (this.inFlightRequests.has(cacheKey)) {
+      return this.inFlightRequests.get(cacheKey);
     }
+
+    const requestPromise = (async () => {
+      this.logger.log(`Fetching crypto prices from CoinGecko for ids=${ids.join(',')}`);
+      try {
+        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=${vsCurrencies.join(',')}&include_24hr_change=true`;
+        const headers: Record<string, string> = {};
+        if (process.env.COINGECKO_API_KEY) {
+          headers['x-cg-demo-api-key'] = process.env.COINGECKO_API_KEY;
+        }
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+          throw new Error(`CoinGecko returned status ${response.status}`);
+        }
+        const data = await response.json();
+        this.setCached(cacheKey, data, 60000); // 60s cache
+        this.logger.log(`Successfully fetched crypto prices for ids=${ids.join(',')}`);
+        return data;
+      } catch (e) {
+        this.logger.error(`Error fetching crypto prices: ${e.message}`);
+        // Return partial or empty data if failed, caller handles fallback
+        throw new HttpException('Failed to fetch crypto prices', HttpStatus.BAD_GATEWAY);
+      } finally {
+        this.inFlightRequests.delete(cacheKey);
+      }
+    })();
+
+    this.inFlightRequests.set(cacheKey, requestPromise);
+    return requestPromise;
   }
 
   async getCryptoHistory(coinId: string, days: number): Promise<any> {
@@ -58,7 +74,11 @@ export class PricesService {
 
     try {
       const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=thb&days=${days}`;
-      const response = await fetch(url);
+      const headers: Record<string, string> = {};
+      if (process.env.COINGECKO_API_KEY) {
+        headers['x-cg-demo-api-key'] = process.env.COINGECKO_API_KEY;
+      }
+      const response = await fetch(url, { headers });
       if (!response.ok) {
         throw new Error(`CoinGecko history status ${response.status}`);
       }
@@ -76,22 +96,35 @@ export class PricesService {
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
-    this.logger.log(`Fetching stock price from Yahoo Finance for symbol=${symbol}`);
-    const data = await this.fetchYahooChart(symbol, '1d', '1d');
-    if (data) {
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (meta && meta.regularMarketPrice) {
-        const prev = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
-        const result = {
-          price: meta.regularMarketPrice,
-          chg: prev ? (meta.regularMarketPrice / prev - 1) * 100 : 0,
-        };
-        this.setCached(cacheKey, result, 90000); // 90s cache
-        this.logger.log(`Successfully fetched stock price for symbol=${symbol}: price=${result.price}`);
-        return result;
-      }
+    if (this.inFlightRequests.has(cacheKey)) {
+      return this.inFlightRequests.get(cacheKey);
     }
-    throw new HttpException(`Failed to fetch stock price for ${symbol}`, HttpStatus.BAD_GATEWAY);
+
+    const requestPromise = (async () => {
+      this.logger.log(`Fetching stock price from Yahoo Finance for symbol=${symbol}`);
+      try {
+        const data = await this.fetchYahooChart(symbol, '1d', '1d');
+        if (data) {
+          const meta = data?.chart?.result?.[0]?.meta;
+          if (meta && meta.regularMarketPrice) {
+            const prev = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
+            const result = {
+              price: meta.regularMarketPrice,
+              chg: prev ? (meta.regularMarketPrice / prev - 1) * 100 : 0,
+            };
+            this.setCached(cacheKey, result, 90000); // 90s cache
+            this.logger.log(`Successfully fetched stock price for symbol=${symbol}: price=${result.price}`);
+            return result;
+          }
+        }
+        throw new HttpException(`Failed to fetch stock price for ${symbol}`, HttpStatus.BAD_GATEWAY);
+      } finally {
+        this.inFlightRequests.delete(cacheKey);
+      }
+    })();
+
+    this.inFlightRequests.set(cacheKey, requestPromise);
+    return requestPromise;
   }
 
   async getStockHistory(symbol: string, range: string): Promise<any> {
