@@ -51,7 +51,7 @@ export const LiveTicker: React.FC = () => {
   return (
     <div className="flex flex-col">
       {/* Ticker Row */}
-      <div className="bg-[#3d3328] text-white flex gap-[26px] px-[28px] py-[9px] text-[12.5px] font-semibold overflow-x-auto no-scrollbar items-center select-none">
+      <div className="bg-dark text-white flex gap-[26px] px-[28px] py-[9px] text-[12.5px] font-semibold overflow-x-auto no-scrollbar items-center select-none">
         {tickers.map((t) => {
           const isUp = t.change24h >= 0;
           const isThb = currency === 'THB';
@@ -69,7 +69,7 @@ export const LiveTicker: React.FC = () => {
             <div key={t.symbol} className="flex gap-[7px] items-baseline shrink-0">
               <span className="text-faint">{t.symbol}</span>
               <span className="text-surface tabular-nums">{priceFmt}</span>
-              <span className={isUp ? 'text-[#c9e08a]' : 'text-[#f0a98f]'}>{changeFmt}</span>
+              <span className={isUp ? 'text-tickerUp' : 'text-lossL'}>{changeFmt}</span>
             </div>
           );
         })}
@@ -81,7 +81,7 @@ export const LiveTicker: React.FC = () => {
         </div>
 
         {/* Live / Refresh controller */}
-        <div className="ml-auto flex items-center gap-[12px] shrink-0 pl-[20px] bg-[#3d3328]">
+        <div className="ml-auto flex items-center gap-[12px] shrink-0 pl-[20px] bg-dark">
           <span className="text-muted">
             {language === 'th'
               ? `● LIVE · อัปเดต ${lastUpdatedTime}`
@@ -90,7 +90,7 @@ export const LiveTicker: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="bg-[#4d4133] hover:bg-[#5a4c3c] text-surface border-none rounded-full py-[4px] px-[14px] text-[12px] font-bold cursor-pointer disabled:opacity-50 transition-colors"
+            className="bg-white/10 hover:bg-white/20 text-surface border-none rounded-full py-[4px] px-[14px] text-[12px] font-bold cursor-pointer disabled:opacity-50 transition-colors"
             id="btn-refresh-prices"
           >
             {isRefreshing
@@ -102,7 +102,7 @@ export const LiveTicker: React.FC = () => {
 
       {/* Warning Banner if fetch failed */}
       {isError && (
-        <div className="bg-negative-bg text-[#A8341C] text-[12.5px] px-[28px] py-[7px]">
+        <div className="bg-negative-bg text-lossD text-[12.5px] px-[28px] py-[7px]">
           {language === 'th'
             ? 'ดึงราคาบางรายการไม่สำเร็จ — แสดงราคาล่าสุดที่บันทึกไว้ ลองกดรีเฟรชอีกครั้ง'
             : 'Failed to fetch some prices — displaying cached prices. Click refresh to retry.'}

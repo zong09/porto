@@ -29,6 +29,16 @@ export function usePortfolios() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; color?: number }) => {
+      const res = await apiClient.patch(`/portfolios/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await apiClient.delete(`/portfolios/${id}`);
@@ -63,7 +73,7 @@ export function usePortfolios() {
     },
   });
 
-  return { ...query, createPortfolio: createMutation, deletePortfolio: deleteMutation, reorderPortfolios: reorderMutation };
+  return { ...query, createPortfolio: createMutation, updatePortfolio: updateMutation, deletePortfolio: deleteMutation, reorderPortfolios: reorderMutation };
 }
 
 // --- Assets Hooks ---

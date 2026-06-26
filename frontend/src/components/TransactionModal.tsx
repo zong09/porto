@@ -358,7 +358,7 @@ export const TransactionModal: React.FC = () => {
           </div>
 
           {error && (
-            <div className="bg-negative-bg text-[#A8341C] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
+            <div className="bg-negative-bg text-lossD text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
               {error}
             </div>
           )}
@@ -368,7 +368,7 @@ export const TransactionModal: React.FC = () => {
             <button
               type="button"
               onClick={() => closeModal('tx')}
-              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>

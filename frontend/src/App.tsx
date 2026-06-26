@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useStore } from './store/useStore';
 import { TopNav } from './components/TopNav';
 import { LiveTicker } from './components/LiveTicker';
@@ -6,6 +7,7 @@ import { Overview } from './pages/Overview';
 import { Portfolios } from './pages/Portfolios';
 import { Transactions } from './pages/Transactions';
 import { Liabilities } from './pages/Liabilities';
+import { Settings } from './pages/Settings';
 
 // Modals
 import { TransactionModal } from './components/TransactionModal';
@@ -21,9 +23,14 @@ import { useTranslation } from './hooks/useTranslation';
 import packageJson from '../../package.json';
 
 function App() {
-  const { user, page } = useStore();
+  const { user, page, theme } = useStore();
   const { data: config } = useAuthConfig();
   const { t } = useTranslation();
+
+  // Apply the active theme tokens to the document root (covers Login + app chrome)
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   const handleLoadDemo = async () => {
     if (confirm(t('footer.confirmLoadDemo'))) {
@@ -50,6 +57,8 @@ function App() {
         return <Transactions />;
       case 'debt':
         return <Liabilities />;
+      case 'settings':
+        return <Settings />;
       default:
         return <Overview />;
     }

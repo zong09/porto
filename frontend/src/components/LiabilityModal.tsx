@@ -111,7 +111,7 @@ export const LiabilityModal: React.FC = () => {
 
   const tabClass = (active: boolean) =>
     `flex-1 py-[8px] rounded-[10px] text-[12.5px] font-bold border-none cursor-pointer transition-colors ${
-      active ? 'bg-terracotta text-white' : 'bg-chipBg text-chipBg-text hover:bg-[#e8dcc8]'
+      active ? 'bg-terracotta text-white' : 'bg-chipBg text-chipBg-text hover:bg-softH'
     }`;
 
   const current = editing ? Number(editing.amount) : 0;
@@ -141,9 +141,9 @@ export const LiabilityModal: React.FC = () => {
 
         {isEdit && (
           <>
-            <div className="bg-[#f7f0e4] rounded-[12px] px-[16px] py-[11px] mb-[14px] flex items-baseline gap-2">
+            <div className="bg-bgAlt rounded-[12px] px-[16px] py-[11px] mb-[14px] flex items-baseline gap-2">
               <span className="text-[12.5px] text-muted">{th ? 'ยอดปัจจุบัน' : 'Current balance'}</span>
-              <span className="ml-auto text-[16px] font-bold text-[#A8341C] tabular-nums">{fmtMoney(current, currency)}</span>
+              <span className="ml-auto text-[16px] font-bold text-lossD tabular-nums">{fmtMoney(current, currency)}</span>
             </div>
             <div className="flex gap-1.5 mb-[16px]">
               <button type="button" onClick={() => setMode('set')} className={tabClass(mode === 'set')}>
@@ -221,7 +221,7 @@ export const LiabilityModal: React.FC = () => {
                 />
               </div>
               {hasPreview && (
-                <div className="bg-[#eef3ea] text-[#4a6b3f] text-[13px] font-semibold px-[14px] py-[9px] rounded-[12px] tabular-nums">
+                <div className="bg-positive-bg text-positive-text text-[13px] font-semibold px-[14px] py-[9px] rounded-[12px] tabular-nums">
                   {th ? 'ยอดใหม่' : 'New balance'}: {fmtMoney(nextBalance, currency)}
                 </div>
               )}
@@ -229,14 +229,14 @@ export const LiabilityModal: React.FC = () => {
           )}
 
           {error && (
-            <div className="bg-negative-bg text-[#A8341C] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">{error}</div>
+            <div className="bg-negative-bg text-lossD text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">{error}</div>
           )}
 
           <div className="flex gap-3 justify-end mt-6">
             <button
               type="button"
               onClick={close}
-              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>

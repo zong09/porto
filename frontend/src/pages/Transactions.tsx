@@ -168,7 +168,7 @@ export const Transactions: React.FC = () => {
                   return (
                     <tr
                       key={`l-${ltx.id}`}
-                      className={`grid ${isMobile ? 'grid-cols-[70px_1fr_1fr_60px] gap-2' : 'grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5'} px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
+                      className={`grid ${isMobile ? 'grid-cols-[70px_1fr_1fr_60px] gap-2' : 'grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5'} px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-inputBorder/40 last:border-none`}
                     >
                       <td className={`text-muted ${isMobile ? 'text-[11px]' : 'text-xs.5'} font-medium select-none`}>
                         {isMobile ? new Date(ltx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : formatDate(ltx.date)}
@@ -213,7 +213,7 @@ export const Transactions: React.FC = () => {
                 return (
                   <tr
                     key={txn.id}
-                    className={`grid ${isMobile ? 'grid-cols-[70px_1fr_1fr_60px] gap-2' : 'grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5'} px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
+                    className={`grid ${isMobile ? 'grid-cols-[70px_1fr_1fr_60px] gap-2' : 'grid-cols-[110px_90px_1.5fr_1.2fr_1fr_1.1fr_1.2fr_68px] gap-2.5'} px-3 py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-inputBorder/40 last:border-none`}
                   >
                     <td className={`text-muted ${isMobile ? 'text-[11px]' : 'text-xs.5'} font-medium select-none`}>
                       {isMobile ? new Date(txn.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : formatDate(txn.date)}
@@ -267,14 +267,14 @@ export const Transactions: React.FC = () => {
                     <td className={`flex ${isMobile ? 'flex-col gap-1 items-end' : 'gap-2 justify-center items-center'}`}>
                       <button
                         onClick={() => openModal('tx', { transactionId: txn.id })}
-                        className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
+                        className="bg-transparent border-none text-faint hover:text-terracotta cursor-pointer transition-colors p-1"
                         title={t('common.edit') as string}
                       >
                         ✎
                       </button>
                       <button
                         onClick={() => handleDelete(txn.id)}
-                        className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
+                        className="bg-transparent border-none text-faint hover:text-negative-text cursor-pointer transition-colors p-1"
                         title={t('common.delete') as string}
                       >
                         ✕

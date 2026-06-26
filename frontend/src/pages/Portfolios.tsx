@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { usePortfolios, useAssets, useNetWorth } from '../hooks/useApi';
 import { GripVertical } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
+import { useThemePalette } from '../utils/themes';
 import {
   DndContext,
   closestCenter,
@@ -72,7 +73,7 @@ const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, isMobile, ch
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.5fr_0.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-[#f7f0e3] last:border-none`}
+      className={`grid ${isMobile ? 'grid-cols-[20px_1.5fr_1fr_90px] gap-2 px-2' : 'grid-cols-[30px_1.5fr_0.8fr_1fr_1.1fr_1.1fr_1.2fr_1.2fr_215px] gap-2.5 px-3'} py-3 items-center rounded-xl hover:bg-surface transition-colors duration-150 border-b border-inputBorder/40 last:border-none`}
     >
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
@@ -86,6 +87,7 @@ const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, isMobile, ch
 // ─── Main Portfolios Component ─────────────────────────────────────────────────
 export const Portfolios: React.FC = () => {
   const { currency, openModal } = useStore();
+  const themeColors = useThemePalette();
   const { data: portfolios = [], deletePortfolio, isLoading: loadingPorts, reorderPortfolios } = usePortfolios();
   const { data: assets = [], deleteAsset, isLoading: loadingAssets, reorderAssets } = useAssets();
   const { summary } = useNetWorth();
@@ -309,7 +311,7 @@ export const Portfolios: React.FC = () => {
   }
 
   const portfolioSections = portfolios.map((p) => {
-    const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
+    const palette = themeColors.palette;
     const pAssets = assets.filter((a) => a.portfolioId === p.id);
 
     // Compute portfolio value and cost
@@ -393,7 +395,7 @@ export const Portfolios: React.FC = () => {
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => openModal('asset')}
-            className="px-[18px] py-[8px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13px] font-bold border-none cursor-pointer transition-colors shadow-sm"
+            className="px-[18px] py-[8px] rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[13px] font-bold border-none cursor-pointer transition-colors shadow-sm"
             id="btn-add-asset-top"
           >
             {t('portfolios.addAssetBtn')}
@@ -548,9 +550,16 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
         <div className="ml-auto flex items-center gap-3">
           <button
             onClick={() => openModal('asset', { portfolioId: p.id })}
-            className="px-[14px] py-[6px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[12.5px] font-bold border-none cursor-pointer transition-colors"
+            className="px-[14px] py-[6px] rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[12.5px] font-bold border-none cursor-pointer transition-colors"
           >
             + {language === 'th' ? 'สินทรัพย์' : 'Asset'}
+          </button>
+          <button
+            onClick={() => openModal('portfolio', { portfolioId: p.id })}
+            title={language === 'th' ? 'แก้ไขชื่อพอร์ต' : 'Rename portfolio'}
+            className="bg-transparent border-none text-faint-darker hover:text-terracotta cursor-pointer text-[13px] font-bold transition-colors p-1"
+          >
+            ✎
           </button>
           <button
             onClick={() => handleDeletePortfolio(p.id, p.name)}
@@ -564,7 +573,7 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
       {/* Allocation stacked bar */}
       {p.hasAllocation && (
         <div className="flex flex-col gap-2 border-t border-inputBorder/10 pt-4">
-          <div className="flex h-3 rounded-full overflow-hidden bg-[#f7f0e3]">
+          <div className="flex h-3 rounded-full overflow-hidden bg-inputBorder/40">
             {p.allocationSegments.map((s: any, idx: number) => (
               <div key={idx} className="h-full" style={{ width: s.width, backgroundColor: s.color }}></div>
             ))}
@@ -667,6 +676,8 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
 }) => {
   const isDep = h.type === 'deposit';
   const isUp = h.plThb >= 0;
+  const themeColors = useThemePalette();
+  const typeAccent = themeColors.typeColor[h.type as keyof typeof themeColors.typeColor] || themeColors.typeColor.deposit;
 
   return (
     <>
@@ -684,7 +695,7 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
         <span className="font-bold text-dark leading-none">
           {h.symbol}
           {h.isShort && (
-            <span className="ml-1.5 text-[10px] font-bold text-[#C73B22] bg-negative-bg px-1.5 py-0.5 rounded-md align-middle">
+            <span className="ml-1.5 text-[10px] font-bold text-negative-text bg-negative-bg px-1.5 py-0.5 rounded-md align-middle">
               SHORT
             </span>
           )}
@@ -698,13 +709,13 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
       {!isMobile && (
         <td className="flex items-center select-none">
           <span
-            className="px-2 py-0.5 rounded-md text-[10.5px] font-bold uppercase tracking-wide"
+            className="px-2 py-0.5 rounded-md text-[10.5px] font-bold"
             style={{
-              backgroundColor: h.type === 'crypto' ? '#fdf6ed' : h.type === 'us' ? '#f2f7f7' : h.type === 'th' ? '#f5f7f0' : h.type === 'fund' ? '#f7f4f9' : '#faf9f5',
-              color: h.type === 'crypto' ? '#d9a35f' : h.type === 'us' ? '#7aa9ae' : h.type === 'th' ? '#9bb06f' : h.type === 'fund' ? '#a98cbb' : '#b3a692',
+              backgroundColor: `${typeAccent}1A`,
+              color: typeAccent,
             }}
           >
-            {h.type}
+            {_t('common.assetTypes.' + h.type)}
           </span>
         </td>
       )}
@@ -778,7 +789,7 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
         {h.type !== 'fund' && h.type !== 'deposit' && !isMobile && (
           <button
             onClick={() => openModal('chart', { assetId: h.id })}
-            className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
+            className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
           >
             {language === 'th' ? 'กราฟ' : 'Chart'}
           </button>
@@ -786,7 +797,7 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
         {h.type === 'fund' && !isMobile && (
           <button
             onClick={() => openModal('price', { assetId: h.id })}
-            className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
+            className="px-3 py-1.5 rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[11px] font-bold border-none cursor-pointer transition-colors"
           >
             NAV
           </button>
@@ -794,14 +805,14 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
         <div className="flex gap-1.5">
           <button
             onClick={() => openModal('asset', { assetId: h.id })}
-            className="bg-transparent border-none text-[#c9bca5] hover:text-terracotta cursor-pointer transition-colors p-1"
+            className="bg-transparent border-none text-faint hover:text-terracotta cursor-pointer transition-colors p-1"
             title={language === 'th' ? 'แก้ไข' : 'Edit'}
           >
             ✎
           </button>
           <button
             onClick={() => handleDeleteAsset(h.id, h.symbol)}
-            className="bg-transparent border-none text-[#c9bca5] hover:text-negative-text cursor-pointer transition-colors p-1"
+            className="bg-transparent border-none text-faint hover:text-negative-text cursor-pointer transition-colors p-1"
           >
             ✕
           </button>

@@ -4,12 +4,24 @@ import { usePortfolios } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
 export const PortfolioModal: React.FC = () => {
-  const { modals, closeModal } = useStore();
-  const { createPortfolio } = usePortfolios();
+  const { modals, closeModal, activePortfolioId } = useStore();
+  const { data: portfolios = [], createPortfolio, updatePortfolio } = usePortfolios();
   const { t, language } = useTranslation();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const editing = activePortfolioId ? portfolios.find((p) => p.id === activePortfolioId) : undefined;
+  const isEdit = !!editing;
+
+  // Prefill name when opening in edit mode
+  React.useEffect(() => {
+    if (modals.portfolio) {
+      setName(editing?.name ?? '');
+      setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modals.portfolio, activePortfolioId]);
 
   if (!modals.portfolio) return null;
 
@@ -25,7 +37,11 @@ export const PortfolioModal: React.FC = () => {
 
     setLoading(true);
     try {
-      await createPortfolio.mutateAsync({ name: trimName });
+      if (isEdit && editing) {
+        await updatePortfolio.mutateAsync({ id: editing.id, name: trimName });
+      } else {
+        await createPortfolio.mutateAsync({ name: trimName });
+      }
       setName('');
       closeModal('portfolio');
     } catch (err: any) {
@@ -44,7 +60,7 @@ export const PortfolioModal: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
         className="bg-surface rounded-[24px] py-[26px] px-[28px] w-full max-w-[440px] max-h-[88vh] overflow-y-auto shadow-2xl relative"
       >
-        <h3 className="text-[18px] font-bold text-dark mb-[18px]">{t('portfolios.createPortTitle')}</h3>
+        <h3 className="text-[18px] font-bold text-dark mb-[18px]">{isEdit ? (language === 'th' ? 'แก้ไขชื่อพอร์ต' : 'Rename Portfolio') : t('portfolios.createPortTitle')}</h3>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           <div>
@@ -61,7 +77,7 @@ export const PortfolioModal: React.FC = () => {
           </div>
 
           {error && (
-            <div className="bg-negative-bg text-[#A8341C] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
+            <div className="bg-negative-bg text-lossD text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
               {error}
             </div>
           )}
@@ -70,7 +86,7 @@ export const PortfolioModal: React.FC = () => {
             <button
               type="button"
               onClick={() => closeModal('portfolio')}
-              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
+              className="py-[9px] px-[18px] rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-[13.5px] font-bold border-none cursor-pointer transition-colors"
             >
               {t('common.cancel')}
             </button>
@@ -80,7 +96,7 @@ export const PortfolioModal: React.FC = () => {
               className="py-[9px] px-[22px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13.5px] font-bold border-none cursor-pointer transition-colors disabled:opacity-50"
               id="btn-submit-port"
             >
-              {loading ? t('common.loading') : (language === 'th' ? 'สร้างพอร์ต' : 'Create')}
+              {loading ? t('common.loading') : (isEdit ? t('common.save') : (language === 'th' ? 'สร้างพอร์ต' : 'Create'))}
             </button>
           </div>
         </form>
