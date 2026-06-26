@@ -1,11 +1,12 @@
-import React from 'react';
-import { useStore } from '../store/useStore';
-import { usePortfolios, useAssets, useNetWorth, useAuthConfig, useLiabilities } from '../hooks/useApi';
 import { HelpCircle } from 'lucide-react';
+import React from 'react';
 import { apiClient } from '../api/apiClient';
-import { useTranslation } from '../hooks/useTranslation';
-import { computeSankey } from '../utils/sankey';
 import { SankeyCard } from '../components/SankeyCard';
+import { useAssets, useAuthConfig, useLiabilities, useNetWorth, usePortfolios } from '../hooks/useApi';
+import { useTranslation } from '../hooks/useTranslation';
+import { useStore } from '../store/useStore';
+import { computeSankey } from '../utils/sankey';
+import { useThemePalette } from '../utils/themes';
 
 // --- Squarify Treemap algorithm ---
 interface Rect { x: number; y: number; w: number; h: number; }
@@ -48,6 +49,7 @@ export const Overview: React.FC = () => {
   const { summary, history } = useNetWorth(365);
   const { data: config } = useAuthConfig();
   const { t, language } = useTranslation();
+  const themeColors = useThemePalette();
 
   const lastUpdatedTime = React.useMemo(() => {
     if (!summary.dataUpdatedAt) return '';
@@ -96,9 +98,9 @@ export const Overview: React.FC = () => {
 
     if (twoLines) {
       return (
-        <span className={`flex flex-col tabular-nums leading-snug ${alignRight ? 'items-end' : ''}`}>
+        <span className="tabular-nums flex flex-col gap-[2px]">
           <span>{sign}{primary}</span>
-          <span className="text-[0.68em] text-faint font-semibold mt-0.5">
+          <span className="text-[13px] text-faint font-normal tracking-normal">
             ({sign}{secondary})
           </span>
         </span>
@@ -106,9 +108,9 @@ export const Overview: React.FC = () => {
     }
 
     return (
-      <span className="tabular-nums">
+      <span className={`tabular-nums ${alignRight ? 'inline-flex items-baseline justify-end' : ''}`}>
         {sign}{primary}
-        <span className="text-[0.72em] text-faint ml-1.5 font-semibold">
+        <span className="text-[16px] text-faint ml-3 font-normal tracking-normal">
           ({sign}{secondary})
         </span>
       </span>
@@ -279,8 +281,8 @@ export const Overview: React.FC = () => {
 
   // 5. Treemap data calculations
   const treemapData = React.useMemo(() => {
-    const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
-    const tints = ['#EFF3E6', '#F3E9DC', '#F2E0D8', '#E2EDEA', '#EAE4F0', '#F2E2E8'];
+    const palette = themeColors.palette;
+    const tints = themeColors.tints;
 
     const portGroups = portfolios.map(p => {
       const pAssets = assets.filter(a => a.portfolioId === p.id && a.position && a.position.quantity > 0);
@@ -361,13 +363,13 @@ export const Overview: React.FC = () => {
     }
 
     return { groups: groupRects.map(g => Object.assign({}, g.data, g)), leaves: allLeaves, globalTotal };
-  }, [assets, portfolios, fx, isMobile]);
+  }, [assets, portfolios, fx, isMobile, themeColors]);
 
   // Sankey: portfolio (left) → asset type (right)
   const typeSankey = React.useMemo(() => {
     const groups = treemapData.groups as any[];
     if (!groups.length) return null;
-    const typeColor: Record<string, string> = { crypto: '#d9a35f', us: '#7aa9ae', th: '#9bb06f', fund: '#a98cbb', deposit: '#c8bca6' };
+    const typeColor: Record<string, string> = themeColors.typeColor;
     const typeLabels: Record<string, string> = {
       crypto: t('common.assetTypes.crypto'),
       us: t('common.assetTypes.us'),
@@ -384,7 +386,7 @@ export const Overview: React.FC = () => {
     const right = typeItems.map((it) => ({
       label: typeLabels[it.ty] || it.ty,
       sub: `${plainMoney(it.v)} · ${total > 0 ? ((it.v / total) * 100).toFixed(1) : '0'}%`,
-      color: typeColor[it.ty] || '#b3a692',
+      color: typeColor[it.ty] || themeColors.typeColor.deposit,
       value: it.v,
     }));
     const flows: { leftIndex: number; rightIndex: number; value: number }[] = [];
@@ -395,11 +397,11 @@ export const Overview: React.FC = () => {
     });
     return computeSankey({ left, right, flows, SW: 1000, SH: 460, LX: 132, RX: 1000 - 132 - 13 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [treemapData, fx, isThb, language]);
+  }, [treemapData, fx, isThb, language, themeColors]);
 
   // Liability Sankey: each debt (left) → total (right)
   const liabSankey = React.useMemo(() => {
-    const debtPalette = ['#d98f70', '#c4654a', '#b4543c', '#e0a07a', '#a85d77', '#8f4630'];
+    const debtPalette = themeColors.debtPalette;
     const items = liabilities
       .map((l) => ({ l, amountThb: l.currency === 'USD' ? Number(l.amount) * fx : Number(l.amount) }))
       .filter((x) => x.amountThb > 0)
@@ -412,15 +414,15 @@ export const Overview: React.FC = () => {
       color: debtPalette[i % 6],
       value: x.amountThb,
     }));
-    const right = [{ label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: '#A8341C', value: leftTotal }];
+    const right = [{ label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: 'var(--loss-d)', value: leftTotal }];
     const flows = items.map((_, i) => ({ leftIndex: i, rightIndex: 0, value: left[i].value }));
     return computeSankey({ left, right, flows, SW: 1000, SH: 420, LX: 150, RX: 1000 - 150 - 13 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liabilities, fx, isThb, language]);
+  }, [liabilities, fx, isThb, language, themeColors]);
 
   // 6. All Assets table data
   const allAssetsTable = React.useMemo(() => {
-    const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
+    const palette = themeColors.palette;
 
     const rows = assets
       .filter((a) => a.position && a.position.quantity > 0)
@@ -454,7 +456,7 @@ export const Overview: React.FC = () => {
       .sort((a, b) => Math.abs(b.valueThb) - Math.abs(a.valueThb));
 
     return rows;
-  }, [assets, portfolios, totalAssets, fx]);
+  }, [assets, portfolios, totalAssets, fx, themeColors]);
 
   const getSparkline = (symbol: string, isPositive: boolean) => {
     let seed = 0;
@@ -546,7 +548,7 @@ export const Overview: React.FC = () => {
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
           <span className="text-xs font-semibold text-muted">{t('overview.liabilities')}</span>
-          <span className="text-lg.5 font-bold text-[#A8341C] tabular-nums">{formatMoney(totalLiabilities, true)}</span>
+          <span className="text-lg.5 font-bold text-lossD tabular-nums">{formatMoney(totalLiabilities, true)}</span>
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
           <span className="text-xs font-semibold text-muted">{t('overview.todayPl')}</span>
@@ -574,13 +576,17 @@ export const Overview: React.FC = () => {
           <svg viewBox="0 0 1100 170" className="w-full max-h-[170px] select-none block overflow-visible">
             <defs>
               <linearGradient id="nw-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" style={{ stopColor: '#EC6530', stopOpacity: 0.32 }}></stop>
-                <stop offset="1" style={{ stopColor: '#EC6530', stopOpacity: 0 }}></stop>
+                <stop offset="0" style={{ stopColor: 'var(--brand)', stopOpacity: 0.32 }}></stop>
+                <stop offset="1" style={{ stopColor: 'var(--brand)', stopOpacity: 0 }}></stop>
               </linearGradient>
             </defs>
+            {/* Horizontal gridlines */}
+            {[34, 85, 136].map((y) => (
+              <line key={y} x1="0" y1={y} x2="1100" y2={y} stroke="var(--soft)" strokeWidth="1.5" />
+            ))}
             <path d={nwAreaPath} fill="url(#nw-area)"></path>
-            <path d={nwLinePath} fill="none" stroke="#EC6530" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"></path>
-            <circle cx={nwDotX} cy={nwDotY} r="5" fill="#EC6530" stroke="#faf5ec" strokeWidth="3"></circle>
+            <path d={nwLinePath} fill="none" stroke="var(--brand)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"></path>
+            <circle cx={nwDotX} cy={nwDotY} r="5" fill="var(--brand)" stroke="var(--bg)" strokeWidth="3"></circle>
           </svg>
           <div className="w-full flex justify-between text-[12px] font-bold text-faint-darker px-1 mt-1.5 border-t border-inputBorder/20 pt-2">
             {xLabels.map((label, idx) => (
@@ -613,7 +619,7 @@ export const Overview: React.FC = () => {
                     useStore.getState().login(res.data.user, res.data.token);
                   }
                 }}
-                className="px-5 py-2.5 rounded-full bg-chipBg hover:bg-[#e8dcc8] text-chipBg-text text-xs font-bold border-none cursor-pointer transition-colors"
+                className="px-5 py-2.5 rounded-full bg-chipBg hover:bg-softH text-chipBg-text text-xs font-bold border-none cursor-pointer transition-colors"
               >
                 {t('footer.loadDemo')}
               </button>
@@ -628,8 +634,8 @@ export const Overview: React.FC = () => {
           {/* 5. Portfolio Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {portfolioSummaries.map((c) => {
-              const palette = ['#7a8f55', '#c08b4f', '#b45a3c', '#5b8a8f', '#8a6f9e', '#a85d77'];
-              const tints = ['#EFF3E6', '#F3E9DC', '#F2E0D8', '#E2EDEA', '#EAE4F0', '#F2E2E8'];
+              const palette = themeColors.palette;
+              const tints = themeColors.tints;
               const i = c.color;
 
               return (
@@ -643,7 +649,7 @@ export const Overview: React.FC = () => {
                     <span className="text-[15px] font-bold text-dark">{c.name}</span>
                     <span
                       className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/90 shadow-sm"
-                      style={{ color: c.returnPct >= 0 ? '#1E9396' : '#C73B22' }}
+                      style={{ color: c.returnPct >= 0 ? 'var(--gain)' : 'var(--loss)' }}
                     >
                       {c.returnPct >= 0 ? '+' : ''}
                       {c.returnPct.toFixed(1)}%
@@ -701,13 +707,13 @@ export const Overview: React.FC = () => {
                 >
                   <div className="flex items-baseline gap-[7px] whitespace-nowrap overflow-hidden">
                     <span className="text-[12.5px] font-bold truncate" style={{ color: g.hexColor }}>{g.name}</span>
-                    <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums flex items-baseline">
+                    <span className="text-[11px] font-semibold text-muted tabular-nums flex items-baseline">
                       {isThb ? '฿' : '$'}{(isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       <span className="text-[0.72em] opacity-70 ml-[5px]">
                         ({!isThb ? '฿' : '$'}{(!isThb ? g.valueThb : g.valueThb / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                       </span>
                     </span>
-                    <span className="text-[11px] font-semibold text-[#8a7d6c] tabular-nums">
+                    <span className="text-[11px] font-semibold text-muted tabular-nums">
                       {((g.valueThb / treemapData.globalTotal) * 100).toFixed(1)}%
                     </span>
                   </div>
@@ -887,7 +893,7 @@ export const Overview: React.FC = () => {
                         <path
                           d={getSparkline(row.symbol, isReturnUp)}
                           fill="none"
-                          stroke={isReturnUp ? '#3AA9AC' : '#D8482A'}
+                          stroke={isReturnUp ? themeColors.greens[1] : themeColors.reds[0]}
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -902,7 +908,7 @@ export const Overview: React.FC = () => {
                       <span className="text-[11.5px] font-bold text-dark tabular-nums w-[42px] text-right">
                         {row.weightPct.toFixed(1)}%
                       </span>
-                      <div className="w-[54px] h-[7px] bg-[#e4dfd4] rounded-full overflow-hidden shrink-0">
+                      <div className="w-[54px] h-[7px] bg-inputBorder rounded-full overflow-hidden shrink-0">
                         <div
                           className="h-full rounded-full"
                           style={{
