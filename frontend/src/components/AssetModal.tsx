@@ -442,9 +442,9 @@ export const AssetModal: React.FC = () => {
             </div>
           )}
           {isEdit && editing && (editing.direction || 'long') === 'short' && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#f3ded6] rounded-[12px]">
-              <span className="text-[12px] font-bold text-[#c4654a]">▼ SHORT</span>
-              <span className="text-[11.5px] text-[#84422e] font-medium">
+            <div className="flex items-center gap-2 px-3 py-2 bg-negative-bg rounded-[12px]">
+              <span className="text-[12px] font-bold text-[#C73B22]">▼ SHORT</span>
+              <span className="text-[11.5px] text-[#A8341C] font-medium">
                 {language === 'th' ? 'ไม่สามารถเปลี่ยนทิศทางหลังสร้างแล้ว' : 'Direction cannot be changed after creation'}
               </span>
             </div>
@@ -598,7 +598,7 @@ export const AssetModal: React.FC = () => {
           )}
 
           {error && (
-            <div className="bg-[#f3ded6] text-[#84422e] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
+            <div className="bg-negative-bg text-[#A8341C] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
               {error}
             </div>
           )}

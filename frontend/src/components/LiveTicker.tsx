@@ -102,7 +102,7 @@ export const LiveTicker: React.FC = () => {
 
       {/* Warning Banner if fetch failed */}
       {isError && (
-        <div className="bg-[#f3ded6] text-[#84422e] text-[12.5px] px-[28px] py-[7px]">
+        <div className="bg-negative-bg text-[#A8341C] text-[12.5px] px-[28px] py-[7px]">
           {language === 'th'
             ? 'ดึงราคาบางรายการไม่สำเร็จ — แสดงราคาล่าสุดที่บันทึกไว้ ลองกดรีเฟรชอีกครั้ง'
             : 'Failed to fetch some prices — displaying cached prices. Click refresh to retry.'}

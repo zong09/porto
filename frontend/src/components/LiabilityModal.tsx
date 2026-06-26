@@ -11,7 +11,7 @@ const fmtMoney = (n: number, c: 'THB' | 'USD') =>
 
 const selectStyle = {
   backgroundImage:
-    'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23b45a3c%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+    'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23EC6530%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
   backgroundRepeat: 'no-repeat',
   backgroundPosition: 'right 12px top 50%',
   backgroundSize: '0.65rem auto',
@@ -143,7 +143,7 @@ export const LiabilityModal: React.FC = () => {
           <>
             <div className="bg-[#f7f0e4] rounded-[12px] px-[16px] py-[11px] mb-[14px] flex items-baseline gap-2">
               <span className="text-[12.5px] text-muted">{th ? 'ยอดปัจจุบัน' : 'Current balance'}</span>
-              <span className="ml-auto text-[16px] font-bold text-[#84422e] tabular-nums">{fmtMoney(current, currency)}</span>
+              <span className="ml-auto text-[16px] font-bold text-[#A8341C] tabular-nums">{fmtMoney(current, currency)}</span>
             </div>
             <div className="flex gap-1.5 mb-[16px]">
               <button type="button" onClick={() => setMode('set')} className={tabClass(mode === 'set')}>
@@ -229,7 +229,7 @@ export const LiabilityModal: React.FC = () => {
           )}
 
           {error && (
-            <div className="bg-[#f3ded6] text-[#84422e] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">{error}</div>
+            <div className="bg-negative-bg text-[#A8341C] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">{error}</div>
           )}
 
           <div className="flex gap-3 justify-end mt-6">

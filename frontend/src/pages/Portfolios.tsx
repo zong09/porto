@@ -684,7 +684,7 @@ const AssetRowContent: React.FC<AssetRowContentProps> = ({
         <span className="font-bold text-dark leading-none">
           {h.symbol}
           {h.isShort && (
-            <span className="ml-1.5 text-[10px] font-bold text-[#c4654a] bg-[#f3ded6] px-1.5 py-0.5 rounded-md align-middle">
+            <span className="ml-1.5 text-[10px] font-bold text-[#C73B22] bg-negative-bg px-1.5 py-0.5 rounded-md align-middle">
               SHORT
             </span>
           )}

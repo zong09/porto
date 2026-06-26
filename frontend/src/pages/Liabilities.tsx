@@ -110,7 +110,7 @@ export const Liabilities: React.FC = () => {
       value: x.amountThb,
     }));
     const right = [
-      { label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: '#84422e', value: leftTotal },
+      { label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: '#A8341C', value: leftTotal },
     ];
     const flows = items.map((_, i) => ({ leftIndex: i, rightIndex: 0, value: left[i].value }));
     return computeSankey({ left, right, flows, SW: 1000, SH: 420, LX: 150, RX: 1000 - 150 - 13 });
@@ -146,12 +146,12 @@ export const Liabilities: React.FC = () => {
       <div className="bg-dark rounded-[22px] px-[28px] py-[24px] flex flex-wrap items-center gap-x-7 gap-y-3 mt-6 text-[#faf5ec] shadow-md border border-inputBorder/10 select-none">
         <div className="flex flex-col gap-1">
           <span className="text-[12px] text-[#cdbfa8] font-bold">{language === 'th' ? 'สินทรัพย์รวม' : 'Total Assets'}</span>
-          <span className="text-[24px] leading-tight font-bold text-[#a3b87a] tabular-nums">{formatMoney(totalAssets)}</span>
+          <span className="text-[24px] leading-tight font-bold text-[#3AA9AC] tabular-nums">{formatMoney(totalAssets)}</span>
         </div>
         <span className="text-[22px] text-[#8a7d6c] font-light select-none">—</span>
         <div className="flex flex-col gap-1">
           <span className="text-[12px] text-[#cdbfa8] font-bold">{language === 'th' ? 'หนี้สินรวม' : 'Total Liabilities'}</span>
-          <span className="text-[24px] leading-tight font-bold text-[#d98f70] tabular-nums">{formatMoney(totalLiabilities)}</span>
+          <span className="text-[24px] leading-tight font-bold text-[#FFAE6E] tabular-nums">{formatMoney(totalLiabilities)}</span>
         </div>
         <span className="text-[22px] text-[#8a7d6c] font-light select-none">=</span>
         <div className="flex flex-col gap-1">
@@ -204,7 +204,7 @@ export const Liabilities: React.FC = () => {
               <button
                 onClick={() => openModal('liability', { liabilityId: l.id })}
                 title={language === 'th' ? 'แก้ไข / จ่าย / เพิ่มหนี้' : 'Edit / pay / add'}
-                className="px-[14px] py-[7px] rounded-[9px] border border-[#e8dcc8] bg-white text-[#84422e] text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
+                className="px-[14px] py-[7px] rounded-[9px] border border-[#FFD4D4] bg-white text-[#A8341C] text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
               >
                 {language === 'th' ? 'แก้ไข' : 'Edit'}
               </button>

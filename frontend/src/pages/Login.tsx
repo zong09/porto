@@ -76,13 +76,13 @@ export const Login: React.FC = () => {
     <div className="min-h-screen flex items-stretch flex-wrap relative" data-screen-label="Login">
       {/* Absolute Language Switcher */}
       <div className="absolute top-4 right-4 z-50">
-        <div className="flex bg-[#f0e7d8]/80 backdrop-blur-sm rounded-full p-[3px] text-[12.5px] font-bold select-none shadow-sm">
+        <div className="flex bg-[#FFE3E3]/80 backdrop-blur-sm rounded-full p-[3px] text-[12.5px] font-bold select-none shadow-sm">
           <div onClick={() => setLanguage('th')} className={`px-[12px] py-[4px] rounded-full cursor-pointer transition-all duration-150 ${language === 'th' ? 'text-surface bg-dark' : 'text-muted bg-transparent hover:text-dark'}`}>TH</div>
           <div onClick={() => setLanguage('en')} className={`px-[12px] py-[4px] rounded-full cursor-pointer transition-all duration-150 ${language === 'en' ? 'text-surface bg-dark' : 'text-muted bg-transparent hover:text-dark'}`}>EN</div>
         </div>
       </div>
 
-      <div className="flex-1 min-w-[380px] bg-gradient-to-br from-[#b45a3c] via-[#8f4630] to-[#5e3322] text-[#faf5ec] p-14 flex flex-col justify-between min-h-[350px]">
+      <div className="flex-1 min-w-[380px] bg-gradient-to-br from-[#EC6530] via-[#C24A1E] to-[#9A3614] text-[#faf5ec] p-14 flex flex-col justify-between min-h-[350px]">
         <div className="flex items-center gap-[11px]">
           <div className="w-[30px] h-[30px] rounded-full bg-[#faf5ec] flex-shrink-0"></div>
           <div className="text-[19px] font-bold tracking-tight">Porto</div>
@@ -168,7 +168,7 @@ export const Login: React.FC = () => {
             </div>
 
             {error && (
-              <div className="bg-[#f3ded6] text-[#84422e] text-[13px] px-[14px] py-[9px] rounded-xl border border-negative-text/10">
+              <div className="bg-negative-bg text-[#A8341C] text-[13px] px-[14px] py-[9px] rounded-xl border border-negative-text/10">
                 {error}
               </div>
             )}

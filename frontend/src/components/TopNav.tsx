@@ -46,7 +46,7 @@ export const TopNav: React.FC = () => {
 
 
         {/* Currency Switcher */}
-        <div className="flex bg-[#f0e7d8] rounded-full p-[3px] text-[12.5px] font-bold select-none">
+        <div className="flex bg-chipBg rounded-full p-[3px] text-[12.5px] font-bold select-none">
           <div onClick={() => setCurrency('THB')} className={pillClass(currency === 'THB')} id="btn-thb">฿ THB</div>
           <div onClick={() => setCurrency('USD')} className={pillClass(currency === 'USD')} id="btn-usd">$ USD</div>
         </div>

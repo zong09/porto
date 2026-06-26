@@ -126,11 +126,9 @@ export const Overview: React.FC = () => {
   const totalLiabilities = summary.data?.totalLiabilitiesThb || 0;
   const netWorth = summary.data?.netWorthThb || 0;
   const todayPl = summary.data?.todayPlThb || 0;
-
-  const todayPlPct = React.useMemo(() => {
-    if (!totalAssets || totalAssets <= 0) return 0;
-    return (todayPl / totalAssets) * 100;
-  }, [todayPl, totalAssets]);
+  const totalCost = summary.data?.totalCostThb || 0;
+  const totalPl = totalAssets - totalCost;
+  const totalPlPct = totalCost > 0 ? (totalPl / totalCost) * 100 : 0;
 
   // 2. Month-over-Month Net Worth Change
   let MoMChangeLabel = '—';
@@ -414,7 +412,7 @@ export const Overview: React.FC = () => {
       color: debtPalette[i % 6],
       value: x.amountThb,
     }));
-    const right = [{ label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: '#84422e', value: leftTotal }];
+    const right = [{ label: language === 'th' ? 'หนี้สินรวม' : 'Total Debt', sub: plainMoney(leftTotal), color: '#A8341C', value: leftTotal }];
     const flows = items.map((_, i) => ({ leftIndex: i, rightIndex: 0, value: left[i].value }));
     return computeSankey({ left, right, flows, SW: 1000, SH: 420, LX: 150, RX: 1000 - 150 - 13 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -514,17 +512,17 @@ export const Overview: React.FC = () => {
           {formatMoney(netWorth)}
         </span>
         <div className="flex items-center gap-2.5 text-xs.5 md:text-sm flex-wrap justify-center mt-1">
-          {todayPl !== 0 && (
+          {totalCost > 0 && (
             <div
               className={`px-3 py-0.5 rounded-full font-bold select-none ${
-                todayPl >= 0 ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
+                totalPl >= 0 ? 'bg-positive-bg text-positive-text' : 'bg-negative-bg text-negative-text'
               }`}
             >
-              {todayPl >= 0 ? '+' : ''}
+              {totalPl >= 0 ? '+' : ''}
               {isThb
-                ? `฿${todayPl.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-                : `$${(todayPl / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              {' '}({todayPlPct >= 0 ? '+' : ''}{todayPlPct.toFixed(1)}%)
+                ? `฿${Math.abs(totalPl).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+                : `$${(Math.abs(totalPl) / fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              {' '}({totalPlPct >= 0 ? '+' : ''}{totalPlPct.toFixed(1)}%)
             </div>
           )}
           <div
@@ -548,7 +546,7 @@ export const Overview: React.FC = () => {
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
           <span className="text-xs font-semibold text-muted">{t('overview.liabilities')}</span>
-          <span className="text-lg.5 font-bold text-[#84422e] tabular-nums">{formatMoney(totalLiabilities, true)}</span>
+          <span className="text-lg.5 font-bold text-[#A8341C] tabular-nums">{formatMoney(totalLiabilities, true)}</span>
         </div>
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-1 shadow-sm border border-inputBorder/20">
           <span className="text-xs font-semibold text-muted">{t('overview.todayPl')}</span>
@@ -576,13 +574,13 @@ export const Overview: React.FC = () => {
           <svg viewBox="0 0 1100 170" className="w-full max-h-[170px] select-none block overflow-visible">
             <defs>
               <linearGradient id="nw-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" style={{ stopColor: '#c97a52', stopOpacity: 0.32 }}></stop>
-                <stop offset="1" style={{ stopColor: '#c97a52', stopOpacity: 0 }}></stop>
+                <stop offset="0" style={{ stopColor: '#EC6530', stopOpacity: 0.32 }}></stop>
+                <stop offset="1" style={{ stopColor: '#EC6530', stopOpacity: 0 }}></stop>
               </linearGradient>
             </defs>
             <path d={nwAreaPath} fill="url(#nw-area)"></path>
-            <path d={nwLinePath} fill="none" stroke="#b45a3c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"></path>
-            <circle cx={nwDotX} cy={nwDotY} r="5" fill="#b45a3c" stroke="#faf5ec" strokeWidth="3"></circle>
+            <path d={nwLinePath} fill="none" stroke="#EC6530" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"></path>
+            <circle cx={nwDotX} cy={nwDotY} r="5" fill="#EC6530" stroke="#faf5ec" strokeWidth="3"></circle>
           </svg>
           <div className="w-full flex justify-between text-[12px] font-bold text-faint-darker px-1 mt-1.5 border-t border-inputBorder/20 pt-2">
             {xLabels.map((label, idx) => (
@@ -645,7 +643,7 @@ export const Overview: React.FC = () => {
                     <span className="text-[15px] font-bold text-dark">{c.name}</span>
                     <span
                       className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/90 shadow-sm"
-                      style={{ color: c.returnPct >= 0 ? '#4f7136' : '#b4543c' }}
+                      style={{ color: c.returnPct >= 0 ? '#1E9396' : '#C73B22' }}
                     >
                       {c.returnPct >= 0 ? '+' : ''}
                       {c.returnPct.toFixed(1)}%
@@ -889,7 +887,7 @@ export const Overview: React.FC = () => {
                         <path
                           d={getSparkline(row.symbol, isReturnUp)}
                           fill="none"
-                          stroke={isReturnUp ? '#7a8f55' : '#b45a3c'}
+                          stroke={isReturnUp ? '#3AA9AC' : '#D8482A'}
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"

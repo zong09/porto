@@ -9,8 +9,8 @@ export default {
       colors: {
         surface: "#FAF5EC",
         terracotta: {
-          DEFAULT: "#b45a3c",
-          hover: "#a04e32",
+          DEFAULT: "#EC6530",
+          hover: "#C24A1E",
         },
         dark: "#3d3328",
         muted: "#8a7d6c",
@@ -20,16 +20,16 @@ export default {
         },
         inputBorder: "#e0d5c2",
         chipBg: {
-          DEFAULT: "#f0e7d8",
+          DEFAULT: "#FFE3E3",
           text: "#6b5d49",
         },
         positive: {
-          text: "#4f7136",
-          bg: "#e4efdb",
+          text: "#1E9396",
+          bg: "#DDF3F3",
         },
         negative: {
-          text: "#b4543c",
-          bg: "#f3ded6",
+          text: "#C73B22",
+          bg: "#FCDFD4",
         },
         accentLine: "#5b8a8f",
         // Portfolio/series colors

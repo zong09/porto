@@ -200,7 +200,7 @@ export const ChartModal: React.FC = () => {
         )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center min-h-[190px] mt-6 text-center text-xs.5 text-[#84422e] bg-[#f3ded6] rounded-xl p-4">
+          <div className="flex flex-col items-center justify-center min-h-[190px] mt-6 text-center text-xs.5 text-[#A8341C] bg-negative-bg rounded-xl p-4">
             {language === 'th' ? 'ไม่สามารถดึงข้อมูลประวัติราคาได้ในขณะนี้' : 'Unable to fetch price history at this time'}
           </div>
         )}
@@ -211,12 +211,12 @@ export const ChartModal: React.FC = () => {
             <svg viewBox="0 0 640 190" className="w-full h-auto max-h-[190px] block overflow-visible">
               <defs>
                 <linearGradient id="chart-area" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" style={{ stopColor: '#c97a52', stopOpacity: 0.30 }}></stop>
-                  <stop offset="1" style={{ stopColor: '#c97a52', stopOpacity: 0 }}></stop>
+                  <stop offset="0" style={{ stopColor: '#EC6530', stopOpacity: 0.30 }}></stop>
+                  <stop offset="1" style={{ stopColor: '#EC6530', stopOpacity: 0 }}></stop>
                 </linearGradient>
               </defs>
               <path d={chartAreaPath} fill="url(#chart-area)"></path>
-              <path d={chartLinePath} fill="none" stroke="#b45a3c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"></path>
+              <path d={chartLinePath} fill="none" stroke="#EC6530" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"></path>
               
               {/* Dash average cost line */}
               {hasAvg && (
@@ -243,7 +243,7 @@ export const ChartModal: React.FC = () => {
                 </>
               )}
 
-              <circle cx={chartDotX} cy={chartDotY} r="4.5" fill="#b45a3c" stroke="#faf5ec" strokeWidth="2.5"></circle>
+              <circle cx={chartDotX} cy={chartDotY} r="4.5" fill="#EC6530" stroke="#faf5ec" strokeWidth="2.5"></circle>
             </svg>
 
             {/* Date labels */}

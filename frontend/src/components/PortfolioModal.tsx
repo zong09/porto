@@ -61,7 +61,7 @@ export const PortfolioModal: React.FC = () => {
           </div>
 
           {error && (
-            <div className="bg-[#f3ded6] text-[#84422e] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
+            <div className="bg-negative-bg text-[#A8341C] text-xs px-4 py-2.5 rounded-xl border border-negative-text/10">
               {error}
             </div>
           )}

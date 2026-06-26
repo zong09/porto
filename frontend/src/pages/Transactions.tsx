@@ -120,7 +120,7 @@ export const Transactions: React.FC = () => {
       <div className="flex items-center justify-between gap-4 pt-[28px] pb-[18px] border-b border-inputBorder/20 flex-wrap">
         <div className="flex items-center gap-3">
           <h2 className="text-[22px] font-bold text-dark">{t('transactions.title')}</h2>
-          <span className="text-xs.5 text-faint-darker font-bold bg-[#f0e7d8] px-2 py-0.5 rounded-md mt-0.5">
+          <span className="text-xs.5 text-faint-darker font-bold bg-chipBg px-2 py-0.5 rounded-md mt-0.5">
             {mergedRows.length} {t('overview.itemsCount')}
           </span>
         </div>
