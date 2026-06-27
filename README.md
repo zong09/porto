@@ -15,7 +15,21 @@ A full-stack web application for tracking personal net worth across crypto, Thai
 
 ## Local Development
 
-### 1. Start PostgreSQL
+The fastest way to start the application is using the root workspace scripts:
+
+### Quick Start
+
+```bash
+# 1. Install root dependencies (which installs concurrently)
+npm install
+
+# 2. Start PostgreSQL + backend + frontend in one command
+npm run dev:fresh
+```
+
+### Alternatively, run components separately:
+
+#### 1. Start PostgreSQL
 
 ```bash
 docker compose up -d
@@ -23,25 +37,29 @@ docker compose up -d
 
 PostgreSQL runs on **port 5435** (mapped from container 5432) to avoid conflicts with local Postgres installs.
 
-### 2. Backend
+#### 2. Start Backend & Frontend Concurrently
 
+```bash
+npm run dev
+```
+
+#### Or Run Individually
+
+**Backend:**
 ```bash
 cd backend
 npm install
 npm run start:dev
 ```
+Backend runs at `http://localhost:3002`. API prefix: `/api`.
 
-Backend runs at `http://localhost:3000`. API prefix: `/api`.
-
-### 3. Frontend
-
+**Frontend:**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-Frontend runs at `http://localhost:5173`. In dev mode, API calls go directly to `http://localhost:3000/api`.
+Frontend runs at `http://localhost:5174`. In dev mode, API calls go directly to `http://localhost:3002/api`.
 
 ## Environment Variables
 
@@ -55,7 +73,7 @@ DB_PASSWORD=postgrespassword
 DB_DATABASE=porto
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRES_IN=7d
-PORT=3000
+PORT=3002
 ENABLE_DEMO=false
 ENABLE_REGISTER=true
 ```
