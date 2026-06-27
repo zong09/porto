@@ -99,6 +99,7 @@ porto/
 │       ├── net-worth/      # Summary, history, snapshot
 │       ├── prices/         # CoinGecko + Yahoo Finance proxy with in-process cache
 │       ├── position/       # Pure avg-cost math engine (no DB)
+│       ├── backup/         # Encrypted export & import (AES-256-GCM)
 │       └── seed/           # Demo data seeder
 ├── docker-compose.yml      # Local Postgres on port 5435
 └── package.json            # Root workspace scripts
@@ -123,6 +124,9 @@ GET/POST/PATCH/DELETE  /api/liabilities/:id?
 GET   /api/net-worth/summary
 GET   /api/net-worth/history?days=365
 POST  /api/net-worth/snapshot
+
+POST  /api/backup/export
+POST  /api/backup/import
 
 GET   /api/prices/crypto?ids=bitcoin,ethereum&vs_currencies=thb,usd
 GET   /api/prices/crypto/:coinId/history?days=30
@@ -153,6 +157,14 @@ NestJS serves the React SPA from `backend/public/` and falls back to `index.html
 ## Demo Mode
 
 `POST /api/auth/demo` creates a fresh isolated user (`is_demo=true`) with seed data: 3 portfolios, 10 assets, 15 transactions, 3 liabilities, 12 months of net-worth history. The Login page has a **Try Demo** button.
+
+## Data Backup
+
+Users can export and import their entire dataset securely. 
+- **Encryption**: Uses **AES-256-GCM** (Node.js built-in `crypto`) to encrypt the JSON payload.
+- **Key Derivation**: The password provided by the user is passed through `scrypt` to generate a 256-bit encryption key.
+- **Payload**: Includes Portfolios, Assets, Transactions, Liabilities, and Net Worth History.
+- **Restore**: Replaces all existing user data with the decrypted payload within a database transaction.
 
 ## Design
 
