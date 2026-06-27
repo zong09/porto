@@ -6,7 +6,7 @@ import { useTranslation } from '../hooks/useTranslation';
 export const TopNav: React.FC = () => {
   const { page, setPage, currency, setCurrency, user, logout, openModal } = useStore();
   const { data: assets } = useAssets();
-  const { t } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
 
   const handleAddClick = () => {
     if (assets && assets.length > 0) {
@@ -45,6 +45,11 @@ export const TopNav: React.FC = () => {
 
       <div className="flex items-center gap-2 sm:gap-3">
 
+        {/* Language Switcher */}
+        <div className="flex bg-chipBg rounded-full p-[3px] text-[12.5px] font-bold select-none">
+          <div onClick={() => setLanguage('th')} className={pillClass(language === 'th')} id="btn-lang-th">TH</div>
+          <div onClick={() => setLanguage('en')} className={pillClass(language === 'en')} id="btn-lang-en">EN</div>
+        </div>
 
         {/* Currency Switcher */}
         <div className="flex bg-chipBg rounded-full p-[3px] text-[12.5px] font-bold select-none">
