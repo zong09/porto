@@ -23,6 +23,7 @@ import { AssetsModule } from './assets/assets.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { LiabilitiesModule } from './liabilities/liabilities.module';
 import { NetWorthModule } from './net-worth/net-worth.module';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { NetWorthModule } from './net-worth/net-worth.module';
     TransactionsModule,
     LiabilitiesModule,
     NetWorthModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [AppService],
