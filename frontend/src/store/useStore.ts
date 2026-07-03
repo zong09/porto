@@ -33,6 +33,7 @@ interface StoreState {
   activePortfolioId: string | null;
   activeTransactionId: string | null;
   activeLiabilityId: string | null;
+  activeLiabilityMode: 'set' | 'pay' | 'add';
 
   // Actions
   setPage: (page: PageType) => void;
@@ -43,7 +44,7 @@ interface StoreState {
   logout: () => void;
   openModal: (
     modalName: keyof ModalsState,
-    options?: { assetId?: string; portfolioId?: string; transactionId?: string; liabilityId?: string }
+    options?: { assetId?: string; portfolioId?: string; transactionId?: string; liabilityId?: string; liabilityMode?: 'set' | 'pay' | 'add' }
   ) => void;
   closeModal: (modalName: keyof ModalsState) => void;
   closeAllModals: () => void;
@@ -85,6 +86,7 @@ export const useStore = create<StoreState>((set) => {
     activePortfolioId: null,
     activeTransactionId: null,
     activeLiabilityId: null,
+    activeLiabilityMode: 'set',
 
     setPage: (page) => set({ page }),
     setCurrency: (currency) => {
@@ -132,6 +134,7 @@ export const useStore = create<StoreState>((set) => {
         activePortfolioId: options?.portfolioId || null,
         activeTransactionId: options?.transactionId || null,
         activeLiabilityId: options?.liabilityId || null,
+        activeLiabilityMode: options?.liabilityMode || 'set',
       })),
     closeModal: (modalName) =>
       set((state) => ({

@@ -18,7 +18,7 @@ const selectStyle = {
 } as const;
 
 export const LiabilityModal: React.FC = () => {
-  const { modals, closeModal, activeLiabilityId } = useStore();
+  const { modals, closeModal, activeLiabilityId, activeLiabilityMode } = useStore();
   const { data: liabilities = [], createLiability, updateLiability, adjustLiability } = useLiabilities();
   const { t, language } = useTranslation();
 
@@ -45,7 +45,7 @@ export const LiabilityModal: React.FC = () => {
       setAmount('');
       setCurrency('THB');
     }
-    setMode('set');
+    setMode(editing ? activeLiabilityMode : 'set');
     setDelta('');
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
