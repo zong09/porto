@@ -204,9 +204,21 @@ export const Liabilities: React.FC = () => {
                 </span>
               </div>
               <button
-                onClick={() => openModal('liability', { liabilityId: l.id })}
-                title={language === 'th' ? 'แก้ไข / จ่าย / เพิ่มหนี้' : 'Edit / pay / add'}
+                onClick={() => openModal('liability', { liabilityId: l.id, liabilityMode: 'pay' })}
+                className="px-[14px] py-[7px] rounded-[9px] border border-softH bg-white text-positive-text text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
+              >
+                {language === 'th' ? 'จ่ายหนี้' : 'Pay'}
+              </button>
+              <button
+                onClick={() => openModal('liability', { liabilityId: l.id, liabilityMode: 'add' })}
                 className="px-[14px] py-[7px] rounded-[9px] border border-softH bg-white text-lossD text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
+              >
+                {language === 'th' ? 'กู้เพิ่ม' : 'Add debt'}
+              </button>
+              <button
+                onClick={() => openModal('liability', { liabilityId: l.id, liabilityMode: 'set' })}
+                title={language === 'th' ? 'แก้ไขยอดสุทธิ' : 'Set balance'}
+                className="px-[10px] py-[7px] rounded-[9px] border border-softH bg-white text-muted text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
               >
                 {language === 'th' ? 'แก้ไข' : 'Edit'}
               </button>
