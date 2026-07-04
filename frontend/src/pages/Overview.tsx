@@ -41,6 +41,27 @@ function squarify<T>(items: { area: number; data: T }[], rect: Rect): ({ x: numb
   return out;
 }
 
+// Give every item at least minFrac of totalArea so tiny slices stay legible;
+// the deficit is taken proportionally from the remaining (larger) items.
+function redistributeAreas(values: number[], totalArea: number, minFrac: number): number[] {
+  const total = values.reduce((s, v) => s + v, 0);
+  const n = values.length;
+  if (total <= 0 || n === 0) return values.map(() => 0);
+  const minArea = Math.min(totalArea * minFrac, totalArea / n);
+  const pinned = values.map(() => false);
+  let areas = values.map(v => (v / total) * totalArea);
+  for (let iter = 0; iter < n; iter++) {
+    let changed = false;
+    areas.forEach((a, i) => { if (!pinned[i] && a < minArea) { pinned[i] = true; changed = true; } });
+    if (!changed) break;
+    const pinnedCount = pinned.filter(Boolean).length;
+    const freeArea = totalArea - pinnedCount * minArea;
+    const freeValue = values.reduce((s, v, i) => s + (pinned[i] ? 0 : v), 0);
+    areas = values.map((v, i) => pinned[i] ? minArea : (freeValue > 0 ? (v / freeValue) * freeArea : 0));
+  }
+  return areas;
+}
+
 export const Overview: React.FC = () => {
   const { currency, setPage, openModal } = useStore();
   const { data: portfolios = [], isLoading: loadingPorts } = usePortfolios();
@@ -313,8 +334,8 @@ export const Overview: React.FC = () => {
     
     let groupRects: any[] = [];
     if (globalTotal > 0) {
-      const gScale = (W * H) / globalTotal;
-      const gItems = portGroups.map(g => ({ area: g.valueThb * gScale, data: g }));
+      const gAreas = redistributeAreas(portGroups.map(g => g.valueThb), W * H, 0.06);
+      const gItems = portGroups.map((g, i) => ({ area: gAreas[i], data: g }));
       groupRects = squarify(gItems, { x: 0, y: 0, w: W, h: H });
     }
     
@@ -332,8 +353,7 @@ export const Overview: React.FC = () => {
       };
       
       if (gData.valueThb > 0) {
-        const lScale = (innerRect.w * innerRect.h) / gData.valueThb;
-        
+
         // Setup rank map for color gradients
         const sortedItems = [...gData.items].sort((a: any, b: any) => b.valueThb - a.valueThb);
         const rankMap = new Map();
@@ -346,7 +366,8 @@ export const Overview: React.FC = () => {
           return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * amt).toString(16).padStart(2, '0')).join(''); 
         };
 
-        const lItems = gData.items.map((it: any) => ({ area: it.valueThb * lScale, data: it }));
+        const lAreas = redistributeAreas(gData.items.map((it: { valueThb: number }) => it.valueThb), innerRect.w * innerRect.h, 0.03);
+        const lItems = gData.items.map((it: any, i: number) => ({ area: lAreas[i], data: it }));
         const leafRects = squarify(lItems, innerRect);
         
         allLeaves.push(...leafRects.map(l => {
