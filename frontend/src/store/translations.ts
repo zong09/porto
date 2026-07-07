@@ -215,7 +215,7 @@ export const translations: Record<string, any> = {
       currencyRequired: { th: 'กรุณาเลือกสกุลเงิน', en: 'Please select a currency' },
       saveSuccess: { th: 'บันทึกสินทรัพย์สำเร็จ', en: 'Asset saved successfully' },
       addSuccess: { th: 'เพิ่มสินทรัพย์สำเร็จ', en: 'Asset added successfully' },
-      infoBoxCrypto: { th: 'สัญลักษณ์ต้องตรงกับ CoinGecko Coin ID เช่น bitcoin, ethereum, cardano (ค้นหาด้วย lowercase)', en: 'Symbol must match CoinGecko Coin ID (e.g. bitcoin, ethereum, cardano in lowercase)' },
+      infoBoxCrypto: { th: 'สัญลักษณ์ต้องตรงกับ Binance Ticker เช่น BTC, ETH, ADA', en: 'Symbol must match Binance Ticker (e.g. BTC, ETH, ADA)' },
       infoBoxStockTh: { th: 'หุ้นไทยให้ต่อท้ายด้วย .BK เช่น PTT.BK, ADVANC.BK', en: 'Thai stocks should end with .BK (e.g. PTT.BK, ADVANC.BK)' },
       infoBoxStockUs: { th: 'หุ้น US ใช้สัญลักษณ์มาตรฐานของตลาด เช่น AAPL, TSLA, MSFT', en: 'US stocks use standard symbols (e.g. AAPL, TSLA, MSFT)' },
       infoBoxFund: { th: 'กองทุนไทยใช้สัญลักษณ์ย่อปกติ เช่น B-CHINE-EQ, ONE-UGG-RA (ดึงราคาปิดรายวัน)', en: 'Thai mutual funds use abbreviation symbols (e.g. B-CHINE-EQ, ONE-UGG-RA)' },

@@ -39,29 +39,53 @@ export class PricesService {
     }
 
     const requestPromise = (async () => {
-      this.logger.log(`Fetching crypto prices from CoinGecko for ids=${ids.join(',')}`);
+      this.logger.log(`Fetching crypto prices from Binance for symbols=${ids.join(',')}`);
       try {
-        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=${vsCurrencies.join(',')}&include_24hr_change=true`;
-        const headers: Record<string, string> = {};
-        if (process.env.COINGECKO_API_KEY) {
-          headers['x-cg-demo-api-key'] = process.env.COINGECKO_API_KEY;
+        const querySymbols = ids.filter(id => id !== 'USDT').map(id => `"${id}USDT"`).join(',');
+        let data: any[] = [];
+        if (querySymbols.length > 0) {
+          const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${querySymbols}]`;
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Binance returned status ${response.status}`);
+          }
+          data = await response.json();
         }
-        const response = await fetch(url, { headers });
-        if (!response.ok) {
-          throw new Error(`CoinGecko returned status ${response.status}`);
+
+        const fx = await this.getFxRate();
+        const result: any = {};
+        
+        for (const item of data) {
+          const id = item.symbol.replace('USDT', '');
+          const usdPrice = parseFloat(item.lastPrice);
+          const usdChange = parseFloat(item.priceChangePercent);
+          result[id] = {
+            usd: usdPrice,
+            usd_24h_change: usdChange,
+            thb: usdPrice * fx,
+            thb_24h_change: usdChange,
+          };
         }
-        const data = await response.json();
-        this.setCached(cacheKey, data, 60000); // 60s cache
-        this.logger.log(`Successfully fetched crypto prices for ids=${ids.join(',')}`);
-        return data;
+
+        // Handle USDT fallback manually
+        for (const id of ids) {
+          if (!result[id]) {
+            if (id === 'USDT') {
+              result[id] = { usd: 1, usd_24h_change: 0, thb: fx, thb_24h_change: 0 };
+            }
+          }
+        }
+
+        this.setCached(cacheKey, result, 60000); // 60s cache
+        this.logger.log(`Successfully fetched crypto prices from Binance`);
+        return result;
       } catch (e) {
         this.logger.error(`Error fetching crypto prices: ${e.message}`);
         const stale = this.cache.get(cacheKey);
         if (stale) {
-          this.logger.warn(`Returning stale cache as fallback for crypto prices ids=${ids.join(',')}`);
+          this.logger.warn(`Returning stale cache as fallback for crypto prices symbols=${ids.join(',')}`);
           return stale.data;
         }
-        // Return partial or empty data if failed, caller handles fallback
         throw new HttpException('Failed to fetch crypto prices', HttpStatus.BAD_GATEWAY);
       } finally {
         this.inFlightRequests.delete(cacheKey);
@@ -78,18 +102,39 @@ export class PricesService {
     if (cached) return cached;
 
     try {
-      const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=thb&days=${days}`;
-      const headers: Record<string, string> = {};
-      if (process.env.COINGECKO_API_KEY) {
-        headers['x-cg-demo-api-key'] = process.env.COINGECKO_API_KEY;
+      if (coinId === 'USDT') {
+        const fx = await this.getFxRate();
+        const now = Date.now();
+        const result = { prices: [[now - 86400000 * days, fx], [now, fx]] };
+        this.setCached(cacheKey, result, 300000);
+        return result;
       }
-      const response = await fetch(url, { headers });
+
+      let interval = '1d';
+      let limit = days;
+      if (days <= 1) { interval = '5m'; limit = 288; }
+      else if (days <= 7) { interval = '1h'; limit = 168; }
+      else if (days <= 90) { interval = '1d'; limit = days; }
+      else { interval = '1w'; limit = Math.ceil(days / 7); }
+
+      const symbol = `${coinId}USDT`;
+      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`CoinGecko history status ${response.status}`);
+        throw new Error(`Binance history status ${response.status}`);
       }
       const data = await response.json();
-      this.setCached(cacheKey, data, 300000); // 5 mins cache for history
-      return data;
+      const fx = await this.getFxRate();
+      
+      const prices = data.map((k: any) => [
+        k[0], // timestamp
+        parseFloat(k[4]) * fx // close price in THB
+      ]);
+
+      const result = { prices };
+      this.setCached(cacheKey, result, 300000); // 5 mins cache for history
+      return result;
     } catch (e) {
       this.logger.error(`Error fetching crypto history: ${e.message}`);
       const stale = this.cache.get(cacheKey);
@@ -126,6 +171,7 @@ export class PricesService {
             this.logger.log(`Successfully fetched stock price for symbol=${symbol}: price=${result.price}`);
             return result;
           }
+        }
       } catch (e) {
         this.logger.error(`Error fetching stock price: ${e.message}`);
         const stale = this.cache.get(cacheKey);
@@ -198,12 +244,11 @@ export class PricesService {
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
-    this.logger.log('Deriving live FX rate...');
+    this.logger.log('Deriving live FX rate from Yahoo THB=X...');
     try {
-      // Always include bitcoin in coingecko simple price to derive FX
-      const data = await this.getCryptoPrices(['bitcoin'], ['thb', 'usd']);
-      if (data?.bitcoin?.thb && data?.bitcoin?.usd) {
-        const fx = data.bitcoin.thb / data.bitcoin.usd;
+      const data = await this.getStockPrice('THB=X');
+      if (data && data.price) {
+        const fx = data.price;
         this.setCached(cacheKey, fx, 60000); // 60s cache
         this.logger.log(`Derived live FX rate successfully: ${fx}`);
         return fx;
