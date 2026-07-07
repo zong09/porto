@@ -41,33 +41,81 @@ export class PricesService {
     const requestPromise = (async () => {
       this.logger.log(`Fetching crypto prices from Binance for symbols=${ids.join(',')}`);
       try {
-        const querySymbols = ids.filter(id => id !== 'USDT').map(id => `"${id}USDT"`).join(',');
-        let data: any[] = [];
-        if (querySymbols.length > 0) {
-          const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${querySymbols}]`;
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`Binance returned status ${response.status}`);
-          }
-          data = await response.json();
-        }
-
         const fx = await this.getFxRate();
         const result: any = {};
-        
-        for (const item of data) {
-          const id = item.symbol.replace('USDT', '');
-          const usdPrice = parseFloat(item.lastPrice);
-          const usdChange = parseFloat(item.priceChangePercent);
-          result[id] = {
-            usd: usdPrice,
-            usd_24h_change: usdChange,
-            thb: usdPrice * fx,
-            thb_24h_change: usdChange,
-          };
+        const failedIds: string[] = [];
+
+        // Try Binance batch request first
+        const binanceIds = ids.filter(id => id !== 'USDT');
+        if (binanceIds.length > 0) {
+          const querySymbols = binanceIds.map(id => `"${id}USDT"`).join(',');
+          const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${querySymbols}]`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data: any[] = await response.json();
+            for (const item of data) {
+              const id = item.symbol.replace('USDT', '');
+              const usdPrice = parseFloat(item.lastPrice);
+              const usdChange = parseFloat(item.priceChangePercent);
+              result[id] = {
+                usd: usdPrice,
+                usd_24h_change: usdChange,
+                thb: usdPrice * fx,
+                thb_24h_change: usdChange,
+              };
+            }
+            // Collect IDs that weren't in the Binance response
+            for (const id of binanceIds) {
+              if (!result[id]) failedIds.push(id);
+            }
+          } else {
+            // Binance batch failed (e.g. 400 due to invalid symbol) — try individually
+            this.logger.warn(`Binance batch request failed (status ${response.status}), trying individual symbols`);
+            for (const id of binanceIds) {
+              try {
+                const singleUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${id}USDT`;
+                const singleResp = await fetch(singleUrl);
+                if (singleResp.ok) {
+                  const item = await singleResp.json();
+                  const usdPrice = parseFloat(item.lastPrice);
+                  const usdChange = parseFloat(item.priceChangePercent);
+                  result[id] = {
+                    usd: usdPrice,
+                    usd_24h_change: usdChange,
+                    thb: usdPrice * fx,
+                    thb_24h_change: usdChange,
+                  };
+                } else {
+                  failedIds.push(id);
+                }
+              } catch {
+                failedIds.push(id);
+              }
+            }
+          }
         }
 
-        // Handle USDT fallback manually
+        // Fallback to Yahoo Finance for symbols not found on Binance
+        for (const id of failedIds) {
+          try {
+            this.logger.log(`Falling back to Yahoo Finance for crypto symbol=${id}`);
+            const yahooData = await this.getStockPrice(`${id}-USD`);
+            if (yahooData && yahooData.price) {
+              const usdPrice = yahooData.price;
+              const usdChange = yahooData.chg || 0;
+              result[id] = {
+                usd: usdPrice,
+                usd_24h_change: usdChange,
+                thb: usdPrice * fx,
+                thb_24h_change: usdChange,
+              };
+            }
+          } catch (e) {
+            this.logger.warn(`Yahoo Finance fallback also failed for ${id}: ${e.message}`);
+          }
+        }
+
+        // Handle USDT manually
         for (const id of ids) {
           if (!result[id]) {
             if (id === 'USDT') {
