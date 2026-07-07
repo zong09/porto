@@ -2,6 +2,8 @@
 
 A full-stack web application for tracking personal net worth across crypto, Thai/US stocks, mutual funds, deposits, and liabilities. Default base currency is USD, with concurrent dual-currency display support for both USD and THB. Each asset is denominated in its own native currency (THB or USD), set at creation. Live prices via CoinGecko + Yahoo Finance. Deployable as a single service on Railway.
 
+**Current version:** `1.0.7`
+
 ## Stack
 
 | Layer | Tech |
@@ -100,24 +102,26 @@ When `DATABASE_URL` is set it takes precedence over individual `DB_*` vars. SSL 
 
 ```
 porto/
-├── frontend/               # React + Vite + TypeScript
+├── frontend/               # React 19 + Vite + TypeScript
 │   └── src/
 │       ├── api/            # Axios client with JWT interceptor
-│       ├── components/     # TopNav, LiveTicker, 6 modals
+│       ├── components/     # TopNav, LiveTicker, SankeyCard, 6 modals
 │       ├── hooks/          # useApi.ts (TanStack Query wrappers)
-│       ├── pages/          # Login, Overview, Portfolios, Transactions, Liabilities
+│       ├── pages/          # Login, Overview, Portfolios, Transactions,
+│       │                   # Liabilities, Settings
 │       └── store/          # Zustand store (auth, page, modals, currency)
-├── backend/                # NestJS + TypeORM
+├── backend/                # NestJS 11 + TypeORM
 │   └── src/
 │       ├── auth/           # JWT register / login / demo
 │       ├── portfolios/     # Portfolio CRUD
 │       ├── assets/         # Asset CRUD (crypto|th|us|fund|deposit)
-│       ├── transactions/   # Transaction CRUD
-│       ├── liabilities/    # Liability CRUD
+│       ├── transactions/   # Transaction CRUD (with createdAt timestamp)
+│       ├── liabilities/    # Liability CRUD + liability transactions
 │       ├── net-worth/      # Summary, history, snapshot
 │       ├── prices/         # CoinGecko + Yahoo Finance proxy with in-process cache
 │       ├── position/       # Pure avg-cost math engine (no DB)
 │       ├── backup/         # Encrypted export & import (AES-256-GCM)
+│       ├── logger/         # Custom logging service
 │       └── seed/           # Demo data seeder
 ├── docker-compose.yml      # Local Postgres on port 5435
 └── package.json            # Root workspace scripts
@@ -191,3 +195,11 @@ Design spec in `design_handoff_portfolio_tracker/`. Key tokens:
 - Font: Anuphan (Google Fonts)
 - Primary: `#b45a3c` · Surface: `#FAF5EC` · Dark: `#3d3328`
 - Charts: custom SVG — no chart library dependency
+
+### Visualisations
+
+- **Treemap** — net-worth breakdown on the Overview page; uses min-area redistribution for legibility
+- **Sankey diagram** — fund-flow visualisation showing portfolio allocations
+- **Line / area charts** — price history rendered with raw SVG paths and linear gradients
+
+All charts are built with vanilla SVG primitives (no D3 or external chart libraries).

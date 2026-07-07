@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,7 +14,7 @@ import { PositionService } from '../position/position.service';
 import { PricesService } from '../prices/prices.service';
 
 @Injectable()
-export class AssetsService {
+export class AssetsService implements OnModuleInit {
   private readonly logger = new Logger(AssetsService.name);
   constructor(
     @InjectRepository(Asset)
@@ -23,6 +24,51 @@ export class AssetsService {
     private positionService: PositionService,
     private pricesService: PricesService,
   ) {}
+
+  async onModuleInit() {
+    this.logger.log('Running DB migration: CoinGecko IDs to Binance Symbols...');
+    const cgToBinanceMap: Record<string, string> = {
+      'bitcoin': 'BTC',
+      'ethereum': 'ETH',
+      'solana': 'SOL',
+      'binancecoin': 'BNB',
+      'ripple': 'XRP',
+      'cardano': 'ADA',
+      'dogecoin': 'DOGE',
+      'polkadot': 'DOT',
+      'matic-network': 'MATIC',
+      'avalanche-2': 'AVAX',
+      'chainlink': 'LINK',
+      'uniswap': 'UNI',
+      'litecoin': 'LTC',
+      'near': 'NEAR',
+      'cosmos': 'ATOM',
+      'optimism': 'OP',
+      'arbitrum': 'ARB',
+      'sui': 'SUI',
+      'aptos': 'APT',
+      'pepe': 'PEPE',
+      'shiba-inu': 'SHIB',
+      'the-open-network': 'TON',
+      'tron': 'TRX',
+      'tether': 'USDT',
+      'usd-coin': 'USDC'
+    };
+
+    let updatedCount = 0;
+    for (const [cgId, sym] of Object.entries(cgToBinanceMap)) {
+      const result = await this.assetRepo.update(
+        { type: 'crypto', symbol: cgId },
+        { symbol: sym }
+      );
+      if (result.affected && result.affected > 0) {
+        updatedCount += result.affected;
+      }
+    }
+    if (updatedCount > 0) {
+      this.logger.log(`Successfully migrated ${updatedCount} crypto assets to Binance symbols.`);
+    }
+  }
 
   async findAll(userId: string): Promise<any[]> {
     this.logger.log(`Fetching all assets for user=${userId}`);
@@ -55,12 +101,12 @@ export class AssetsService {
         currentPrice = Number(asset.manualPrice || 0);
       } else {
         try {
-          if (asset.type === 'crypto' && asset.cgId) {
+          if (asset.type === 'crypto' && asset.symbol) {
             const data = await this.pricesService.getCryptoPrices(
-              [asset.cgId],
+              [asset.symbol],
               ['thb', 'usd'],
             );
-            const val = data?.[asset.cgId];
+            const val = data?.[asset.symbol];
             if (val) {
               const q = (asset.currency || 'THB').toLowerCase();
               currentPrice = Number(val[q] || 0);
@@ -141,12 +187,12 @@ export class AssetsService {
       currentPrice = Number(asset.manualPrice || 0);
     } else {
       try {
-        if (asset.type === 'crypto' && asset.cgId) {
+        if (asset.type === 'crypto' && asset.symbol) {
           const data = await this.pricesService.getCryptoPrices(
-            [asset.cgId],
+            [asset.symbol],
             ['thb', 'usd'],
           );
-          const val = data?.[asset.cgId];
+          const val = data?.[asset.symbol];
           if (val) {
             // Return the price in the asset's native currency; the frontend converts for display.
             const q = (asset.currency || 'THB').toLowerCase(); // 'thb' | 'usd'

@@ -203,6 +203,7 @@ export interface Transaction {
   price: number;
   fee: number;
   date: string;
+  createdAt?: string;
   asset?: Asset;
 }
 
@@ -355,6 +356,7 @@ export interface LiabilityTransaction {
   type: 'pay' | 'add';
   amount: number;
   date: string;
+  createdAt?: string;
   liability?: { id: string; name: string; currency: 'THB' | 'USD' };
 }
 

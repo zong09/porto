@@ -3,33 +3,7 @@ import { useStore } from '../store/useStore';
 import { usePortfolios, useAssets, useTransactions } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 
-const CG_ID_MAP: Record<string, string> = {
-  BTC: 'bitcoin',
-  ETH: 'ethereum',
-  SOL: 'solana',
-  BNB: 'binancecoin',
-  XRP: 'ripple',
-  ADA: 'cardano',
-  DOGE: 'dogecoin',
-  DOT: 'polkadot',
-  MATIC: 'matic-network',
-  AVAX: 'avalanche-2',
-  LINK: 'chainlink',
-  UNI: 'uniswap',
-  LTC: 'litecoin',
-  NEAR: 'near',
-  ATOM: 'cosmos',
-  OP: 'optimism',
-  ARB: 'arbitrum',
-  SUI: 'sui',
-  APT: 'aptos',
-  PEPE: 'pepe',
-  SHIB: 'shiba-inu',
-  TON: 'the-open-network',
-  TRX: 'tron',
-  USDT: 'tether',
-  USDC: 'usd-coin',
-};
+// Removed CG_ID_MAP
 
 const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
   if (val === '') return '';
@@ -77,7 +51,6 @@ export const AssetModal: React.FC = () => {
   const [type, setType] = useState<'crypto' | 'th' | 'us' | 'fund' | 'deposit'>('crypto');
   const [symbol, setSymbol] = useState('');
   const [name, setName] = useState('');
-  const [cgId, setCgId] = useState('');
   const [nav, setNav] = useState('');
   // Native currency the asset is denominated in (stored on the asset; transactions are stored in this currency).
   const [assetCcy, setAssetCcy] = useState<'THB' | 'USD'>('USD');
@@ -112,7 +85,6 @@ export const AssetModal: React.FC = () => {
       setDirection(editing.direction || 'long');
       setSymbol(editing.symbol);
       setName(editing.name && editing.name !== editing.symbol ? editing.name : '');
-      setCgId(editing.cgId || '');
       setNav(editing.manualPrice != null ? String(editing.manualPrice) : '');
       setOQty('');
       setOPrice('');
@@ -129,7 +101,6 @@ export const AssetModal: React.FC = () => {
       setDirection('long');
       setSymbol('');
       setName('');
-      setCgId('');
       setNav('');
       setOQty('');
       setOPrice('');
@@ -142,13 +113,7 @@ export const AssetModal: React.FC = () => {
     }
   }, [modals.asset, activeAssetId, activePortfolioId, editing, portfolios, hasInitialized]);
 
-  // Symbol auto-mapping to CoinGecko ID
-  useEffect(() => {
-    if (type === 'crypto') {
-      const derived = CG_ID_MAP[symbol.toUpperCase()] || '';
-      setCgId(derived);
-    }
-  }, [symbol, type]);
+  // Symbol mapping removed in favor of Binance symbols
 
   if (!modals.asset) return null;
 
@@ -207,14 +172,7 @@ export const AssetModal: React.FC = () => {
       return;
     }
 
-    if (type === 'crypto' && !cgId.trim()) {
-      setError(
-        language === 'th'
-          ? 'ไม่รู้จักเหรียญนี้ — กรุณากรอก CoinGecko ID (สามารถดูได้จาก url ของเหรียญใน coingecko.com)'
-          : 'Unknown coin - please enter CoinGecko ID (can be found in the coin URL on coingecko.com)'
-      );
-      return;
-    }
+    // No additional validation needed for crypto symbol beyond not being empty
 
     // Prepare variables
     const yahooSymbol = type === 'th' ? `${trimSymbol}.BK` : type === 'us' ? trimSymbol : undefined;
@@ -261,11 +219,10 @@ export const AssetModal: React.FC = () => {
       const createdAsset = await createAsset.mutateAsync({
         portfolioId,
         type,
-        symbol: type === 'crypto' || type === 'us' || type === 'th' ? trimSymbol.toUpperCase() : trimSymbol,
+        symbol: trimSymbol.toUpperCase(),
         name: name.trim(),
         currency: assetCcy,
         direction,
-        cgId: type === 'crypto' ? cgId.trim().toLowerCase() : undefined,
         yahooSymbol,
         manualPrice,
       });
@@ -306,7 +263,7 @@ export const AssetModal: React.FC = () => {
       case 'deposit':
         return language === 'th' ? 'เช่น บัญชีออมทรัพย์ SCB' : 'e.g. SCB Savings Account';
       default:
-        return language === 'th' ? 'เช่น BTC, ETH, SOL' : 'e.g. BTC, ETH, SOL';
+        return language === 'th' ? 'เช่น BTCUSDT, ETHUSDT' : 'e.g. BTCUSDT, ETHUSDT';
     }
   };
 
@@ -477,23 +434,7 @@ export const AssetModal: React.FC = () => {
             />
           </div>
 
-          {/* Crypto CoinGecko ID */}
-          {type === 'crypto' && (
-            <div>
-              <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">
-                {language === 'th' ? 'CoinGecko ID (เว้นว่างได้ถ้าเป็นเหรียญดัง)' : 'CoinGecko ID (Optional for popular coins)'}
-              </label>
-              <input
-                type="text"
-                placeholder="เช่น bitcoin, ethereum"
-                value={cgId}
-                onChange={(e) => setCgId(e.target.value)}
-                disabled={isEdit}
-                className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark placeholder-muted/50 focus:outline-none focus:border-terracotta transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                id="input-asset-cgid"
-              />
-            </div>
-          )}
+          {/* Crypto CoinGecko ID Removed */}
 
           {/* Fund NAV */}
           {type === 'fund' && (
