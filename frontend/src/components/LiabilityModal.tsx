@@ -72,7 +72,7 @@ export const LiabilityModal: React.FC = () => {
           id: editing!.id,
           type: mode === 'pay' ? 'pay' : 'add',
           amount: d,
-          date: new Date().toISOString().slice(0, 10),
+          date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
         });
         close();
       } catch (err: any) {
