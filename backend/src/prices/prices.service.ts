@@ -56,6 +56,11 @@ export class PricesService {
         return data;
       } catch (e) {
         this.logger.error(`Error fetching crypto prices: ${e.message}`);
+        const stale = this.cache.get(cacheKey);
+        if (stale) {
+          this.logger.warn(`Returning stale cache as fallback for crypto prices ids=${ids.join(',')}`);
+          return stale.data;
+        }
         // Return partial or empty data if failed, caller handles fallback
         throw new HttpException('Failed to fetch crypto prices', HttpStatus.BAD_GATEWAY);
       } finally {
@@ -87,6 +92,11 @@ export class PricesService {
       return data;
     } catch (e) {
       this.logger.error(`Error fetching crypto history: ${e.message}`);
+      const stale = this.cache.get(cacheKey);
+      if (stale) {
+        this.logger.warn(`Returning stale cache as fallback for crypto history coinId=${coinId}`);
+        return stale.data;
+      }
       throw new HttpException('Failed to fetch crypto history', HttpStatus.BAD_GATEWAY);
     }
   }
@@ -116,6 +126,12 @@ export class PricesService {
             this.logger.log(`Successfully fetched stock price for symbol=${symbol}: price=${result.price}`);
             return result;
           }
+      } catch (e) {
+        this.logger.error(`Error fetching stock price: ${e.message}`);
+        const stale = this.cache.get(cacheKey);
+        if (stale) {
+          this.logger.warn(`Returning stale cache as fallback for stock price symbol=${symbol}`);
+          return stale.data;
         }
         throw new HttpException(`Failed to fetch stock price for ${symbol}`, HttpStatus.BAD_GATEWAY);
       } finally {
@@ -146,23 +162,33 @@ export class PricesService {
     };
     const mappedRange = rangeMap[range] || '3mo';
 
-    const data = await this.fetchYahooChart(symbol, mappedRange, interval);
-    if (data) {
-      const res = data?.chart?.result?.[0];
-      if (res && res.timestamp) {
-        const ts = res.timestamp;
-        const cl = res.indicators?.quote?.[0]?.close || [];
-        const out: any[] = [];
-        for (let i = 0; i < ts.length; i++) {
-          if (cl[i] !== null && cl[i] !== undefined) {
-            out.push({ t: ts[i] * 1000, p: cl[i] });
+    try {
+      const data = await this.fetchYahooChart(symbol, mappedRange, interval);
+      if (data) {
+        const res = data?.chart?.result?.[0];
+        if (res && res.timestamp) {
+          const ts = res.timestamp;
+          const cl = res.indicators?.quote?.[0]?.close || [];
+          const out: any[] = [];
+          for (let i = 0; i < ts.length; i++) {
+            if (cl[i] !== null && cl[i] !== undefined) {
+              out.push({ t: ts[i] * 1000, p: cl[i] });
+            }
+          }
+          if (out.length > 0) {
+            this.setCached(cacheKey, out, 300000); // 5 mins cache for history
+            return out;
           }
         }
-        if (out.length > 0) {
-          this.setCached(cacheKey, out, 300000); // 5 mins cache for history
-          return out;
-        }
       }
+    } catch (e) {
+      this.logger.error(`Error fetching stock history: ${e.message}`);
+    }
+
+    const stale = this.cache.get(cacheKey);
+    if (stale) {
+      this.logger.warn(`Returning stale cache as fallback for stock history symbol=${symbol}`);
+      return stale.data;
     }
     throw new HttpException(`Failed to fetch stock history for ${symbol}`, HttpStatus.BAD_GATEWAY);
   }
