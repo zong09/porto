@@ -22,7 +22,7 @@ export class TransactionsService {
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .where('portfolio.userId = :userId', { userId })
       .orderBy('tx.date', 'DESC')
-      .addOrderBy('tx.id', 'DESC')
+      .addOrderBy('tx.createdAt', 'DESC')
       .getMany();
   }
 

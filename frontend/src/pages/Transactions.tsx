@@ -97,6 +97,11 @@ export const Transactions: React.FC = () => {
     rows.sort((a, b) => {
       if (a.date < b.date) return 1;
       if (a.date > b.date) return -1;
+      // Same date: sort by createdAt descending
+      const aTime = (a.kind === 'asset' ? a.txn.createdAt : a.ltx.createdAt) || '';
+      const bTime = (b.kind === 'asset' ? b.txn.createdAt : b.ltx.createdAt) || '';
+      if (aTime < bTime) return 1;
+      if (aTime > bTime) return -1;
       return 0;
     });
     return rows;

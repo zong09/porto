@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { Asset, NumericColumnTransformer } from '../../assets/entities/asset.entity';
 
 @Entity('transactions')
@@ -40,4 +40,7 @@ export class Transaction {
 
   @Column({ type: 'date' })
   date: string; // Stored as YYYY-MM-DD
+
+  @CreateDateColumn()
+  createdAt: Date;
 }
