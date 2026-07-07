@@ -75,12 +75,12 @@ export class NetWorthService {
       } else {
         // Fetch live price
         try {
-          if (asset.type === 'crypto' && asset.cgId) {
+          if (asset.type === 'crypto' && asset.symbol) {
             const data = await this.pricesService.getCryptoPrices(
-              [asset.cgId],
+              [asset.symbol],
               ['thb', 'usd'],
             );
-            const val = data?.[asset.cgId];
+            const val = data?.[asset.symbol];
             if (val) {
               // Pick the price in the asset's native currency so the fx multiplier below converts correctly.
               const q = (asset.currency || 'THB').toLowerCase(); // 'thb' | 'usd'
