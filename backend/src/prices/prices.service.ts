@@ -39,17 +39,21 @@ export class PricesService {
     }
 
     const requestPromise = (async () => {
-      this.logger.log(`Fetching crypto prices from Binance for symbols=${ids.join(',')}`);
+      this.logger.log(
+        `Fetching crypto prices from Binance for symbols=${ids.join(',')}`,
+      );
       try {
         const fx = await this.getFxRate();
         const result: any = {};
         const failedIds: string[] = [];
 
         // Try Binance batch request first
-        const binanceIds = ids.filter(id => id !== 'USDT');
+        const binanceIds = ids.filter((id) => id !== 'USDT');
         if (binanceIds.length > 0) {
-          const querySymbols = binanceIds.map(id => `"${id}USDT"`).join(',');
-          const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${querySymbols}]`;
+          const querySymbols = encodeURIComponent(
+            '[' + binanceIds.map((id) => `"${id}USDT"`).join(',') + ']',
+          );
+          const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${querySymbols}`;
           const response = await fetch(url);
           if (response.ok) {
             const data: any[] = await response.json();
@@ -70,10 +74,12 @@ export class PricesService {
             }
           } else {
             // Binance batch failed (e.g. 400 due to invalid symbol) — try individually
-            this.logger.warn(`Binance batch request failed (status ${response.status}), trying individual symbols`);
+            this.logger.warn(
+              `Binance batch request failed (status ${response.status}), trying individual symbols`,
+            );
             for (const id of binanceIds) {
               try {
-                const singleUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${id}USDT`;
+                const singleUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${encodeURIComponent(id + 'USDT')}`;
                 const singleResp = await fetch(singleUrl);
                 if (singleResp.ok) {
                   const item = await singleResp.json();
@@ -98,7 +104,9 @@ export class PricesService {
         // Fallback to Yahoo Finance for symbols not found on Binance
         for (const id of failedIds) {
           try {
-            this.logger.log(`Falling back to Yahoo Finance for crypto symbol=${id}`);
+            this.logger.log(
+              `Falling back to Yahoo Finance for crypto symbol=${id}`,
+            );
             const yahooData = await this.getStockPrice(`${id}-USD`);
             if (yahooData && yahooData.price) {
               const usdPrice = yahooData.price;
@@ -111,7 +119,9 @@ export class PricesService {
               };
             }
           } catch (e) {
-            this.logger.warn(`Yahoo Finance fallback also failed for ${id}: ${e.message}`);
+            this.logger.warn(
+              `Yahoo Finance fallback also failed for ${id}: ${e.message}`,
+            );
           }
         }
 
@@ -119,7 +129,12 @@ export class PricesService {
         for (const id of ids) {
           if (!result[id]) {
             if (id === 'USDT') {
-              result[id] = { usd: 1, usd_24h_change: 0, thb: fx, thb_24h_change: 0 };
+              result[id] = {
+                usd: 1,
+                usd_24h_change: 0,
+                thb: fx,
+                thb_24h_change: 0,
+              };
             }
           }
         }
@@ -131,10 +146,15 @@ export class PricesService {
         this.logger.error(`Error fetching crypto prices: ${e.message}`);
         const stale = this.cache.get(cacheKey);
         if (stale) {
-          this.logger.warn(`Returning stale cache as fallback for crypto prices symbols=${ids.join(',')}`);
+          this.logger.warn(
+            `Returning stale cache as fallback for crypto prices symbols=${ids.join(',')}`,
+          );
           return stale.data;
         }
-        throw new HttpException('Failed to fetch crypto prices', HttpStatus.BAD_GATEWAY);
+        throw new HttpException(
+          'Failed to fetch crypto prices',
+          HttpStatus.BAD_GATEWAY,
+        );
       } finally {
         this.inFlightRequests.delete(cacheKey);
       }
@@ -153,31 +173,45 @@ export class PricesService {
       if (coinId === 'USDT') {
         const fx = await this.getFxRate();
         const now = Date.now();
-        const result = { prices: [[now - 86400000 * days, fx], [now, fx]] };
+        const result = {
+          prices: [
+            [now - 86400000 * days, fx],
+            [now, fx],
+          ],
+        };
         this.setCached(cacheKey, result, 300000);
         return result;
       }
 
       let interval = '1d';
       let limit = days;
-      if (days <= 1) { interval = '5m'; limit = 288; }
-      else if (days <= 7) { interval = '1h'; limit = 168; }
-      else if (days <= 90) { interval = '1d'; limit = days; }
-      else { interval = '1w'; limit = Math.ceil(days / 7); }
+      if (days <= 1) {
+        interval = '5m';
+        limit = 288;
+      } else if (days <= 7) {
+        interval = '1h';
+        limit = 168;
+      } else if (days <= 90) {
+        interval = '1d';
+        limit = days;
+      } else {
+        interval = '1w';
+        limit = Math.ceil(days / 7);
+      }
 
       const symbol = `${coinId}USDT`;
-      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-      
+      const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`;
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Binance history status ${response.status}`);
       }
       const data = await response.json();
       const fx = await this.getFxRate();
-      
+
       const prices = data.map((k: any) => [
         k[0], // timestamp
-        parseFloat(k[4]) * fx // close price in THB
+        parseFloat(k[4]) * fx, // close price in THB
       ]);
 
       const result = { prices };
@@ -187,10 +221,15 @@ export class PricesService {
       this.logger.error(`Error fetching crypto history: ${e.message}`);
       const stale = this.cache.get(cacheKey);
       if (stale) {
-        this.logger.warn(`Returning stale cache as fallback for crypto history coinId=${coinId}`);
+        this.logger.warn(
+          `Returning stale cache as fallback for crypto history coinId=${coinId}`,
+        );
         return stale.data;
       }
-      throw new HttpException('Failed to fetch crypto history', HttpStatus.BAD_GATEWAY);
+      throw new HttpException(
+        'Failed to fetch crypto history',
+        HttpStatus.BAD_GATEWAY,
+      );
     }
   }
 
@@ -204,19 +243,26 @@ export class PricesService {
     }
 
     const requestPromise = (async () => {
-      this.logger.log(`Fetching stock price from Yahoo Finance for symbol=${symbol}`);
+      this.logger.log(
+        `Fetching stock price from Yahoo Finance for symbol=${symbol}`,
+      );
       try {
         const data = await this.fetchYahooChart(symbol, '1d', '1d');
         if (data) {
           const meta = data?.chart?.result?.[0]?.meta;
           if (meta && meta.regularMarketPrice) {
-            const prev = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
+            const prev =
+              meta.chartPreviousClose ||
+              meta.previousClose ||
+              meta.regularMarketPrice;
             const result = {
               price: meta.regularMarketPrice,
               chg: prev ? (meta.regularMarketPrice / prev - 1) * 100 : 0,
             };
             this.setCached(cacheKey, result, 90000); // 90s cache
-            this.logger.log(`Successfully fetched stock price for symbol=${symbol}: price=${result.price}`);
+            this.logger.log(
+              `Successfully fetched stock price for symbol=${symbol}: price=${result.price}`,
+            );
             return result;
           }
         }
@@ -224,10 +270,15 @@ export class PricesService {
         this.logger.error(`Error fetching stock price: ${e.message}`);
         const stale = this.cache.get(cacheKey);
         if (stale) {
-          this.logger.warn(`Returning stale cache as fallback for stock price symbol=${symbol}`);
+          this.logger.warn(
+            `Returning stale cache as fallback for stock price symbol=${symbol}`,
+          );
           return stale.data;
         }
-        throw new HttpException(`Failed to fetch stock price for ${symbol}`, HttpStatus.BAD_GATEWAY);
+        throw new HttpException(
+          `Failed to fetch stock price for ${symbol}`,
+          HttpStatus.BAD_GATEWAY,
+        );
       } finally {
         this.inFlightRequests.delete(cacheKey);
       }
@@ -281,10 +332,15 @@ export class PricesService {
 
     const stale = this.cache.get(cacheKey);
     if (stale) {
-      this.logger.warn(`Returning stale cache as fallback for stock history symbol=${symbol}`);
+      this.logger.warn(
+        `Returning stale cache as fallback for stock history symbol=${symbol}`,
+      );
       return stale.data;
     }
-    throw new HttpException(`Failed to fetch stock history for ${symbol}`, HttpStatus.BAD_GATEWAY);
+    throw new HttpException(
+      `Failed to fetch stock history for ${symbol}`,
+      HttpStatus.BAD_GATEWAY,
+    );
   }
 
   async getFxRate(): Promise<number> {
@@ -302,18 +358,26 @@ export class PricesService {
         return fx;
       }
     } catch (e) {
-      this.logger.warn(`Failed to derive live FX rate, using fallback 35.84: ${e.message}`);
+      this.logger.warn(
+        `Failed to derive live FX rate, using fallback 35.84: ${e.message}`,
+      );
     }
     return 35.84; // Fallback FX rate
   }
 
-  private async fetchYahooChart(symbol: string, range: string, interval: string): Promise<any> {
+  private async fetchYahooChart(
+    symbol: string,
+    range: string,
+    interval: string,
+  ): Promise<any> {
     // Try Direct Fetch first with browser User-Agent
     try {
       const result = await this.doYahooRequest(symbol, range, interval);
       if (result) return result;
     } catch (e) {
-      this.logger.warn(`Yahoo Finance direct query failed for ${symbol}: ${e.message}`);
+      this.logger.warn(
+        `Yahoo Finance direct query failed for ${symbol}: ${e.message}`,
+      );
     }
 
     // Try Crumb Fetch if we get unauthorized or failed
@@ -323,11 +387,19 @@ export class PricesService {
       }
 
       if (this.yahooCrumb) {
-        const result = await this.doYahooRequest(symbol, range, interval, this.yahooCrumb, this.yahooCookie || undefined);
+        const result = await this.doYahooRequest(
+          symbol,
+          range,
+          interval,
+          this.yahooCrumb,
+          this.yahooCookie || undefined,
+        );
         if (result) return result;
       }
     } catch (e) {
-      this.logger.error(`Yahoo Finance query with crumb failed for ${symbol}: ${e.message}`);
+      this.logger.error(
+        `Yahoo Finance query with crumb failed for ${symbol}: ${e.message}`,
+      );
     }
 
     return null;
@@ -346,7 +418,8 @@ export class PricesService {
     }
 
     const headers: Record<string, string> = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     };
 
     if (cookie) {
@@ -366,7 +439,8 @@ export class PricesService {
       // 1. Visit Yahoo to get cookies
       const fcResponse = await fetch('https://fc.yahoo.com', {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
       });
 
@@ -378,7 +452,8 @@ export class PricesService {
       // 2. Get the crumb
       const crumbUrl = 'https://query2.finance.yahoo.com/v1/test/getcrumb';
       const headers: Record<string, string> = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       };
       if (this.yahooCookie) {
         headers['Cookie'] = this.yahooCookie;
@@ -389,7 +464,9 @@ export class PricesService {
         this.yahooCrumb = await crumbResponse.text();
         this.logger.log('Yahoo Finance crumb refreshed successfully');
       } else {
-        this.logger.warn(`Yahoo Finance crumb endpoint failed: ${crumbResponse.status}`);
+        this.logger.warn(
+          `Yahoo Finance crumb endpoint failed: ${crumbResponse.status}`,
+        );
       }
     } catch (e) {
       this.logger.error(`Failed to get Yahoo crumb: ${e.message}`);
