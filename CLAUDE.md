@@ -22,19 +22,21 @@ cd backend && npm run test:e2e          # e2e tests
 
 ## Architecture
 
-Single Railway service: NestJS serves the React SPA from `backend/public/` and exposes all API under `/api`. In dev, frontend hits `http://localhost:3000/api` directly (no Vite proxy). Base currency defaults to USD, with concurrent dual-currency display support for both USD and THB.
+Single Railway service: NestJS serves the React SPA from `backend/public/` and exposes all API under `/api`. In dev, frontend hits `http://localhost:3002/api` directly (no Vite proxy). Base currency defaults to USD, with concurrent dual-currency display support for both USD and THB.
 
 ## Backend Patterns
 
 **TypeORM** — `synchronize: true` in dev only; prod applies committed migrations on boot (`migrationsRun`). After changing an entity, generate a migration against a scratch DB (`npm run migration:generate -- src/migrations/Name` with `DB_DATABASE=<scratch>`; see "Workflow note" in `docs/security-remediation-plan.md`) and commit it — prod schema will not update otherwise. Entity list lives in `src/entities.ts` (shared by `app.module.ts` and the CLI `src/data-source.ts`). Numeric columns use `NUMERIC(20,8)` with a `from: parseFloat` transformer — never store JS floats directly.
 
-**JWT Auth** — `JwtAuthGuard` is global; routes opt out with `@Public()`. The `@CurrentUser()` decorator extracts `{ userId, email }` from the token.
+**JWT Auth** — `JwtAuthGuard` is global; routes opt out with `@Public()`. The `@CurrentUser()` decorator extracts `{ userId, email }` from the token. Boot throws unless `JWT_SECRET` is set and ≥32 chars (no fallback). Register requires `@MinLength(8)` passwords (login stays at 4 for legacy users).
+
+**Rate limiting & headers** — `@nestjs/throttler` global 100/min with overrides: login 5/min, register 3/min, demo 2/hour (`trust proxy` set in `main.ts` for Railway). `helmet` adds a CSP allowing only self + Google Fonts; styles keep `'unsafe-inline'` for the SPA's inline style props.
 
 **Position Service** (`src/position/position.service.ts`) — pure math, no DB. Takes `Transaction[]` sorted oldest→newest, returns `{ quantity, avgCost, totalCost, realizedPnl }`. Used by net-worth and assets services. Do not add DB calls here.
 
-**Prices Service** (`src/prices/prices.service.ts`) — in-process `Map<string, { data, expiresAt }>` cache (60s crypto, 90s stocks). Yahoo Finance requires crumb auth: try direct → if 401, fetch crumb from `query2.finance.yahoo.com/v1/test/getcrumb` → retry. Thai stocks append `.BK` to symbol. Always include `bitcoin` in CoinGecko calls to derive THB/USD FX rate.
+**Prices Service** (`src/prices/prices.service.ts`) — in-process `Map<string, { data, expiresAt }>` cache (60s crypto, 90s stocks). Yahoo Finance requires crumb auth: try direct → if 401, fetch crumb from `query2.finance.yahoo.com/v1/test/getcrumb` → retry. Thai stocks append `.BK` to symbol. Crypto prices come from Binance (batch first, falling back to per-symbol requests then Yahoo for unsupported symbols); THB/USD FX is derived from Yahoo `THB=X` (60s cache). Symbols are regex-validated in `prices.controller.ts` and `encodeURIComponent`-ed into upstream URLs.
 
-**Demo Seed** — `POST /api/auth/demo` creates an isolated `is_demo=true` user then calls `SeedService.seedDemoUser(userId)`. Each demo call creates a brand-new user (no shared demo account).
+**Demo Seed** — `POST /api/auth/demo` creates an isolated `is_demo=true` user then calls `SeedService.seedDemoUser(userId)`. Each demo call creates a brand-new user (no shared demo account). `DemoCleanupService` (`src/seed/demo-cleanup.service.ts`) deletes demo users older than 48h via an hourly cron; FK cascades remove their data.
 
 ## Frontend Patterns
 
@@ -52,7 +54,7 @@ Single Railway service: NestJS serves the React SPA from `backend/public/` and e
 
 **Auth persistence** — token stored in `localStorage` as `porto-token-v1`, user as `porto-user-v1`. The Axios interceptor auto-clears both and reloads on 401.
 
-**API client** — `src/api/apiClient.ts` uses `import.meta.env.DEV` to switch baseURL between `http://localhost:3000/api` (dev) and `/api` (prod).
+**API client** — `src/api/apiClient.ts` uses `import.meta.env.DEV` to switch baseURL between `http://localhost:3002/api` (dev) and `/api` (prod).
 
 ## Environment
 
@@ -62,14 +64,16 @@ Toggles:
 - `ENABLE_DEMO`: Toggles the frontend "Try Demo" mode and seeder endpoints (default: `false`).
 - `ENABLE_REGISTER`: Toggles the signup flow frontend and signup backend endpoint (default: `true`).
 
-Production env vars required on Railway: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `NODE_ENV=production`, `ENABLE_DEMO`, `ENABLE_REGISTER`. SSL is auto-enabled for non-localhost `DATABASE_URL`.
+Production env vars required on Railway: `DATABASE_URL`, `JWT_SECRET` (≥32 chars), `JWT_EXPIRES_IN`, `NODE_ENV=production`, `ENABLE_DEMO`, `ENABLE_REGISTER`. Optional: `CORS_ORIGINS` (comma-separated; empty = closed, fine since the SPA is same-origin). SSL is auto-enabled for non-localhost `DATABASE_URL`.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `backend/src/app.module.ts` | TypeORM config, module wiring, ServeStatic setup |
-| `backend/src/main.ts` | Global prefix `/api`, ValidationPipe, CORS |
+| `backend/src/main.ts` | Global prefix `/api`, ValidationPipe, CORS, helmet CSP |
+| `backend/src/entities.ts` | Shared entity list (app + migration CLI) |
+| `backend/src/data-source.ts` | TypeORM CLI DataSource for `migration:*` scripts |
 | `backend/src/position/position.service.ts` | Avg-cost engine — keep pure |
 | `backend/src/prices/prices.service.ts` | Price proxy + cache |
 | `backend/src/seed/seed.service.ts` | Demo data generator |

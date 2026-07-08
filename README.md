@@ -1,6 +1,6 @@
 # Porto — Personal Net Worth & Investment Tracker
 
-A full-stack web application for tracking personal net worth across crypto, Thai/US stocks, mutual funds, deposits, and liabilities. Default base currency is USD, with concurrent dual-currency display support for both USD and THB. Each asset is denominated in its own native currency (THB or USD), set at creation. Live prices via CoinGecko + Yahoo Finance. Deployable as a single service on Railway.
+A full-stack web application for tracking personal net worth across crypto, Thai/US stocks, mutual funds, deposits, and liabilities. Default base currency is USD, with concurrent dual-currency display support for both USD and THB. Each asset is denominated in its own native currency (THB or USD), set at creation. Live prices via Binance + Yahoo Finance. Deployable as a single service on Railway.
 
 **Current version:** `1.0.7`
 
@@ -12,7 +12,7 @@ A full-stack web application for tracking personal net worth across crypto, Thai
 | State | TanStack Query (server) · Zustand (client) |
 | Backend | NestJS 11 · TypeORM · PostgreSQL |
 | Auth | JWT (bcrypt passwords) |
-| Prices | CoinGecko API · Yahoo Finance API |
+| Prices | Binance API · Yahoo Finance API |
 | Deploy | Railway (single service — NestJS serves React build) |
 
 ## Local Development
@@ -73,12 +73,14 @@ DB_PORT=5435
 DB_USERNAME=postgres
 DB_PASSWORD=postgrespassword
 DB_DATABASE=porto
-JWT_SECRET=your-secret-key-here
+JWT_SECRET=your-secret-key-here-at-least-32-chars
 JWT_EXPIRES_IN=7d
 PORT=3002
 ENABLE_DEMO=false
 ENABLE_REGISTER=true
 ```
+
+> `JWT_SECRET` is required and must be at least 32 characters — the app refuses to boot without it (no fallback).
 
 - `ENABLE_DEMO`: Enables or disables the "Try Demo" button on the login screen and blocks/allows the backend seeder endpoint (default: `false`).
 - `ENABLE_REGISTER`: Enables or disables user registration frontend tab and blocks/allows backend signups (default: `true`).
@@ -89,14 +91,17 @@ Set these in the Railway service dashboard:
 
 ```
 DATABASE_URL=<provided by Railway Postgres plugin>
-JWT_SECRET=<strong random string>
+JWT_SECRET=<strong random string, >= 32 chars>
 JWT_EXPIRES_IN=7d
 NODE_ENV=production
 ENABLE_DEMO=false
 ENABLE_REGISTER=true
+CORS_ORIGINS=            # optional, comma-separated; empty = closed (SPA is served same-origin)
 ```
 
 When `DATABASE_URL` is set it takes precedence over individual `DB_*` vars. SSL is enabled automatically for non-localhost URLs.
+
+In production the schema is managed by TypeORM migrations applied automatically on boot (`synchronize` is dev-only). After changing an entity, generate and commit a migration — see `docs/security-remediation-plan.md` for the workflow.
 
 ## Project Structure
 
@@ -118,11 +123,12 @@ porto/
 │       ├── transactions/   # Transaction CRUD (with createdAt timestamp)
 │       ├── liabilities/    # Liability CRUD + liability transactions
 │       ├── net-worth/      # Summary, history, snapshot
-│       ├── prices/         # CoinGecko + Yahoo Finance proxy with in-process cache
+│       ├── prices/         # Binance + Yahoo Finance proxy with in-process cache
 │       ├── position/       # Pure avg-cost math engine (no DB)
 │       ├── backup/         # Encrypted export & import (AES-256-GCM)
 │       ├── logger/         # Custom logging service
-│       └── seed/           # Demo data seeder
+│       ├── migrations/     # TypeORM migrations (applied on prod boot)
+│       └── seed/           # Demo data seeder + demo-user cleanup cron
 ├── docker-compose.yml      # Local Postgres on port 5435
 └── package.json            # Root workspace scripts
 ```
@@ -178,7 +184,16 @@ NestJS serves the React SPA from `backend/public/` and falls back to `index.html
 
 ## Demo Mode
 
-`POST /api/auth/demo` creates a fresh isolated user (`is_demo=true`) with seed data: 3 portfolios, 10 assets, 15 transactions, 3 liabilities, 12 months of net-worth history. The Login page has a **Try Demo** button.
+`POST /api/auth/demo` creates a fresh isolated user (`is_demo=true`) with seed data: 3 portfolios, 10 assets, 15 transactions, 3 liabilities, 12 months of net-worth history. The Login page has a **Try Demo** button. An hourly cron deletes demo users older than 48 hours (their data cascades away with them).
+
+## Security
+
+- **JWT auth** — global guard, bcrypt passwords, register requires 8+ char passwords. Boot fails without a >= 32 char `JWT_SECRET`.
+- **Rate limiting** — `@nestjs/throttler`: 100 req/min global, login 5/min, register 3/min, demo 2/hour per IP (`trust proxy` enabled for Railway).
+- **Headers** — `helmet` with a CSP allowing only self + Google Fonts.
+- **CORS** — closed in production unless `CORS_ORIGINS` is set; dev allows the Vite server.
+- **Input validation** — global `ValidationPipe` (whitelist + forbidNonWhitelisted) and symbol regex checks on price endpoints.
+- **Schema safety** — prod schema changes only through committed migrations; backups workflow documented in `docs/security-remediation-plan.md`.
 
 ## Data Backup
 
