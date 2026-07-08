@@ -119,7 +119,20 @@ Documented pattern in `frontend/src`. Any XSS = token theft. No CSP headers to r
 7. ✅ **M4**: `helmet` added in `main.ts` with CSP: `default-src 'self'`, styles allow `'unsafe-inline'` + fonts.googleapis.com (SPA uses inline style attributes for charts), fonts allow fonts.gstatic.com, `object-src 'none'`, `frame-ancestors 'none'`. Verified live — headers present on responses.
 8. ✅ **H2b**: `DemoCleanupService` (`src/seed/demo-cleanup.service.ts`) — `@nestjs/schedule` hourly cron deletes `is_demo=true` users older than 48h; FK `onDelete: 'CASCADE'` removes portfolios/assets/transactions/liabilities/history.
 
-### Phase 3 — scheduled (larger changes)
-9. **M1**: disable `synchronize` in prod, adopt TypeORM migrations; enable Railway Postgres backups first.
-10. **M2**: verify Railway DB certificate if a CA bundle is available.
+### Phase 3 — ✅ done 2026-07-08 (code side)
+9. ✅ **M1**: `synchronize` now dev-only; prod runs committed migrations on boot (`migrationsRun`). Added `src/data-source.ts` (CLI), `src/entities.ts` (shared entity list), and `src/migrations/*-InitialSchema.ts` with a baseline guard — on an existing deployment (tables already created by the old synchronize) the migration records itself as applied without touching the schema. npm scripts: `migration:generate/run/revert/show`. Verified: fresh-DB migration run + rerun no-op, baseline path on pre-existing schema, and a `NODE_ENV=production` boot against an empty DB created the full schema. **Still to do manually: enable Railway Postgres backups before the next prod deploy.**
+10. **M2**: documented accepted risk — Railway's Postgres proxy uses a self-signed certificate and no CA bundle is exposed, so `rejectUnauthorized: false` stays. Revisit if Railway ships verified TLS.
 11. (Only if going public/multi-user) httpOnly-cookie auth + CSRF to replace localStorage tokens.
+
+### Workflow note (post-M1)
+Dev still auto-syncs, so entity changes keep working locally with zero friction. Before deploying an entity change to prod, generate a migration against a scratch DB and commit it:
+
+```bash
+docker exec porto-db psql -U porto -c "CREATE DATABASE scratch;"
+cd backend
+DATABASE_URL= DB_USERNAME=porto DB_PASSWORD=porto DB_DATABASE=scratch npm run migration:run
+DATABASE_URL= DB_USERNAME=porto DB_PASSWORD=porto DB_DATABASE=scratch npm run migration:generate -- src/migrations/DescriptiveName
+docker exec porto-db psql -U porto -c "DROP DATABASE scratch;"
+```
+
+Prod applies pending migrations automatically on boot.

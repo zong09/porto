@@ -9,13 +9,7 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-import { User } from './users/entities/user.entity';
-import { Portfolio } from './portfolios/entities/portfolio.entity';
-import { Asset } from './assets/entities/asset.entity';
-import { Transaction } from './transactions/entities/transaction.entity';
-import { Liability } from './liabilities/entities/liability.entity';
-import { LiabilityTransaction } from './liabilities/entities/liability-transaction.entity';
-import { NetWorthHistory } from './net-worth/entities/net-worth-history.entity';
+import { ENTITIES } from './entities';
 
 import { AuthModule } from './auth/auth.module';
 import { SeedModule } from './seed/seed.module';
@@ -43,20 +37,20 @@ import { BackupModule } from './backup/backup.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const url = config.get<string>('DATABASE_URL');
+        const isProd = config.get<string>('NODE_ENV') === 'production';
+        // Dev auto-syncs the schema; prod applies committed migrations on
+        // boot instead, so entity refactors can't silently mangle live data.
+        const schemaOptions = {
+          entities: ENTITIES,
+          synchronize: !isProd,
+          migrations: [join(__dirname, 'migrations', '*.js')],
+          migrationsRun: isProd,
+        };
         if (url) {
           return {
-            type: 'postgres',
+            type: 'postgres' as const,
             url,
-            entities: [
-              User,
-              Portfolio,
-              Asset,
-              Transaction,
-              Liability,
-              LiabilityTransaction,
-              NetWorthHistory,
-            ],
-            synchronize: true,
+            ...schemaOptions,
             ssl:
               url.includes('localhost') || url.includes('127.0.0.1')
                 ? false
@@ -64,22 +58,13 @@ import { BackupModule } from './backup/backup.module';
           };
         }
         return {
-          type: 'postgres',
+          type: 'postgres' as const,
           host: config.get<string>('DB_HOST', 'localhost'),
           port: config.get<number>('DB_PORT', 5435), // Updated default port to match dev container 5435
           username: config.get<string>('DB_USERNAME', 'postgres'),
           password: config.get<string>('DB_PASSWORD', 'postgrespassword'),
           database: config.get<string>('DB_DATABASE', 'porto'),
-          entities: [
-            User,
-            Portfolio,
-            Asset,
-            Transaction,
-            Liability,
-            LiabilityTransaction,
-            NetWorthHistory,
-          ],
-          synchronize: true,
+          ...schemaOptions,
         };
       },
     }),
