@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  Unique,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { NumericColumnTransformer } from '../../assets/entities/asset.entity';
 
@@ -11,7 +18,9 @@ export class NetWorthHistory {
   @Column()
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.netWorthHistory, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.netWorthHistory, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: User;
 
@@ -21,21 +30,21 @@ export class NetWorthHistory {
   @Column('numeric', {
     precision: 20,
     scale: 8,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   totalAssetsThb: number;
 
   @Column('numeric', {
     precision: 20,
     scale: 8,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   totalLiabilitiesThb: number;
 
   @Column('numeric', {
     precision: 20,
     scale: 8,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   netWorthThb: number;
 
@@ -43,7 +52,7 @@ export class NetWorthHistory {
     precision: 20,
     scale: 8,
     transformer: NumericColumnTransformer,
-    nullable: true
+    nullable: true,
   })
   fxRate: number | null;
 }

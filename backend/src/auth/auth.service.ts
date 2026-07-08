@@ -1,4 +1,10 @@
-import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -54,7 +60,9 @@ export class AuthService {
       isDemo: false,
     });
     const saved = await this.userRepo.save(user);
-    this.logger.log(`User registered successfully id=${saved.id} email=${email}`);
+    this.logger.log(
+      `User registered successfully id=${saved.id} email=${email}`,
+    );
 
     return this.generateAuthResponse(saved);
   }
@@ -111,8 +119,15 @@ export class AuthService {
     this.logger.log(`Demo data seeded for user id=${saved.id}`);
 
     // Sign JWT with 24 hours expiry for demo
-    const payload = { sub: saved.id, email: saved.email, name: saved.name, isDemo: true };
-    const token = await this.jwtService.signAsync(payload, { expiresIn: '24h' });
+    const payload = {
+      sub: saved.id,
+      email: saved.email,
+      name: saved.name,
+      isDemo: true,
+    };
+    const token = await this.jwtService.signAsync(payload, {
+      expiresIn: '24h',
+    });
 
     return {
       token,
@@ -130,7 +145,12 @@ export class AuthService {
   }
 
   private async generateAuthResponse(user: User) {
-    const payload = { sub: user.id, email: user.email, name: user.name, isDemo: user.isDemo };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+      isDemo: user.isDemo,
+    };
     const token = await this.jwtService.signAsync(payload);
     return {
       token,

@@ -314,6 +314,8 @@ export class SeedService {
       );
     }
     await this.netWorthRepo.save(histories);
-    this.logger.log(`Successfully seeded demo data for user=${userId}: 3 portfolios, 10 assets, 15 transactions, 3 liabilities, 12 months history`);
+    this.logger.log(
+      `Successfully seeded demo data for user=${userId}: 3 portfolios, 10 assets, 15 transactions, 3 liabilities, 12 months history`,
+    );
   }
 }

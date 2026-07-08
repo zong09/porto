@@ -25,20 +25,17 @@ export class BackupController {
   constructor(private readonly backupService: BackupService) {}
 
   @Post('export')
-  async exportData(
-    @Body() body: PasswordDto,
-    @CurrentUser() user: any,
-  ) {
-    const buffer = await this.backupService.exportData(user.userId, body.password);
+  async exportData(@Body() body: PasswordDto, @CurrentUser() user: any) {
+    const buffer = await this.backupService.exportData(
+      user.userId,
+      body.password,
+    );
     // Return base64 string, frontend will decode and download as file
     return { data: buffer.toString('base64') };
   }
 
   @Post('import')
-  async importData(
-    @Body() body: ImportDto,
-    @CurrentUser() user: any,
-  ) {
+  async importData(@Body() body: ImportDto, @CurrentUser() user: any) {
     const buffer = Buffer.from(body.data, 'base64');
     await this.backupService.importData(user.userId, buffer, body.password);
     return { success: true };

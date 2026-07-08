@@ -18,8 +18,20 @@ describe('PositionService', () => {
 
   it('should compute buys correctly', () => {
     const txs: SimpleTransaction[] = [
-      { side: 'buy', quantity: 0.2, price: 2350000, fee: 100, date: '2026-01-01' },
-      { side: 'buy', quantity: 0.1, price: 2400000, fee: 50, date: '2026-01-02' },
+      {
+        side: 'buy',
+        quantity: 0.2,
+        price: 2350000,
+        fee: 100,
+        date: '2026-01-01',
+      },
+      {
+        side: 'buy',
+        quantity: 0.1,
+        price: 2400000,
+        fee: 50,
+        date: '2026-01-02',
+      },
     ];
     const res = service.calculate(txs);
     expect(res.quantity).toBeCloseTo(0.3, 8);
@@ -33,8 +45,20 @@ describe('PositionService', () => {
 
   it('should compute sell and realized P&L correctly', () => {
     const txs: SimpleTransaction[] = [
-      { side: 'buy', quantity: 0.2, price: 2350000, fee: 0, date: '2026-01-01' }, // total cost = 470000, qty = 0.2
-      { side: 'sell', quantity: 0.05, price: 3300000, fee: 0, date: '2026-01-02' }, // avgCost before = 2350000, P&L = 0.05 * (3300000 - 2350000) = 47500
+      {
+        side: 'buy',
+        quantity: 0.2,
+        price: 2350000,
+        fee: 0,
+        date: '2026-01-01',
+      }, // total cost = 470000, qty = 0.2
+      {
+        side: 'sell',
+        quantity: 0.05,
+        price: 3300000,
+        fee: 0,
+        date: '2026-01-02',
+      }, // avgCost before = 2350000, P&L = 0.05 * (3300000 - 2350000) = 47500
     ];
     const res = service.calculate(txs);
     expect(res.quantity).toBeCloseTo(0.15, 8);
@@ -46,8 +70,20 @@ describe('PositionService', () => {
 
   it('should handle deposit and withdraw transactions correctly', () => {
     const txs: SimpleTransaction[] = [
-      { side: 'deposit', quantity: 10000, price: 1, fee: 0, date: '2026-01-01' },
-      { side: 'withdraw', quantity: 4000, price: 1, fee: 10, date: '2026-01-02' },
+      {
+        side: 'deposit',
+        quantity: 10000,
+        price: 1,
+        fee: 0,
+        date: '2026-01-01',
+      },
+      {
+        side: 'withdraw',
+        quantity: 4000,
+        price: 1,
+        fee: 10,
+        date: '2026-01-02',
+      },
     ];
     const res = service.calculate(txs);
     expect(res.quantity).toBe(6000);
@@ -74,7 +110,7 @@ describe('PositionService', () => {
   it('should compute short buy-to-cover with profit (price dropped)', () => {
     const txs: SimpleTransaction[] = [
       { side: 'sell', quantity: 10, price: 200, fee: 0, date: '2026-01-01' }, // Open short at 200
-      { side: 'buy', quantity: 4, price: 150, fee: 0, date: '2026-01-02' },  // Cover at 150 → profit = 4 * (200 - 150) = 200
+      { side: 'buy', quantity: 4, price: 150, fee: 0, date: '2026-01-02' }, // Cover at 150 → profit = 4 * (200 - 150) = 200
     ];
     const res = service.calculate(txs, 'short');
     expect(res.quantity).toBeCloseTo(6, 8);
@@ -106,4 +142,3 @@ describe('PositionService', () => {
     expect(res.direction).toBe('short');
   });
 });
-

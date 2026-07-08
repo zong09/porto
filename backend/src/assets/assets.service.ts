@@ -26,47 +26,51 @@ export class AssetsService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    this.logger.log('Running DB migration: CoinGecko IDs to Binance Symbols...');
+    this.logger.log(
+      'Running DB migration: CoinGecko IDs to Binance Symbols...',
+    );
     const cgToBinanceMap: Record<string, string> = {
-      'bitcoin': 'BTC',
-      'ethereum': 'ETH',
-      'solana': 'SOL',
-      'binancecoin': 'BNB',
-      'ripple': 'XRP',
-      'cardano': 'ADA',
-      'dogecoin': 'DOGE',
-      'polkadot': 'DOT',
+      bitcoin: 'BTC',
+      ethereum: 'ETH',
+      solana: 'SOL',
+      binancecoin: 'BNB',
+      ripple: 'XRP',
+      cardano: 'ADA',
+      dogecoin: 'DOGE',
+      polkadot: 'DOT',
       'matic-network': 'MATIC',
       'avalanche-2': 'AVAX',
-      'chainlink': 'LINK',
-      'uniswap': 'UNI',
-      'litecoin': 'LTC',
-      'near': 'NEAR',
-      'cosmos': 'ATOM',
-      'optimism': 'OP',
-      'arbitrum': 'ARB',
-      'sui': 'SUI',
-      'aptos': 'APT',
-      'pepe': 'PEPE',
+      chainlink: 'LINK',
+      uniswap: 'UNI',
+      litecoin: 'LTC',
+      near: 'NEAR',
+      cosmos: 'ATOM',
+      optimism: 'OP',
+      arbitrum: 'ARB',
+      sui: 'SUI',
+      aptos: 'APT',
+      pepe: 'PEPE',
       'shiba-inu': 'SHIB',
       'the-open-network': 'TON',
-      'tron': 'TRX',
-      'tether': 'USDT',
-      'usd-coin': 'USDC'
+      tron: 'TRX',
+      tether: 'USDT',
+      'usd-coin': 'USDC',
     };
 
     let updatedCount = 0;
     for (const [cgId, sym] of Object.entries(cgToBinanceMap)) {
       const result = await this.assetRepo.update(
         { type: 'crypto', symbol: cgId },
-        { symbol: sym }
+        { symbol: sym },
       );
       if (result.affected && result.affected > 0) {
         updatedCount += result.affected;
       }
     }
     if (updatedCount > 0) {
-      this.logger.log(`Successfully migrated ${updatedCount} crypto assets to Binance symbols.`);
+      this.logger.log(
+        `Successfully migrated ${updatedCount} crypto assets to Binance symbols.`,
+      );
     }
   }
 
@@ -90,7 +94,10 @@ export class AssetsService implements OnModuleInit {
         side: t.side,
         date: t.date,
       }));
-      const position = this.positionService.calculate(simpleTxs, asset.direction || 'long');
+      const position = this.positionService.calculate(
+        simpleTxs,
+        asset.direction || 'long',
+      );
 
       let currentPrice = 0;
       let change24h = 0;
@@ -152,7 +159,9 @@ export class AssetsService implements OnModuleInit {
       });
     }
 
-    this.logger.log(`Returning ${enriched.length} enriched assets for user=${userId}`);
+    this.logger.log(
+      `Returning ${enriched.length} enriched assets for user=${userId}`,
+    );
     return enriched;
   }
 
@@ -176,7 +185,10 @@ export class AssetsService implements OnModuleInit {
       side: t.side,
       date: t.date,
     }));
-    const position = this.positionService.calculate(simpleTxs, asset.direction || 'long');
+    const position = this.positionService.calculate(
+      simpleTxs,
+      asset.direction || 'long',
+    );
 
     let currentPrice = 0;
     let change24h = 0;
@@ -251,7 +263,9 @@ export class AssetsService implements OnModuleInit {
     manualPrice?: number,
     direction?: 'long' | 'short',
   ): Promise<Asset> {
-    this.logger.log(`Creating asset symbol=${symbol} type=${type} currency=${currency} direction=${direction || 'long'} in portfolio=${portfolioId}`);
+    this.logger.log(
+      `Creating asset symbol=${symbol} type=${type} currency=${currency} direction=${direction || 'long'} in portfolio=${portfolioId}`,
+    );
     // Verify portfolio ownership
     const portfolio = await this.portfolioRepo.findOne({
       where: { id: portfolioId, userId },
@@ -312,7 +326,9 @@ export class AssetsService implements OnModuleInit {
   }
 
   async reorder(userId: string, orderedIds: string[]): Promise<void> {
-    this.logger.log(`Reordering ${orderedIds.length} assets for user=${userId}`);
+    this.logger.log(
+      `Reordering ${orderedIds.length} assets for user=${userId}`,
+    );
     // Verify all IDs belong to this user by joining with portfolio
     const assets = await this.assetRepo
       .createQueryBuilder('asset')
@@ -334,7 +350,9 @@ export class AssetsService implements OnModuleInit {
       this.assetRepo.update(id, { sortOrder: index }),
     );
     await Promise.all(updates);
-    this.logger.log(`Successfully reordered ${orderedIds.length} assets for user=${userId}`);
+    this.logger.log(
+      `Successfully reordered ${orderedIds.length} assets for user=${userId}`,
+    );
   }
 
   async remove(id: string, userId: string): Promise<void> {

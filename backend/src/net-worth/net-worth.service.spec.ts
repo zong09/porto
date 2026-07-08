@@ -80,7 +80,9 @@ describe('NetWorthService', () => {
         {
           provide: PositionService,
           useValue: {
-            calculate: jest.fn().mockReturnValue({ quantity: 1, avgCost: 50000 }),
+            calculate: jest
+              .fn()
+              .mockReturnValue({ quantity: 1, avgCost: 50000 }),
           },
         },
         {
@@ -88,11 +90,11 @@ describe('NetWorthService', () => {
           useValue: {
             getFxRate: jest.fn().mockResolvedValue(35),
             getCryptoPrices: jest.fn().mockResolvedValue({
-              bitcoin: { usd: 60000, usd_24h_change: 2.5 }
+              bitcoin: { usd: 60000, usd_24h_change: 2.5 },
             }),
             getStockPrice: jest.fn().mockResolvedValue({
               price: 150,
-              chg: 1.2
+              chg: 1.2,
             }),
           },
         },
@@ -101,8 +103,12 @@ describe('NetWorthService', () => {
 
     service = module.get<NetWorthService>(NetWorthService);
     assetRepo = module.get<Repository<Asset>>(getRepositoryToken(Asset));
-    liabilityRepo = module.get<Repository<Liability>>(getRepositoryToken(Liability));
-    netWorthHistoryRepo = module.get<Repository<NetWorthHistory>>(getRepositoryToken(NetWorthHistory));
+    liabilityRepo = module.get<Repository<Liability>>(
+      getRepositoryToken(Liability),
+    );
+    netWorthHistoryRepo = module.get<Repository<NetWorthHistory>>(
+      getRepositoryToken(NetWorthHistory),
+    );
     pricesService = module.get<PricesService>(PricesService);
   });
 
@@ -116,15 +122,17 @@ describe('NetWorthService', () => {
       expect(summary).toEqual({
         totalAssetsThb: 60000 * 35,
         totalLiabilitiesThb: 2000,
-        netWorthThb: (60000 * 35) - 2000,
-        todayPlThb: (60000 * 35) - (60000 * 35) / (1 + 2.5 / 100),
+        netWorthThb: 60000 * 35 - 2000,
+        todayPlThb: 60000 * 35 - (60000 * 35) / (1 + 2.5 / 100),
         totalCostThb: 50000 * 35,
         fx: 35,
       });
     });
 
     it('should handle price fetch errors safely', async () => {
-      jest.spyOn(pricesService, 'getCryptoPrices').mockRejectedValue(new Error('CoinGecko failed'));
+      jest
+        .spyOn(pricesService, 'getCryptoPrices')
+        .mockRejectedValue(new Error('CoinGecko failed'));
       const summary = await service.getSummary('user-1');
       expect(summary).toBeDefined();
     });

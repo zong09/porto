@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { WinstonLogger } from './logger/winston-logger';
 
 async function bootstrap() {
@@ -12,6 +13,30 @@ async function bootstrap() {
 
   // Behind Railway's proxy — needed so rate limiting sees the real client IP
   app.set('trust proxy', 1);
+
+  // Security headers. CSP allows only self + Google Fonts (Anuphan);
+  // 'unsafe-inline' styles are required by the SPA's inline style attributes
+  // (charts use conic-gradient via style props).
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+          ],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+    }),
+  );
 
   // Set global prefix for API routes
   app.setGlobalPrefix('api');

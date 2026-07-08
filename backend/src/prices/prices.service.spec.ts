@@ -31,7 +31,7 @@ describe('PricesService', () => {
       const mockResponse = {
         bitcoin: { thb: 2150400, usd: 60000, usd_24h_change: 1.5 },
       };
-      
+
       const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
         ok: true,
         json: jest.fn().mockResolvedValue(mockResponse),
@@ -43,7 +43,10 @@ describe('PricesService', () => {
 
       // Second call should return cached data without fetch
       fetchSpy.mockClear();
-      const cachedResult = await service.getCryptoPrices(['bitcoin'], ['thb', 'usd']);
+      const cachedResult = await service.getCryptoPrices(
+        ['bitcoin'],
+        ['thb', 'usd'],
+      );
       expect(cachedResult).toEqual(mockResponse);
       expect(fetchSpy).not.toHaveBeenCalled();
     });
@@ -54,9 +57,9 @@ describe('PricesService', () => {
         status: 500,
       } as any);
 
-      await expect(service.getCryptoPrices(['bitcoin'], ['usd'])).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        service.getCryptoPrices(['bitcoin'], ['usd']),
+      ).rejects.toThrow(HttpException);
     });
   });
 
@@ -106,7 +109,7 @@ describe('PricesService', () => {
       const result = await service.getStockPrice('AAPL');
       expect(result).toEqual({
         price: 180,
-        chg: ((180 / 175) - 1) * 100,
+        chg: (180 / 175 - 1) * 100,
       });
     });
 
@@ -165,15 +168,19 @@ describe('PricesService', () => {
       const mockCryptoResponse = {
         bitcoin: { thb: 2150400, usd: 60000 },
       };
-      
-      jest.spyOn(service, 'getCryptoPrices').mockResolvedValue(mockCryptoResponse);
+
+      jest
+        .spyOn(service, 'getCryptoPrices')
+        .mockResolvedValue(mockCryptoResponse);
 
       const rate = await service.getFxRate();
       expect(rate).toBe(35.84); // 2150400 / 60000 = 35.84
     });
 
     it('should return fallback FX rate on exception', async () => {
-      jest.spyOn(service, 'getCryptoPrices').mockRejectedValue(new Error('API failure'));
+      jest
+        .spyOn(service, 'getCryptoPrices')
+        .mockRejectedValue(new Error('API failure'));
 
       const rate = await service.getFxRate();
       expect(rate).toBe(35.84); // fallback
@@ -183,14 +190,14 @@ describe('PricesService', () => {
   describe('refreshYahooCredentials', () => {
     it('should refresh credentials successfully', async () => {
       const fetchSpy = jest.spyOn(global, 'fetch');
-      
+
       // 1. fc.yahoo.com
       fetchSpy.mockResolvedValueOnce({
         headers: {
           get: jest.fn().mockReturnValue('A_COOKIE=123; path=/'),
         },
       } as any);
-      
+
       // 2. getcrumb
       fetchSpy.mockResolvedValueOnce({
         ok: true,

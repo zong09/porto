@@ -37,28 +37,31 @@ export class BackupService {
     // Fetch all user data
     const portfolios = await this.portfolioRepo.find({ where: { userId } });
     const portfolioIds = portfolios.map((p) => p.id);
-    
+
     let assets: Asset[] = [];
     if (portfolioIds.length > 0) {
-      assets = await this.assetRepo.createQueryBuilder('asset')
+      assets = await this.assetRepo
+        .createQueryBuilder('asset')
         .where('asset.portfolioId IN (:...portfolioIds)', { portfolioIds })
         .getMany();
     }
-    
+
     const assetIds = assets.map((a) => a.id);
     let transactions: Transaction[] = [];
     if (assetIds.length > 0) {
-      transactions = await this.transactionRepo.createQueryBuilder('tx')
+      transactions = await this.transactionRepo
+        .createQueryBuilder('tx')
         .where('tx.assetId IN (:...assetIds)', { assetIds })
         .getMany();
     }
 
     const liabilities = await this.liabilityRepo.find({ where: { userId } });
     const liabilityIds = liabilities.map((l) => l.id);
-    
+
     let liabilityTransactions: LiabilityTransaction[] = [];
     if (liabilityIds.length > 0) {
-      liabilityTransactions = await this.liabilityTxRepo.createQueryBuilder('ltx')
+      liabilityTransactions = await this.liabilityTxRepo
+        .createQueryBuilder('ltx')
         .where('ltx.liabilityId IN (:...liabilityIds)', { liabilityIds })
         .getMany();
     }
@@ -76,16 +79,16 @@ export class BackupService {
         liabilities,
         liabilityTransactions,
         netWorthHistory,
-      }
+      },
     });
 
     // Encrypt payload
     const salt = crypto.randomBytes(32);
     const iv = crypto.randomBytes(12);
     const key = this.deriveKey(password, salt);
-    
+
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    
+
     const encrypted = Buffer.concat([
       cipher.update(payload, 'utf8'),
       cipher.final(),
@@ -97,7 +100,11 @@ export class BackupService {
     return result;
   }
 
-  async importData(userId: string, backupBuffer: Buffer, password: string): Promise<void> {
+  async importData(
+    userId: string,
+    backupBuffer: Buffer,
+    password: string,
+  ): Promise<void> {
     if (backupBuffer.length < 32 + 12 + 16) {
       throw new BadRequestException('รูปแบบไฟล์ Backup ไม่ถูกต้อง');
     }
@@ -113,14 +120,16 @@ export class BackupService {
       const key = this.deriveKey(password, salt);
       const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
       decipher.setAuthTag(authTag);
-      
+
       const decrypted = Buffer.concat([
         decipher.update(encrypted),
         decipher.final(),
       ]);
       decryptedData = decrypted.toString('utf8');
     } catch (error) {
-      throw new BadRequestException('รหัสผ่านไม่ถูกต้อง หรือไฟล์ Backup เสียหาย');
+      throw new BadRequestException(
+        'รหัสผ่านไม่ถูกต้อง หรือไฟล์ Backup เสียหาย',
+      );
     }
 
     let parsed: any;
@@ -188,14 +197,19 @@ export class BackupService {
 
       // Insert LiabilityTransactions
       if (liabilityTransactions && liabilityTransactions.length > 0) {
-        const data = liabilityTransactions.map((item: any) => ({ ...item, userId }));
+        const data = liabilityTransactions.map((item: any) => ({
+          ...item,
+          userId,
+        }));
         await queryRunner.manager.save(LiabilityTransaction, data);
       }
 
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw new BadRequestException('เกิดข้อผิดพลาดในการกู้คืนข้อมูล: ' + error.message);
+      throw new BadRequestException(
+        'เกิดข้อผิดพลาดในการกู้คืนข้อมูล: ' + error.message,
+      );
     } finally {
       await queryRunner.release();
     }

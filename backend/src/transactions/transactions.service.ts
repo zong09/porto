@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction } from './entities/transaction.entity';
@@ -17,7 +23,8 @@ export class TransactionsService {
   ) {}
 
   async findAll(userId: string): Promise<Transaction[]> {
-    return this.transactionRepo.createQueryBuilder('tx')
+    return this.transactionRepo
+      .createQueryBuilder('tx')
       .innerJoinAndSelect('tx.asset', 'asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .where('portfolio.userId = :userId', { userId })
@@ -27,7 +34,8 @@ export class TransactionsService {
   }
 
   async findOne(id: string, userId: string): Promise<Transaction> {
-    const tx = await this.transactionRepo.createQueryBuilder('tx')
+    const tx = await this.transactionRepo
+      .createQueryBuilder('tx')
       .innerJoinAndSelect('tx.asset', 'asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .where('tx.id = :id', { id })
@@ -49,21 +57,31 @@ export class TransactionsService {
     fee: number,
     date: string,
   ): Promise<Transaction> {
-    this.logger.log(`Creating transaction side=${side} qty=${quantity} price=${price} asset=${assetId}`);
+    this.logger.log(
+      `Creating transaction side=${side} qty=${quantity} price=${price} asset=${assetId}`,
+    );
     // 1. Verify asset ownership
-    const asset = await this.assetRepo.createQueryBuilder('asset')
+    const asset = await this.assetRepo
+      .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .where('asset.id = :assetId', { assetId })
       .andWhere('portfolio.userId = :userId', { userId })
       .getOne();
 
     if (!asset) {
-      throw new NotFoundException('ไม่พบสินทรัพย์นี้ หรือคุณไม่มีสิทธิ์เข้าถึง');
+      throw new NotFoundException(
+        'ไม่พบสินทรัพย์นี้ หรือคุณไม่มีสิทธิ์เข้าถึง',
+      );
     }
 
     // 2. Validate side vs asset type
     if (asset.type === 'deposit') {
-      if (side !== 'buy' && side !== 'deposit' && side !== 'sell' && side !== 'withdraw') {
+      if (
+        side !== 'buy' &&
+        side !== 'deposit' &&
+        side !== 'sell' &&
+        side !== 'withdraw'
+      ) {
         throw new BadRequestException('ประเภทรายการไม่ถูกต้องสำหรับเงินฝาก');
       }
       // For deposit type in database, side should standardise to 'buy' (deposit) or 'sell' (withdraw)
@@ -74,7 +92,7 @@ export class TransactionsService {
       // side = deposit -> buy
       // side = withdraw -> sell
     }
-    
+
     let dbSide: 'buy' | 'sell' = 'buy';
     if (side === 'sell' || side === 'withdraw') {
       dbSide = 'sell';
@@ -91,15 +109,18 @@ export class TransactionsService {
         where: { assetId },
       });
       // Map to SimpleTransaction for math
-      const simpleTxs = existingTxs.map(t => ({
+      const simpleTxs = existingTxs.map((t) => ({
         quantity: Number(t.quantity),
         price: Number(t.price),
         fee: Number(t.fee),
         side: t.side,
         date: t.date,
       }));
-      const position = this.positionService.calculate(simpleTxs, isShort ? 'short' : 'long');
-      
+      const position = this.positionService.calculate(
+        simpleTxs,
+        isShort ? 'short' : 'long',
+      );
+
       if (quantity > position.quantity + 1e-9) {
         const msg = isShort
           ? `ไม่สามารถ cover เกินจำนวนที่ short อยู่ได้ (ปัจจุบัน short อยู่ ${position.quantity} หน่วย)`
@@ -108,7 +129,9 @@ export class TransactionsService {
       }
     }
 
-    this.logger.log(`Transaction validated – persisting side=${dbSide} for asset=${assetId}`);
+    this.logger.log(
+      `Transaction validated – persisting side=${dbSide} for asset=${assetId}`,
+    );
     const tx = this.transactionRepo.create({
       assetId,
       side: dbSide,
@@ -119,7 +142,9 @@ export class TransactionsService {
     });
 
     const saved = await this.transactionRepo.save(tx);
-    this.logger.log(`Transaction created successfully id=${saved.id} side=${dbSide} asset=${assetId}`);
+    this.logger.log(
+      `Transaction created successfully id=${saved.id} side=${dbSide} asset=${assetId}`,
+    );
     return saved;
   }
 
@@ -133,28 +158,38 @@ export class TransactionsService {
     fee: number,
     date: string,
   ): Promise<Transaction> {
-    this.logger.log(`Updating transaction id=${id} side=${side} qty=${quantity} price=${price} asset=${assetId} for user=${userId}`);
+    this.logger.log(
+      `Updating transaction id=${id} side=${side} qty=${quantity} price=${price} asset=${assetId} for user=${userId}`,
+    );
     // 1. Verify transaction ownership and existence
     const tx = await this.findOne(id, userId);
 
     // 2. Verify asset ownership and existence
-    const asset = await this.assetRepo.createQueryBuilder('asset')
+    const asset = await this.assetRepo
+      .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
       .where('asset.id = :assetId', { assetId })
       .andWhere('portfolio.userId = :userId', { userId })
       .getOne();
 
     if (!asset) {
-      throw new NotFoundException('ไม่พบสินทรัพย์นี้ หรือคุณไม่มีสิทธิ์เข้าถึง');
+      throw new NotFoundException(
+        'ไม่พบสินทรัพย์นี้ หรือคุณไม่มีสิทธิ์เข้าถึง',
+      );
     }
 
     // 3. Validate side vs asset type
     if (asset.type === 'deposit') {
-      if (side !== 'buy' && side !== 'deposit' && side !== 'sell' && side !== 'withdraw') {
+      if (
+        side !== 'buy' &&
+        side !== 'deposit' &&
+        side !== 'sell' &&
+        side !== 'withdraw'
+      ) {
         throw new BadRequestException('ประเภทรายการไม่ถูกต้องสำหรับเงินฝาก');
       }
     }
-    
+
     let dbSide: 'buy' | 'sell' = 'buy';
     if (side === 'sell' || side === 'withdraw') {
       dbSide = 'sell';
@@ -170,16 +205,19 @@ export class TransactionsService {
       });
       // Map to SimpleTransaction for math, excluding the current transaction being edited
       const simpleTxs = existingTxs
-        .filter(t => t.id !== id)
-        .map(t => ({
+        .filter((t) => t.id !== id)
+        .map((t) => ({
           quantity: Number(t.quantity),
           price: Number(t.price),
           fee: Number(t.fee),
           side: t.side,
           date: t.date,
         }));
-      const position = this.positionService.calculate(simpleTxs, isShort ? 'short' : 'long');
-      
+      const position = this.positionService.calculate(
+        simpleTxs,
+        isShort ? 'short' : 'long',
+      );
+
       if (quantity > position.quantity + 1e-9) {
         const msg = isShort
           ? `ไม่สามารถ cover เกินจำนวนที่ short อยู่ได้ (ปัจจุบัน short อยู่ ${position.quantity} หน่วย)`

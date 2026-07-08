@@ -26,7 +26,7 @@ Single Railway service: NestJS serves the React SPA from `backend/public/` and e
 
 ## Backend Patterns
 
-**TypeORM** — `synchronize: true` in both dev and prod (schema auto-migrates). Numeric columns use `NUMERIC(20,8)` with a `from: parseFloat` transformer — never store JS floats directly.
+**TypeORM** — `synchronize: true` in dev only; prod applies committed migrations on boot (`migrationsRun`). After changing an entity, generate a migration against a scratch DB (`npm run migration:generate -- src/migrations/Name` with `DB_DATABASE=<scratch>`; see "Workflow note" in `docs/security-remediation-plan.md`) and commit it — prod schema will not update otherwise. Entity list lives in `src/entities.ts` (shared by `app.module.ts` and the CLI `src/data-source.ts`). Numeric columns use `NUMERIC(20,8)` with a `from: parseFloat` transformer — never store JS floats directly.
 
 **JWT Auth** — `JwtAuthGuard` is global; routes opt out with `@Public()`. The `@CurrentUser()` decorator extracts `{ userId, email }` from the token.
 
