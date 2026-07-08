@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+} from 'typeorm';
 import { Portfolio } from '../../portfolios/entities/portfolio.entity';
 import { Liability } from '../../liabilities/entities/liability.entity';
 import { NetWorthHistory } from '../../net-worth/entities/net-worth-history.entity';

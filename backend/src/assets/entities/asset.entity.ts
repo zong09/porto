@@ -1,10 +1,17 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { Portfolio } from '../../portfolios/entities/portfolio.entity';
 import { Transaction } from '../../transactions/entities/transaction.entity';
 
 export const NumericColumnTransformer = {
   to: (value: number | string | null) => value,
-  from: (value: string | null) => value ? parseFloat(value) : null
+  from: (value: string | null) => (value ? parseFloat(value) : null),
 };
 
 @Entity('assets')
@@ -15,7 +22,9 @@ export class Asset {
   @Column()
   portfolioId: string;
 
-  @ManyToOne(() => Portfolio, (portfolio) => portfolio.assets, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Portfolio, (portfolio) => portfolio.assets, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'portfolioId' })
   portfolio: Portfolio;
 
@@ -41,7 +50,7 @@ export class Asset {
     precision: 20,
     scale: 8,
     nullable: true,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   manualPrice: number | null;
 

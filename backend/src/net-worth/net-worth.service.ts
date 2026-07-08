@@ -39,13 +39,10 @@ export class NetWorthService {
     // 3. Fetch FX rate
     const fx = await this.pricesService.getFxRate();
 
-    const totalLiabilitiesThb = liabilities.reduce(
-      (sum, l) => {
-        const multiplier = l.currency === 'USD' ? fx : 1;
-        return sum + Number(l.amount) * multiplier;
-      },
-      0,
-    );
+    const totalLiabilitiesThb = liabilities.reduce((sum, l) => {
+      const multiplier = l.currency === 'USD' ? fx : 1;
+      return sum + Number(l.amount) * multiplier;
+    }, 0);
 
     let totalAssetsThb = 0;
     let totalCostThb = 0;
@@ -60,7 +57,10 @@ export class NetWorthService {
         side: t.side,
         date: t.date,
       }));
-      const position = this.positionService.calculate(simpleTxs, asset.direction || 'long');
+      const position = this.positionService.calculate(
+        simpleTxs,
+        asset.direction || 'long',
+      );
 
       if (position.quantity <= 0) continue;
 
@@ -133,7 +133,9 @@ export class NetWorthService {
     }
 
     const netWorthThb = totalAssetsThb - totalLiabilitiesThb;
-    this.logger.log(`Net-worth summary: assets=฿${totalAssetsThb.toFixed(2)} liabilities=฿${totalLiabilitiesThb.toFixed(2)} netWorth=฿${netWorthThb.toFixed(2)} fx=${fx}`);
+    this.logger.log(
+      `Net-worth summary: assets=฿${totalAssetsThb.toFixed(2)} liabilities=฿${totalLiabilitiesThb.toFixed(2)} netWorth=฿${netWorthThb.toFixed(2)} fx=${fx}`,
+    );
 
     return {
       totalAssetsThb,

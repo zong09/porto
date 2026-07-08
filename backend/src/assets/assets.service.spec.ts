@@ -6,7 +6,11 @@ import { Asset } from './entities/asset.entity';
 import { Portfolio } from '../portfolios/entities/portfolio.entity';
 import { PositionService } from '../position/position.service';
 import { PricesService } from '../prices/prices.service';
-import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 
 const mockAsset = {
   id: 'asset-1',
@@ -66,24 +70,35 @@ describe('AssetsService', () => {
         {
           provide: getRepositoryToken(Portfolio),
           useValue: {
-            findOne: jest.fn().mockResolvedValue({ id: 'port-1', userId: 'user-1' }),
+            findOne: jest
+              .fn()
+              .mockResolvedValue({ id: 'port-1', userId: 'user-1' }),
           },
         },
         {
           provide: PositionService,
           useValue: {
-            calculate: jest.fn().mockReturnValue({ quantity: 1, avgCost: 50000, direction: 'long' }),
+            calculate: jest.fn().mockReturnValue({
+              quantity: 1,
+              avgCost: 50000,
+              direction: 'long',
+            }),
           },
         },
         {
           provide: PricesService,
           useValue: {
             getCryptoPrices: jest.fn().mockResolvedValue({
-              bitcoin: { usd: 60000, usd_24h_change: 2.5, thb: 2100000, thb_24h_change: 2.3 }
+              bitcoin: {
+                usd: 60000,
+                usd_24h_change: 2.5,
+                thb: 2100000,
+                thb_24h_change: 2.3,
+              },
             }),
             getStockPrice: jest.fn().mockResolvedValue({
               price: 150,
-              chg: 1.2
+              chg: 1.2,
             }),
           },
         },
@@ -92,7 +107,9 @@ describe('AssetsService', () => {
 
     service = module.get<AssetsService>(AssetsService);
     assetRepo = module.get<Repository<Asset>>(getRepositoryToken(Asset));
-    portfolioRepo = module.get<Repository<Portfolio>>(getRepositoryToken(Portfolio));
+    portfolioRepo = module.get<Repository<Portfolio>>(
+      getRepositoryToken(Portfolio),
+    );
     pricesService = module.get<PricesService>(PricesService);
   });
 
@@ -109,7 +126,9 @@ describe('AssetsService', () => {
     });
 
     it('should fall back to manualPrice or avgCost on price fetch error', async () => {
-      jest.spyOn(pricesService, 'getCryptoPrices').mockRejectedValue(new Error('Network error'));
+      jest
+        .spyOn(pricesService, 'getCryptoPrices')
+        .mockRejectedValue(new Error('Network error'));
       const customAsset = {
         ...mockAsset,
         manualPrice: 45000,
@@ -143,22 +162,35 @@ describe('AssetsService', () => {
 
   describe('create', () => {
     it('should successfully create asset', async () => {
-      const result = await service.create('user-1', 'port-1', 'crypto', 'BTC', 'Bitcoin', 'USD', 'bitcoin');
+      const result = await service.create(
+        'user-1',
+        'port-1',
+        'crypto',
+        'BTC',
+        'Bitcoin',
+        'USD',
+        'bitcoin',
+      );
       expect(result).toBeDefined();
       expect(assetRepo.save).toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException if portfolio not owned by user', async () => {
       jest.spyOn(portfolioRepo, 'findOne').mockResolvedValue(null);
-      await expect(service.create('user-1', 'port-2', 'crypto', 'BTC', 'Bitcoin', 'USD')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.create('user-1', 'port-2', 'crypto', 'BTC', 'Bitcoin', 'USD'),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('update', () => {
     it('should successfully update and return the asset', async () => {
-      const result = await service.update('asset-1', 'user-1', 'New Bitcoin Name', 61000);
+      const result = await service.update(
+        'asset-1',
+        'user-1',
+        'New Bitcoin Name',
+        61000,
+      );
       expect(result).toBeDefined();
       expect(assetRepo.save).toHaveBeenCalled();
     });
@@ -168,9 +200,9 @@ describe('AssetsService', () => {
       jest.spyOn(qb, 'getOne').mockResolvedValue(null);
       jest.spyOn(assetRepo, 'createQueryBuilder').mockReturnValue(qb);
 
-      await expect(service.update('invalid-asset', 'user-1', 'Name')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.update('invalid-asset', 'user-1', 'Name'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

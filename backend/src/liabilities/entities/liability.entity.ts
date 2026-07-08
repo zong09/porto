@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { NumericColumnTransformer } from '../../assets/entities/asset.entity';
 
@@ -20,7 +26,7 @@ export class Liability {
   @Column('numeric', {
     precision: 20,
     scale: 8,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   amount: number;
 

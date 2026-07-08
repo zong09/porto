@@ -7,10 +7,7 @@ import { Asset } from '../assets/entities/asset.entity';
 import { PositionModule } from '../position/position.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Transaction, Asset]),
-    PositionModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Transaction, Asset]), PositionModule],
   providers: [TransactionsService],
   controllers: [TransactionsController],
   exports: [TransactionsService],

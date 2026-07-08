@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Portfolio } from './entities/portfolio.entity';
@@ -22,14 +27,20 @@ export class PortfoliosService {
   }
 
   async findOne(id: string, userId: string): Promise<Portfolio> {
-    const portfolio = await this.portfolioRepo.findOne({ where: { id, userId } });
+    const portfolio = await this.portfolioRepo.findOne({
+      where: { id, userId },
+    });
     if (!portfolio) {
       throw new NotFoundException('ไม่พบพอร์ตการลงทุนนี้');
     }
     return portfolio;
   }
 
-  async create(userId: string, name: string, color?: number): Promise<Portfolio> {
+  async create(
+    userId: string,
+    name: string,
+    color?: number,
+  ): Promise<Portfolio> {
     this.logger.log(`Creating portfolio name="${name}" for user=${userId}`);
     const count = await this.portfolioRepo.count({ where: { userId } });
     const colorIndex = color !== undefined ? color : count % 6;
@@ -44,7 +55,12 @@ export class PortfoliosService {
     return saved;
   }
 
-  async update(id: string, userId: string, name: string, color?: number): Promise<Portfolio> {
+  async update(
+    id: string,
+    userId: string,
+    name: string,
+    color?: number,
+  ): Promise<Portfolio> {
     this.logger.log(`Updating portfolio id=${id} name="${name}"`);
     const portfolio = await this.findOne(id, userId);
     portfolio.name = name;
@@ -57,7 +73,9 @@ export class PortfoliosService {
   }
 
   async reorder(userId: string, orderedIds: string[]): Promise<void> {
-    this.logger.log(`Reordering ${orderedIds.length} portfolios for user=${userId}`);
+    this.logger.log(
+      `Reordering ${orderedIds.length} portfolios for user=${userId}`,
+    );
     // Verify all IDs belong to this user
     const portfolios = await this.portfolioRepo.find({ where: { userId } });
     const userIds = new Set(portfolios.map((p) => p.id));
@@ -72,7 +90,9 @@ export class PortfoliosService {
       this.portfolioRepo.update({ id, userId }, { sortOrder: index }),
     );
     await Promise.all(updates);
-    this.logger.log(`Successfully reordered ${orderedIds.length} portfolios for user=${userId}`);
+    this.logger.log(
+      `Successfully reordered ${orderedIds.length} portfolios for user=${userId}`,
+    );
   }
 
   async remove(id: string, userId: string): Promise<void> {
@@ -80,9 +100,13 @@ export class PortfoliosService {
     await this.findOne(id, userId);
 
     // Verify if portfolio has any assets
-    const assetCount = await this.assetRepo.count({ where: { portfolioId: id } });
+    const assetCount = await this.assetRepo.count({
+      where: { portfolioId: id },
+    });
     if (assetCount > 0) {
-      throw new BadRequestException('ไม่สามารถลบพอร์ตได้เนื่องจากยังมีสินทรัพย์เหลืออยู่ภายในพอร์ต');
+      throw new BadRequestException(
+        'ไม่สามารถลบพอร์ตได้เนื่องจากยังมีสินทรัพย์เหลืออยู่ภายในพอร์ต',
+      );
     }
 
     await this.portfolioRepo.delete({ id, userId });

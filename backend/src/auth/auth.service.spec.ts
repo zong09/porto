@@ -9,7 +9,11 @@ import { NetWorthHistory } from '../net-worth/entities/net-worth-history.entity'
 import { JwtService } from '@nestjs/jwt';
 import { SeedService } from '../seed/seed.service';
 import { ConfigService } from '@nestjs/config';
-import { ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -77,11 +81,13 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
-              if (key === 'ENABLE_DEMO') return 'true';
-              if (key === 'ENABLE_REGISTER') return 'true';
-              return defaultValue;
-            }),
+            get: jest
+              .fn()
+              .mockImplementation((key: string, defaultValue?: any) => {
+                if (key === 'ENABLE_DEMO') return 'true';
+                if (key === 'ENABLE_REGISTER') return 'true';
+                return defaultValue;
+              }),
           },
         },
       ],
@@ -89,9 +95,15 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userRepo = module.get<Repository<User>>(getRepositoryToken(User));
-    portfolioRepo = module.get<Repository<Portfolio>>(getRepositoryToken(Portfolio));
-    liabilityRepo = module.get<Repository<Liability>>(getRepositoryToken(Liability));
-    netWorthHistoryRepo = module.get<Repository<NetWorthHistory>>(getRepositoryToken(NetWorthHistory));
+    portfolioRepo = module.get<Repository<Portfolio>>(
+      getRepositoryToken(Portfolio),
+    );
+    liabilityRepo = module.get<Repository<Liability>>(
+      getRepositoryToken(Liability),
+    );
+    netWorthHistoryRepo = module.get<Repository<NetWorthHistory>>(
+      getRepositoryToken(NetWorthHistory),
+    );
     jwtService = module.get<JwtService>(JwtService);
     seedService = module.get<SeedService>(SeedService);
     configService = module.get<ConfigService>(ConfigService);
@@ -106,7 +118,9 @@ describe('AuthService', () => {
       await service.clear('user-1');
       expect(portfolioRepo.delete).toHaveBeenCalledWith({ userId: 'user-1' });
       expect(liabilityRepo.delete).toHaveBeenCalledWith({ userId: 'user-1' });
-      expect(netWorthHistoryRepo.delete).toHaveBeenCalledWith({ userId: 'user-1' });
+      expect(netWorthHistoryRepo.delete).toHaveBeenCalledWith({
+        userId: 'user-1',
+      });
     });
   });
 
@@ -115,7 +129,11 @@ describe('AuthService', () => {
       jest.spyOn(userRepo, 'findOne').mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
 
-      const result = await service.register('new@porto.app', 'New User', 'password');
+      const result = await service.register(
+        'new@porto.app',
+        'New User',
+        'password',
+      );
       expect(result).toEqual({
         token: 'signed-token',
         user: {
@@ -131,16 +149,16 @@ describe('AuthService', () => {
 
     it('should throw ConflictException if email is already in use', async () => {
       jest.spyOn(userRepo, 'findOne').mockResolvedValue(mockUser);
-      await expect(service.register('test@porto.app', 'New User', 'password')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.register('test@porto.app', 'New User', 'password'),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should throw ForbiddenException if registration is disabled', async () => {
       jest.spyOn(configService, 'get').mockReturnValue('false');
-      await expect(service.register('test@porto.app', 'New User', 'password')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.register('test@porto.app', 'New User', 'password'),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -165,9 +183,9 @@ describe('AuthService', () => {
       jest.spyOn(userRepo, 'findOne').mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.login('test@porto.app', 'wrong-password')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.login('test@porto.app', 'wrong-password'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -182,9 +200,7 @@ describe('AuthService', () => {
 
     it('should throw ForbiddenException if demo mode is disabled', async () => {
       jest.spyOn(configService, 'get').mockReturnValue('false');
-      await expect(service.demo()).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.demo()).rejects.toThrow(ForbiddenException);
     });
   });
 

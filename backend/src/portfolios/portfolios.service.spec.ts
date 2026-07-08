@@ -45,7 +45,9 @@ describe('PortfoliosService', () => {
     }).compile();
 
     service = module.get<PortfoliosService>(PortfoliosService);
-    portfolioRepo = module.get<Repository<Portfolio>>(getRepositoryToken(Portfolio));
+    portfolioRepo = module.get<Repository<Portfolio>>(
+      getRepositoryToken(Portfolio),
+    );
     assetRepo = module.get<Repository<Asset>>(getRepositoryToken(Asset));
   });
 
@@ -97,7 +99,12 @@ describe('PortfoliosService', () => {
 
   describe('update', () => {
     it('should update and save the portfolio', async () => {
-      const result = await service.update('portfolio-1', 'user-1', 'Updated Port', 3);
+      const result = await service.update(
+        'portfolio-1',
+        'user-1',
+        'Updated Port',
+        3,
+      );
       expect(result).toBeDefined();
       expect(portfolioRepo.save).toHaveBeenCalled();
     });
@@ -124,7 +131,10 @@ describe('PortfoliosService', () => {
   describe('remove', () => {
     it('should delete portfolio if it has no assets', async () => {
       await service.remove('portfolio-1', 'user-1');
-      expect(portfolioRepo.delete).toHaveBeenCalledWith({ id: 'portfolio-1', userId: 'user-1' });
+      expect(portfolioRepo.delete).toHaveBeenCalledWith({
+        id: 'portfolio-1',
+        userId: 'user-1',
+      });
     });
 
     it('should throw BadRequestException if portfolio contains assets', async () => {

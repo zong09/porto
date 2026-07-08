@@ -1,7 +1,24 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { PortfoliosService } from './portfolios.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
-import { IsNotEmpty, IsOptional, IsInt, Min, Max, IsArray, IsUUID } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsArray,
+  IsUUID,
+} from 'class-validator';
 
 class CreatePortfolioDto {
   @IsNotEmpty({ message: 'ชื่อพอร์ตห้ามเป็นค่าว่าง' })
@@ -41,7 +58,10 @@ export class PortfoliosController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     return this.portfoliosService.findOne(id, user.userId);
   }
 
@@ -62,11 +82,19 @@ export class PortfoliosController {
     @Body() body: UpdatePortfolioDto,
     @CurrentUser() user: any,
   ) {
-    return this.portfoliosService.update(id, user.userId, body.name, body.color);
+    return this.portfoliosService.update(
+      id,
+      user.userId,
+      body.name,
+      body.color,
+    );
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     await this.portfoliosService.remove(id, user.userId);
     return { success: true };
   }

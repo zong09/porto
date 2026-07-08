@@ -1,5 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
-import { Asset, NumericColumnTransformer } from '../../assets/entities/asset.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from 'typeorm';
+import {
+  Asset,
+  NumericColumnTransformer,
+} from '../../assets/entities/asset.entity';
 
 @Entity('transactions')
 export class Transaction {
@@ -9,7 +19,9 @@ export class Transaction {
   @Column()
   assetId: string;
 
-  @ManyToOne(() => Asset, (asset) => asset.transactions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Asset, (asset) => asset.transactions, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'assetId' })
   asset: Asset;
 
@@ -19,14 +31,14 @@ export class Transaction {
   @Column('numeric', {
     precision: 20,
     scale: 8,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   quantity: number;
 
   @Column('numeric', {
     precision: 20,
     scale: 8,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   price: number;
 
@@ -34,7 +46,7 @@ export class Transaction {
     precision: 20,
     scale: 8,
     default: 0,
-    transformer: NumericColumnTransformer
+    transformer: NumericColumnTransformer,
   })
   fee: number;
 

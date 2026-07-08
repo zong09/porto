@@ -13,26 +13,38 @@ export class WinstonLogger implements LoggerService {
     // Daily rotate file format (JSON style for structured analysis or structured text)
     const fileFormat = winston.format.combine(
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-      winston.format.printf(({ timestamp, level, message, context, stack, ...meta }) => {
-        const ctx = context ? `[${context}] ` : '';
-        const logMessage = typeof message === 'object' ? JSON.stringify(message) : message;
-        const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-        const stackStr = stack ? `\n${stack}` : '';
-        return `[${timestamp}] [${level.toUpperCase()}] ${ctx}${logMessage}${metaStr}${stackStr}`;
-      }),
+      winston.format.printf(
+        ({ timestamp, level, message, context, stack, ...meta }) => {
+          const ctx = context ? `[${context}] ` : '';
+          const logMessage =
+            typeof message === 'object' ? JSON.stringify(message) : message;
+          const metaStr = Object.keys(meta).length
+            ? ` ${JSON.stringify(meta)}`
+            : '';
+          const stackStr = stack ? `\n${stack}` : '';
+          return `[${timestamp}] [${level.toUpperCase()}] ${ctx}${logMessage}${metaStr}${stackStr}`;
+        },
+      ),
     );
 
     // Development Console format (Colorized and pretty)
     const consoleFormat = winston.format.combine(
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
       winston.format.colorize({ all: true }),
-      winston.format.printf(({ timestamp, level, message, context, stack, ...meta }) => {
-        const ctx = context ? `\x1b[36m[${context}]\x1b[39m ` : ''; // Cyan color for context
-        const logMessage = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
-        const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-        const stackStr = stack ? `\n${stack}` : '';
-        return `[${timestamp}] ${level} ${ctx}${logMessage}${metaStr}${stackStr}`;
-      }),
+      winston.format.printf(
+        ({ timestamp, level, message, context, stack, ...meta }) => {
+          const ctx = context ? `\x1b[36m[${context}]\x1b[39m ` : ''; // Cyan color for context
+          const logMessage =
+            typeof message === 'object'
+              ? JSON.stringify(message, null, 2)
+              : message;
+          const metaStr = Object.keys(meta).length
+            ? ` ${JSON.stringify(meta)}`
+            : '';
+          const stackStr = stack ? `\n${stack}` : '';
+          return `[${timestamp}] ${level} ${ctx}${logMessage}${metaStr}${stackStr}`;
+        },
+      ),
     );
 
     this.logger = winston.createLogger({
@@ -110,7 +122,10 @@ export class WinstonLogger implements LoggerService {
       } else if (optionalParams.length > 1) {
         meta = optionalParams[1];
       }
-      if (optionalParams.length === 1 && typeof optionalParams[0] !== 'string') {
+      if (
+        optionalParams.length === 1 &&
+        typeof optionalParams[0] !== 'string'
+      ) {
         meta = optionalParams[0];
       }
     }

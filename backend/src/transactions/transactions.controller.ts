@@ -1,13 +1,32 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
-import { IsNotEmpty, IsEnum, IsOptional, IsNumber, Min, IsUUID, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  Min,
+  IsUUID,
+  IsString,
+} from 'class-validator';
 
 class CreateTransactionDto {
   @IsUUID(4, { message: 'assetId ต้องเป็น UUID ที่ถูกต้อง' })
   assetId: string;
 
-  @IsEnum(['buy', 'sell', 'deposit', 'withdraw'], { message: 'ประเภทรายการไม่ถูกต้อง' })
+  @IsEnum(['buy', 'sell', 'deposit', 'withdraw'], {
+    message: 'ประเภทรายการไม่ถูกต้อง',
+  })
   side: 'buy' | 'sell' | 'deposit' | 'withdraw';
 
   @IsNumber({}, { message: 'จำนวนต้องเป็นตัวเลข' })
@@ -70,7 +89,10 @@ export class TransactionsController {
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     await this.transactionsService.remove(id, user.userId);
     return { success: true };
   }

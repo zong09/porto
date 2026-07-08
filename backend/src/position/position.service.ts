@@ -18,7 +18,10 @@ export interface PositionSummary {
 
 @Injectable()
 export class PositionService {
-  calculate(transactions: SimpleTransaction[], direction: 'long' | 'short' = 'long'): PositionSummary {
+  calculate(
+    transactions: SimpleTransaction[],
+    direction: 'long' | 'short' = 'long',
+  ): PositionSummary {
     // Sort transactions oldest to newest by date if dates are available,
     // otherwise preserve order (we assume it's sorted)
     const sorted = [...transactions].sort((a, b) => {

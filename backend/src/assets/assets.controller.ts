@@ -1,13 +1,33 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
-import { IsNotEmpty, IsEnum, IsOptional, IsString, IsNumber, IsUUID, IsArray, IsIn } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsUUID,
+  IsArray,
+  IsIn,
+} from 'class-validator';
 
 class CreateAssetDto {
   @IsUUID(4, { message: 'portfolioId ต้องเป็น UUID ที่ถูกต้อง' })
   portfolioId: string;
 
-  @IsEnum(['crypto', 'th', 'us', 'fund', 'deposit'], { message: 'ประเภทสินทรัพย์ไม่ถูกต้อง' })
+  @IsEnum(['crypto', 'th', 'us', 'fund', 'deposit'], {
+    message: 'ประเภทสินทรัพย์ไม่ถูกต้อง',
+  })
   type: 'crypto' | 'th' | 'us' | 'fund' | 'deposit';
 
   @IsNotEmpty({ message: 'Symbol ห้ามเป็นค่าว่าง' })
@@ -63,7 +83,10 @@ export class AssetsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     return this.assetsService.findOne(id, user.userId);
   }
 
@@ -95,11 +118,19 @@ export class AssetsController {
     @Body() body: UpdateAssetDto,
     @CurrentUser() user: any,
   ) {
-    return this.assetsService.update(id, user.userId, body.name, body.manualPrice);
+    return this.assetsService.update(
+      id,
+      user.userId,
+      body.name,
+      body.manualPrice,
+    );
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     await this.assetsService.remove(id, user.userId);
     return { success: true };
   }
