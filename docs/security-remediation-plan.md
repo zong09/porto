@@ -114,10 +114,10 @@ Documented pattern in `frontend/src`. Any XSS = token theft. No CSP headers to r
 4. ✅ **M3**: register password `@MinLength(8)` (login still accepts 4+ so existing users can sign in).
 5. ✅ **M5**: symbol/range regex validation in `prices.controller.ts`, `days` bounds check, `encodeURIComponent` on Binance URLs.
 
-### Phase 2 — this week (~half day)
-6. **H3**: upgrade `@nestjs/*` packages, clear `npm audit`, run unit + e2e tests.
-7. **M4**: add `helmet` with CSP (self + fonts.googleapis.com/fonts.gstatic.com).
-8. **H2b**: cron/scheduled job deleting demo users older than 48h.
+### Phase 2 — ✅ done 2026-07-08
+6. ✅ **H3**: `npm audit` now clean (0 vulnerabilities). The multer advisories were fixed via an npm `overrides` entry (`multer@2.2.0` — `@nestjs/platform-express@11.1.27` still pins 2.1.1 exactly); js-yaml DoS fixed via override `js-yaml@3.15.0` under `@istanbuljs/load-nyc-config` (dev-only ts-jest chain). When platform-express ships multer ≥2.2.0, the multer override can be dropped. Note: 7 unit tests in prices/assets/net-worth specs were already failing before the upgrade (stale after the Binance migration) — unrelated to this change.
+7. ✅ **M4**: `helmet` added in `main.ts` with CSP: `default-src 'self'`, styles allow `'unsafe-inline'` + fonts.googleapis.com (SPA uses inline style attributes for charts), fonts allow fonts.gstatic.com, `object-src 'none'`, `frame-ancestors 'none'`. Verified live — headers present on responses.
+8. ✅ **H2b**: `DemoCleanupService` (`src/seed/demo-cleanup.service.ts`) — `@nestjs/schedule` hourly cron deletes `is_demo=true` users older than 48h; FK `onDelete: 'CASCADE'` removes portfolios/assets/transactions/liabilities/history.
 
 ### Phase 3 — scheduled (larger changes)
 9. **M1**: disable `synchronize` in prod, adopt TypeORM migrations; enable Railway Postgres backups first.
