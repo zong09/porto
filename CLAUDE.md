@@ -56,6 +56,8 @@ Single Railway service: NestJS serves the React SPA from `backend/public/` and e
 
 **API client** — `src/api/apiClient.ts` uses `import.meta.env.DEV` to switch baseURL between `http://localhost:3002/api` (dev) and `/api` (prod).
 
+**Favicon & app icons** — Brand mark "design 3a" (sunset-orange squircle + 3-segment allocation donut + corner **P**). The PNG icon set (`favicon-16`/`favicon`/`porto-48`/`apple-touch-icon` + PWA sizes) and `site.webmanifest` live in `frontend/public/` and are wired via `<head>` in `frontend/index.html` (`theme-color #EC6530`). Vite copies `public/` → `dist/`, and `build:all` copies that into `backend/public/` — no separate step. Source/reference assets are in `design_handoff_portfolio_tracker/` (untracked). At ≤16px the donut is dropped and the tile is "P only" for legibility.
+
 ## Environment
 
 Local Postgres runs on **port 5435** (not 5432) — `docker-compose.yml` maps `5435:5432`. The backend `.env` already reflects this.
@@ -79,5 +81,7 @@ Production env vars required on Railway: `DATABASE_URL`, `JWT_SECRET` (≥32 cha
 | `backend/src/seed/seed.service.ts` | Demo data generator |
 | `frontend/src/store/useStore.ts` | All client state |
 | `frontend/src/api/apiClient.ts` | Axios instance + interceptors |
+| `frontend/index.html` | SPA entry — favicon/app-icon `<head>` tags + meta |
+| `frontend/public/` | Static assets: icon PNG set + `site.webmanifest` |
 | `frontend/tailwind.config.js` | Design tokens |
 | `package.json` (root) | `build:all` script for Railway |
