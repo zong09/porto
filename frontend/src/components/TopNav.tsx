@@ -31,7 +31,7 @@ export const TopNav: React.FC = () => {
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between gap-[16px] sm:gap-[20px] px-[16px] sm:px-[28px] py-[12px] sm:py-[14px] border-b border-[#eee3d2] bg-surface overflow-x-auto [&::-webkit-scrollbar]:hidden">
       <div className="flex items-center gap-[9px] cursor-pointer select-none" onClick={() => setPage('overview')}>
-        <div className="w-[26px] h-[26px] rounded-full bg-terracotta flex-shrink-0"></div>
+        <img src="/porto-64.png" alt="Porto" className="w-[26px] h-[26px] flex-shrink-0" />
         <span className="text-[17px] font-bold text-dark tracking-tight">Porto</span>
       </div>
 

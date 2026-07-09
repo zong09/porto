@@ -75,6 +75,11 @@ Porto runs as a unified service in production (e.g. Railway):
    - The Chart modal uses a max-width of `640px` with the same padding and border-radius.
    - Form fields use `gap-[14px]` layout spacing. Labels use `text-[12.5px] font-semibold text-muted mb-[6px]`. Inputs/selects use `py-[10px] px-[14px] rounded-[12px] text-[14px]`.
    - Segmented buttons use `py-[9px] rounded-[12px]`. Modal footer action buttons use Cancel (`py-[9px] px-[18px]`) and Save/Submit (`py-[9px] px-[22px]`) with `text-[13.5px] font-bold`.
+6. **Favicon & App Icons**:
+   - The brand mark ("design 3a") is a sunset-orange iOS-style squircle containing a 3-segment allocation donut with a corner **P**.
+   - The rendered PNG icon set (`favicon-16`, `favicon`, `porto-48`, `apple-touch-icon`, plus PWA sizes `porto-192`/`porto-512`) and `site.webmanifest` live in `frontend/public/` and are referenced from the `<head>` of [index.html](file:///Users/pchayphiphitthaphan/Gits/porto/frontend/index.html), with `theme-color` set to `#EC6530`.
+   - Vite copies `frontend/public/` into `dist/` on build, and `npm run build:all` copies `dist/` into `backend/public/` — no separate deployment step is required for the icons.
+   - Source/reference assets live in `design_handoff_portfolio_tracker/` (untracked). At sizes ≤16px the donut is dropped and the tile shows a solid "P" only for legibility.
 
 ---
 
@@ -122,5 +127,6 @@ CORS_ORIGINS=            # optional, comma-separated; empty = closed (SPA served
 | [prices.service.ts](file:///Users/pchayphiphitthaphan/Gits/porto/backend/src/prices/prices.service.ts) | Crypto & Stock pricing proxy + cache layer |
 | [useStore.ts](file:///Users/pchayphiphitthaphan/Gits/porto/frontend/src/store/useStore.ts) | Zustand frontend state store |
 | [apiClient.ts](file:///Users/pchayphiphitthaphan/Gits/porto/frontend/src/api/apiClient.ts) | Axios client with dynamic base URL and auth headers |
+| [index.html](file:///Users/pchayphiphitthaphan/Gits/porto/frontend/index.html) | SPA entry — favicon/app-icon `<head>` tags + meta |
 | [tailwind.config.js](file:///Users/pchayphiphitthaphan/Gits/porto/frontend/tailwind.config.js) | Frontend styling design tokens |
 | [package.json](file:///Users/pchayphiphitthaphan/Gits/porto/package.json) | Workspace runner script configurations |

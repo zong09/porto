@@ -108,6 +108,8 @@ In production the schema is managed by TypeORM migrations applied automatically 
 ```
 porto/
 ├── frontend/               # React 19 + Vite + TypeScript
+│   ├── index.html          # SPA entry — favicon/app-icon <head> tags
+│   ├── public/             # Static assets: icon PNG set + site.webmanifest
 │   └── src/
 │       ├── api/            # Axios client with JWT interceptor
 │       ├── components/     # TopNav, LiveTicker, SankeyCard, 6 modals
@@ -209,7 +211,12 @@ Design spec in `design_handoff_portfolio_tracker/`. Key tokens:
 
 - Font: Anuphan (Google Fonts)
 - Primary: `#b45a3c` · Surface: `#FAF5EC` · Dark: `#3d3328`
+- Brand orange (app icon): `#EC6530` · gradient `#F07A45` → `#EC6530` → `#C24A1E`
 - Charts: custom SVG — no chart library dependency
+
+### App Icon & Favicon
+
+Brand mark "design 3a" — a sunset-orange squircle with a 3-segment allocation donut and a corner **P**. The rendered PNG set (`favicon-16`, `favicon`, `porto-48`, `apple-touch-icon`, and PWA sizes `porto-192`/`porto-512`) plus `site.webmanifest` live in `frontend/public/` and are wired via the `<head>` of `frontend/index.html` (`theme-color` `#EC6530`). Vite bundles `public/` into the build, so `npm run build:all` ships the icons to `backend/public/` with no extra step. At sizes ≤16px the donut is dropped in favour of a solid "P" for legibility. Source/reference assets are in `design_handoff_portfolio_tracker/`.
 
 ### Visualisations
 
