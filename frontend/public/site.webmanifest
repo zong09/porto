@@ -1,0 +1,11 @@
+{
+  "name": "Porto",
+  "short_name": "Porto",
+  "icons": [
+    { "src": "/porto-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/porto-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#EC6530",
+  "background_color": "#FAF5EC",
+  "display": "standalone"
+}

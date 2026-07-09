@@ -27,7 +27,7 @@ cd backend && npm run test:e2e          # Run NestJS End-to-End (e2e) tests
 Porto runs as a unified service in production (e.g. Railway):
 - **Server**: NestJS serves statically built React SPA pages out of `backend/public/`.
 - **API**: Exposed under the `/api` prefix.
-- **Client**: Built with React 19 + Vite. In local development, the client connects to `http://localhost:3000/api` directly without Vite proxying.
+- **Client**: Built with React 19 + Vite. In local development, the client connects to `http://localhost:3002/api` directly without Vite proxying.
 - **Base Currency & Dual Currency**: Default base currency is USD. Application supports concurrent dual-currency display for both USD and THB.
 
 ---
@@ -35,19 +35,23 @@ Porto runs as a unified service in production (e.g. Railway):
 ## Backend Patterns
 
 1. **TypeORM Configuration**:
-   - `synchronize: true` is configured in both development and production for automatic migrations.
+   - `synchronize: true` in development only. Production applies committed migrations on boot (`migrationsRun`); after changing an entity, generate a migration (`npm run migration:generate -- src/migrations/Name` against a scratch DB — see `docs/security-remediation-plan.md`) and commit it.
+   - The shared entity list lives in `src/entities.ts`; the migration CLI uses `src/data-source.ts`.
    - For monetary and asset metrics, use `NUMERIC(20,8)` columns with a `from: parseFloat` transformer. Do not store JavaScript floats directly.
-2. **Authentication**:
+2. **Authentication & Hardening**:
    - `JwtAuthGuard` is enabled globally.
    - Exclude specific public routes (like login, register, config) using the `@Public()` custom decorator.
    - Extract user details inside controllers using `@CurrentUser()`.
+   - The app refuses to boot unless `JWT_SECRET` is set and at least 32 characters (no fallback). Register requires 8+ character passwords.
+   - Rate limiting via `@nestjs/throttler`: 100 req/min global; login 5/min, register 3/min, demo 2/hour. `helmet` sets a CSP allowing only self + Google Fonts.
+   - Demo users older than 48 hours are deleted by an hourly cron (`src/seed/demo-cleanup.service.ts`).
 3. **Avg-Cost Math Engine (Pure)**:
    - Position calculations are computed inside [position.service.ts](file:///Users/pchayphiphitthaphan/Gits/porto/backend/src/position/position.service.ts). This is a pure mathematics service; do not perform database queries or TypeORM operations inside this file.
 4. **Third-Party Price Fetching**:
    - [prices.service.ts](file:///Users/pchayphiphitthaphan/Gits/porto/backend/src/prices/prices.service.ts) caches rates for 60 seconds (crypto) and 90 seconds (stocks).
    - Yahoo Finance calls retry with crumb validation (`query2.finance.yahoo.com/v1/test/getcrumb`) on 401 errors.
    - For Thai stock symbols, append `.BK` to the query.
-   - Always request `bitcoin` to extract live THB/USD currency rates.
+   - Crypto prices come from Binance (batch, then per-symbol / Yahoo fallback for unsupported symbols); THB/USD FX is derived from Yahoo `THB=X`.
 
 ---
 
@@ -84,9 +88,9 @@ DB_PORT=5435
 DB_USERNAME=postgres
 DB_PASSWORD=postgrespassword
 DB_DATABASE=porto
-JWT_SECRET=your-secret-key-here
+JWT_SECRET=your-secret-key-here-at-least-32-chars
 JWT_EXPIRES_IN=7d
-PORT=3000
+PORT=3002
 ENABLE_DEMO=false
 ENABLE_REGISTER=true
 ```
@@ -98,11 +102,12 @@ ENABLE_REGISTER=true
 
 ```
 DATABASE_URL=<database-url>
-JWT_SECRET=<jwt-secret-string>
+JWT_SECRET=<jwt-secret-string, >= 32 chars>
 JWT_EXPIRES_IN=7d
 NODE_ENV=production
 ENABLE_DEMO=false
 ENABLE_REGISTER=true
+CORS_ORIGINS=            # optional, comma-separated; empty = closed (SPA served same-origin)
 ```
 
 ---
