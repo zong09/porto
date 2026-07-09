@@ -84,7 +84,9 @@ export const Login: React.FC = () => {
 
       <div className="flex-1 min-w-[380px] bg-gradient-to-br from-terracotta via-terracotta-hover to-brandDd text-white p-14 flex flex-col justify-between min-h-[350px]">
         <div className="flex items-center gap-[11px]">
-          <div className="w-[30px] h-[30px] rounded-full bg-white flex-shrink-0"></div>
+          <div className="w-[34px] h-[34px] rounded-[9px] bg-white/95 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <img src="/porto-64.png" alt="Porto" className="w-[26px] h-[26px]" />
+          </div>
           <div className="text-[19px] font-bold tracking-tight">Porto</div>
         </div>
 
