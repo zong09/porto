@@ -22,7 +22,7 @@ export const TopNav: React.FC = () => {
     }`;
 
   const pillClass = (active: boolean) =>
-    `px-[14px] py-[5px] rounded-full cursor-pointer transition-all duration-150 ${
+    `px-[10px] sm:px-[14px] py-[5px] rounded-full cursor-pointer transition-all duration-150 whitespace-nowrap ${
       active ? 'text-surface bg-dark' : 'text-muted bg-transparent hover:text-dark'
     }`;
 
@@ -43,16 +43,16 @@ export const TopNav: React.FC = () => {
         <span onClick={() => setPage('settings')} className={navLinkClass(page === 'settings')} id="nav-settings">{t('common.settings')}</span>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
 
         {/* Language Switcher */}
-        <div className="flex bg-chipBg rounded-full p-[3px] text-[12.5px] font-bold select-none">
+        <div className="flex bg-chipBg rounded-full p-[3px] text-[11.5px] sm:text-[12.5px] font-bold select-none">
           <div onClick={() => setLanguage('th')} className={pillClass(language === 'th')} id="btn-lang-th">TH</div>
           <div onClick={() => setLanguage('en')} className={pillClass(language === 'en')} id="btn-lang-en">EN</div>
         </div>
 
         {/* Currency Switcher */}
-        <div className="flex bg-chipBg rounded-full p-[3px] text-[12.5px] font-bold select-none">
+        <div className="flex bg-chipBg rounded-full p-[3px] text-[11.5px] sm:text-[12.5px] font-bold select-none">
           <div onClick={() => setCurrency('THB')} className={pillClass(currency === 'THB')} id="btn-thb">฿ THB</div>
           <div onClick={() => setCurrency('USD')} className={pillClass(currency === 'USD')} id="btn-usd">$ USD</div>
         </div>
@@ -60,7 +60,7 @@ export const TopNav: React.FC = () => {
         {/* Add Transaction Button */}
         <button
           onClick={handleAddClick}
-          className="px-[14px] sm:px-[18px] py-[8px] rounded-full bg-terracotta hover:opacity-88 text-white text-[13px] font-bold border-none cursor-pointer transition-all duration-150 active:scale-98 shadow-sm flex items-center justify-center gap-1.5"
+          className="px-[12px] sm:px-[18px] py-[8px] rounded-full bg-terracotta hover:opacity-88 text-white text-[13px] font-bold border-none cursor-pointer transition-all duration-150 active:scale-98 shadow-sm flex items-center justify-center gap-1.5 flex-shrink-0"
           id="btn-add-txn"
         >
           <span className="sm:hidden text-base leading-none">+</span>
@@ -70,10 +70,18 @@ export const TopNav: React.FC = () => {
         {/* Logout Button */}
         <button
           onClick={logout}
-          className="px-[13px] py-[8px] rounded-full bg-transparent hover:bg-chipBg text-muted hover:text-dark text-[12.5px] font-bold border border-inputBorder cursor-pointer transition-all duration-150"
+          className="px-[10px] sm:px-[13px] py-[8px] rounded-full bg-transparent hover:bg-chipBg text-muted hover:text-dark text-[12.5px] font-bold border border-inputBorder cursor-pointer transition-all duration-150 whitespace-nowrap flex items-center justify-center flex-shrink-0"
           id="btn-logout"
+          aria-label={t('common.logout')}
+          title={t('common.logout')}
         >
-          {t('common.logout')}
+          {/* Icon on mobile, text on larger screens */}
+          <svg className="sm:hidden w-[16px] h-[16px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span className="hidden sm:inline">{t('common.logout')}</span>
         </button>
       </div>
     </nav>

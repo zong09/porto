@@ -122,19 +122,20 @@ export const Transactions: React.FC = () => {
   return (
     <div className="flex flex-col py-6 select-none" data-screen-label="Transactions">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 pt-[28px] pb-[18px] border-b border-inputBorder/20 flex-wrap">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[22px] font-bold text-dark">{t('transactions.title')}</h2>
-          <span className="text-xs.5 text-faint-darker font-bold bg-chipBg px-2 py-0.5 rounded-md mt-0.5">
+      <div className="flex items-center justify-between gap-3 pt-[28px] pb-[18px] border-b border-inputBorder/20">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <h2 className="text-[20px] sm:text-[22px] font-bold text-dark truncate">{t('transactions.title')}</h2>
+          <span className="text-xs.5 text-faint-darker font-bold bg-chipBg px-2 py-0.5 rounded-md whitespace-nowrap flex-shrink-0">
             {mergedRows.length} {t('overview.itemsCount')}
           </span>
         </div>
         <button
           onClick={() => openModal('tx')}
-          className="px-[18px] py-[8px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13px] font-bold border-none cursor-pointer transition-colors shadow-sm ml-auto"
+          className="px-[13px] sm:px-[18px] py-[8px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white text-[13px] font-bold border-none cursor-pointer transition-colors shadow-sm flex-shrink-0 whitespace-nowrap"
           id="btn-add-txn-tx-page"
         >
-          {t('transactions.recordBtn')}
+          <span className="sm:hidden text-base leading-none">+</span>
+          <span className="hidden sm:inline">{t('transactions.recordBtn')}</span>
         </button>
       </div>
 
