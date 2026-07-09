@@ -145,20 +145,20 @@ export const Liabilities: React.FC = () => {
       </div>
 
       {/* Summary Strip (Dark Theme style) */}
-      <div className="bg-dark rounded-[22px] px-[28px] py-[24px] flex flex-wrap items-center gap-x-7 gap-y-3 mt-6 text-white shadow-md border border-inputBorder/10 select-none">
-        <div className="flex flex-col gap-1">
-          <span className="text-[12px] text-white/60 font-bold">{language === 'th' ? 'สินทรัพย์รวม' : 'Total Assets'}</span>
-          <span className="text-[24px] leading-tight font-bold text-positive-text tabular-nums">{formatMoney(totalAssets)}</span>
+      <div className="bg-dark rounded-[22px] px-[20px] sm:px-[28px] py-[20px] sm:py-[24px] flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-x-7 sm:gap-y-3 mt-6 text-white shadow-md border border-inputBorder/10 select-none">
+        <div className="flex flex-row items-baseline justify-between gap-3 w-full sm:w-auto sm:flex-col sm:gap-1">
+          <span className="text-[12px] text-white/60 font-bold whitespace-nowrap">{language === 'th' ? 'สินทรัพย์รวม' : 'Total Assets'}</span>
+          <span className="text-[19px] sm:text-[24px] leading-tight font-bold text-positive-text tabular-nums">{formatMoney(totalAssets)}</span>
         </div>
-        <span className="text-[22px] text-white/40 font-light select-none">—</span>
-        <div className="flex flex-col gap-1">
-          <span className="text-[12px] text-white/60 font-bold">{language === 'th' ? 'หนี้สินรวม' : 'Total Liabilities'}</span>
-          <span className="text-[24px] leading-tight font-bold text-secondary tabular-nums">{formatMoney(totalLiabilities)}</span>
+        <span className="hidden sm:inline text-[22px] text-white/40 font-light select-none">—</span>
+        <div className="flex flex-row items-baseline justify-between gap-3 w-full sm:w-auto sm:flex-col sm:gap-1">
+          <span className="text-[12px] text-white/60 font-bold whitespace-nowrap">{language === 'th' ? 'หนี้สินรวม' : 'Total Liabilities'}</span>
+          <span className="text-[19px] sm:text-[24px] leading-tight font-bold text-secondary tabular-nums">{formatMoney(totalLiabilities)}</span>
         </div>
-        <span className="text-[22px] text-white/40 font-light select-none">=</span>
-        <div className="flex flex-col gap-1">
-          <span className="text-[12px] text-white/60 font-bold">Net Worth</span>
-          <span className="text-[24px] leading-tight font-bold text-white tabular-nums">{formatMoney(netWorth)}</span>
+        <span className="hidden sm:inline text-[22px] text-white/40 font-light select-none">=</span>
+        <div className="flex flex-row items-baseline justify-between gap-3 w-full sm:w-auto sm:flex-col sm:gap-1 pt-3 sm:pt-0 border-t border-white/10 sm:border-t-0">
+          <span className="text-[12px] text-white/60 font-bold whitespace-nowrap">Net Worth</span>
+          <span className="text-[19px] sm:text-[24px] leading-tight font-bold text-white tabular-nums">{formatMoney(netWorth)}</span>
         </div>
       </div>
 
@@ -188,14 +188,15 @@ export const Liabilities: React.FC = () => {
         {liabilities.map((l, index) => (
           <div
             key={l.id}
-            className="bg-white rounded-2xl px-[22px] py-[16px] flex items-center justify-between gap-4 border border-inputBorder/15 hover:border-inputBorder/30 shadow-sm transition-all duration-150"
+            className="bg-white rounded-2xl px-[16px] sm:px-[22px] py-[14px] sm:py-[16px] flex flex-col sm:flex-row sm:items-center gap-3 border border-inputBorder/15 hover:border-inputBorder/30 shadow-sm transition-all duration-150"
           >
-            <div className="flex items-center gap-3 select-none">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: debtPalette[index % 6] }}></div>
-              <span className="text-[14.5px] font-bold text-dark">{l.name}</span>
-            </div>
-            <div className="ml-auto flex items-center gap-3">
-              <div className="flex items-baseline gap-1.5">
+            {/* Name + amount */}
+            <div className="flex items-center justify-between gap-3 min-w-0 sm:flex-1">
+              <div className="flex items-center gap-3 select-none min-w-0">
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: debtPalette[index % 6] }}></div>
+                <span className="text-[14.5px] font-bold text-dark truncate">{l.name}</span>
+              </div>
+              <div className="flex items-baseline gap-1.5 flex-shrink-0">
                 <span className="text-[15px] font-bold text-dark tabular-nums">
                   {formatNativePrimary(Number(l.amount), l.currency as 'THB' | 'USD')}
                 </span>
@@ -203,28 +204,31 @@ export const Liabilities: React.FC = () => {
                   ({formatNativeSecondary(Number(l.amount), l.currency as 'THB' | 'USD')})
                 </span>
               </div>
+            </div>
+            {/* Actions */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <button
                 onClick={() => openModal('liability', { liabilityId: l.id, liabilityMode: 'pay' })}
-                className="px-[14px] py-[7px] rounded-[9px] border border-softH bg-white text-positive-text text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
+                className="px-[14px] py-[7px] rounded-[9px] border border-softH bg-white text-positive-text text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors whitespace-nowrap"
               >
                 {language === 'th' ? 'จ่ายหนี้' : 'Pay'}
               </button>
               <button
                 onClick={() => openModal('liability', { liabilityId: l.id, liabilityMode: 'add' })}
-                className="px-[14px] py-[7px] rounded-[9px] border border-softH bg-white text-lossD text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
+                className="px-[14px] py-[7px] rounded-[9px] border border-softH bg-white text-lossD text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors whitespace-nowrap"
               >
                 {language === 'th' ? 'กู้เพิ่ม' : 'Add debt'}
               </button>
               <button
                 onClick={() => openModal('liability', { liabilityId: l.id, liabilityMode: 'set' })}
                 title={language === 'th' ? 'แก้ไขยอดสุทธิ' : 'Set balance'}
-                className="px-[10px] py-[7px] rounded-[9px] border border-softH bg-white text-muted text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors"
+                className="px-[10px] py-[7px] rounded-[9px] border border-softH bg-white text-muted text-[12.5px] font-bold hover:bg-chipBg cursor-pointer transition-colors whitespace-nowrap"
               >
                 {language === 'th' ? 'แก้ไข' : 'Edit'}
               </button>
               <button
                 onClick={() => handleDelete(l.id, l.name)}
-                className="bg-transparent border-none text-faint hover:text-negative-text cursor-pointer transition-colors p-1"
+                className="bg-transparent border-none text-faint hover:text-negative-text cursor-pointer transition-colors p-1 flex-shrink-0"
               >
                 ✕
               </button>

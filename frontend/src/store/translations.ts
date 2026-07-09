@@ -152,7 +152,7 @@ export const translations: Record<string, any> = {
     totalPortCost: { th: 'ทุนรวม', en: 'Total Cost' },
   },
   transactions: {
-    title: { th: 'บันทึกรายการซื้อขาย (Transactions)', en: 'Transaction History' },
+    title: { th: 'บันทึกรายการซื้อขาย', en: 'Transaction History' },
     filterAllPorts: { th: 'ทุกพอร์ต', en: 'All Portfolios' },
     filterAllTypes: { th: 'ทุกประเภทสินทรัพย์', en: 'All Asset Types' },
     colDate: { th: 'วันที่', en: 'Date' },
