@@ -2,7 +2,7 @@ import { HelpCircle } from 'lucide-react';
 import React from 'react';
 import { apiClient } from '../api/apiClient';
 import { SankeyCard } from '../components/SankeyCard';
-import { useAssets, useAuthConfig, useLiabilities, useNetWorth, usePortfolios } from '../hooks/useApi';
+import { useAssets, useAuthConfig, useLiabilities, useNetWorth, usePortfolios, useTransactions } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 import { useStore } from '../store/useStore';
 import { computeSankey } from '../utils/sankey';
@@ -62,11 +62,90 @@ function redistributeAreas(values: number[], totalArea: number, minFrac: number)
   return areas;
 }
 
+// Heatmap intensity ramp, indexed by transactions-per-day bucket: 0 / 1 / 2 / 3+
+const HEATMAP_LEVELS = ['bg-inputBorder', 'bg-secondaryL', 'bg-secondary', 'bg-terracotta'];
+
+interface HeatmapCell { key: string; future: boolean; level: number; label: string; }
+interface HeatmapWeek { month: string; days: HeatmapCell[]; }
+
+// Hover state is held here rather than in Overview so that dragging the cursor across
+// ~370 cells re-renders only this card, not the treemap, Sankeys and holdings table.
+const ConsistencyCard: React.FC<{
+  weeks: HeatmapWeek[];
+  rangeLabel: string;
+  summaryLabel: string;
+  isMobile: boolean;
+  t: (key: string, defaultText?: string) => string;
+}> = ({ weeks, rangeLabel, summaryLabel, isMobile, t }) => {
+  const [hoveredDay, setHoveredDay] = React.useState<string | null>(null);
+  const gap = isMobile ? 'gap-[2px]' : 'gap-[3px]';
+
+  return (
+    <div className="bg-white rounded-[20px] p-[20px_24px] border border-inputBorder/20 shadow-sm mt-6 w-full">
+      <div className="flex items-center gap-3 flex-wrap mb-3.5">
+        <h3 className="text-[14px] font-bold text-dark">{t('overview.consistencyTitle')}</h3>
+        <span className="text-[12px] text-muted ml-auto">{summaryLabel}</span>
+        <div className="min-w-0 sm:min-w-[168px] flex justify-end">
+          <span
+            className={`text-[12px] font-bold rounded-full px-[11px] py-[3px] whitespace-nowrap transition-colors ${
+              hoveredDay ? 'bg-chipBg text-terracotta-hover' : 'text-faint-darker'
+            }`}
+          >
+            {hoveredDay || t('overview.consistencyHint')}
+          </span>
+        </div>
+      </div>
+
+      {/* Month labels — one slot per week column, most of them blank */}
+      <div className={`flex ${gap} mb-1.5`}>
+        {weeks.map((w, wi) => (
+          <div
+            key={wi}
+            className="flex-1 min-w-0 text-[10.5px] font-bold tracking-[0.04em] text-faint-darker whitespace-nowrap"
+          >
+            {w.month}
+          </div>
+        ))}
+      </div>
+
+      <div className={`flex ${gap}`}>
+        {weeks.map((w, wi) => (
+          <div key={wi} className={`flex-1 min-w-0 flex flex-col ${gap}`}>
+            {w.days.map((d) =>
+              d.future ? (
+                <div key={d.key} className="w-full aspect-square rounded-[4px] bg-transparent"></div>
+              ) : (
+                <div
+                  key={d.key}
+                  title={d.label}
+                  onMouseEnter={() => setHoveredDay(d.label)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`w-full aspect-square rounded-[4px] relative cursor-default transition-[transform,box-shadow] duration-[130ms] ease-[cubic-bezier(.34,1.56,.64,1)] hover:scale-[1.22] hover:shadow-[0_2px_8px_rgba(0,0,0,0.16)] hover:z-[2] ${HEATMAP_LEVELS[d.level]}`}
+                ></div>
+              )
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-[7px] mt-3 text-[11.5px] text-faint-darker">
+        <span>{rangeLabel}</span>
+        <span className="ml-auto">{t('overview.consistencyLess')}</span>
+        {HEATMAP_LEVELS.map((cls, i) => (
+          <span key={i} className={`w-3 h-3 rounded-[3px] ${cls}`}></span>
+        ))}
+        <span>{t('overview.consistencyMore')}</span>
+      </div>
+    </div>
+  );
+};
+
 export const Overview: React.FC = () => {
   const { currency, setPage, openModal } = useStore();
   const { data: portfolios = [], isLoading: loadingPorts } = usePortfolios();
   const { data: assets = [], isLoading: loadingAssets } = useAssets();
   const { data: liabilities = [] } = useLiabilities();
+  const { data: transactions = [] } = useTransactions();
   const { summary, history } = useNetWorth(365);
   const { data: config } = useAuthConfig();
   const { t, language } = useTranslation();
@@ -479,6 +558,82 @@ export const Overview: React.FC = () => {
     return rows;
   }, [assets, portfolios, totalAssets, fx, themeColors]);
 
+  // Logging consistency heatmap — one cell per day, coloured by that day's transaction count
+  const consistency = React.useMemo(() => {
+    const weekCount = isMobile ? 26 : 53;
+    const locale = language === 'th' ? 'th-TH' : 'en-US';
+    const monthShort = (d: Date) => d.toLocaleDateString(locale, { month: 'short' });
+    const ymd = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const txPerDay: Record<string, number> = {};
+    for (const tx of transactions) {
+      const key = (tx.date || '').slice(0, 10);
+      if (key) txPerDay[key] = (txPerDay[key] || 0) + 1;
+    }
+
+    // Build with (y, m, d + n) rather than epoch arithmetic so DST shifts can't drift the grid
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastSunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+    const firstDay = new Date(
+      lastSunday.getFullYear(),
+      lastSunday.getMonth(),
+      lastSunday.getDate() - (weekCount - 1) * 7
+    );
+
+    const weeks: HeatmapWeek[] = [];
+    let loggedDays = 0;
+    let bestStreak = 0;
+    let run = 0;
+    let prevMonth = -1;
+
+    for (let w = 0; w < weekCount; w++) {
+      const days: HeatmapCell[] = [];
+      let month = '';
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + w * 7 + i);
+        const key = ymd(d);
+        const future = d.getTime() > today.getTime();
+        const count = future ? 0 : txPerDay[key] || 0;
+        if (!future) {
+          if (count > 0) {
+            loggedDays++;
+            run++;
+            if (run > bestStreak) bestStreak = run;
+          } else {
+            run = 0;
+          }
+          // Label a column only when its Sunday opens a new month; skip w=0 so it can't clip
+          if (i === 0 && d.getMonth() !== prevMonth) {
+            prevMonth = d.getMonth();
+            if (w > 0) month = monthShort(d);
+          }
+        }
+        const countLabel = count === 0
+          ? (language === 'th' ? 'ไม่มีรายการ' : 'no transactions')
+          : language === 'th'
+            ? `${count} รายการ`
+            : `${count} ${count === 1 ? 'transaction' : 'transactions'}`;
+        days.push({
+          key,
+          future,
+          level: count === 0 ? 0 : count === 1 ? 1 : count === 2 ? 2 : 3,
+          label: `${d.getDate()} ${monthShort(d)} · ${countLabel}`,
+        });
+      }
+      weeks.push({ month, days });
+    }
+
+    const displayYear = (d: Date) => (language === 'th' ? d.getFullYear() + 543 : d.getFullYear());
+    const rangeLabel = `${monthShort(firstDay)} ${displayYear(firstDay)} – ${monthShort(today)} ${displayYear(today)}`;
+    const summaryLabel = language === 'th'
+      ? `บันทึก ${loggedDays} วัน · ต่อเนื่องสูงสุด ${bestStreak} วัน`
+      : `${loggedDays} days logged · ${bestStreak}-day best streak`;
+
+    return { weeks, rangeLabel, summaryLabel };
+  }, [transactions, language, isMobile]);
+
   const getSparkline = (symbol: string, isPositive: boolean) => {
     let seed = 0;
     for (let i = 0; i < symbol.length; i++) seed += symbol.charCodeAt(i);
@@ -615,6 +770,17 @@ export const Overview: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Logging consistency heatmap */}
+      {transactions.length > 0 && (
+        <ConsistencyCard
+          weeks={consistency.weeks}
+          rangeLabel={consistency.rangeLabel}
+          summaryLabel={consistency.summaryLabel}
+          isMobile={isMobile}
+          t={t}
+        />
       )}
 
       {/* 4. Empty State */}
