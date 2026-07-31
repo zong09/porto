@@ -9,11 +9,9 @@ backend/dist/
 backend/public/
 
 # Environment files and secrets
-.env
-.env.local
-.env.*.local
+.env*
 *.env
-backend/.env
+!.env.example
 
 # Logs
 logs/

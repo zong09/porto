@@ -202,6 +202,38 @@ describe('AuthService', () => {
       jest.spyOn(configService, 'get').mockReturnValue('false');
       await expect(service.demo()).rejects.toThrow(ForbiddenException);
     });
+
+    it('gives each demo account its own random password, not a shared literal', async () => {
+      // The old code hashed the constant 'demo-password' for every demo user.
+      // In a public repo that is a published credential, and the only remaining
+      // secret (the email) was being written to the logs.
+      (bcrypt.hash as jest.Mock).mockResolvedValue('demo-hashed-password');
+      // This suite shares one bcrypt mock across tests, so only count our calls.
+      (bcrypt.hash as jest.Mock).mockClear();
+
+      await service.demo();
+      await service.demo();
+
+      const hashedInputs = (bcrypt.hash as jest.Mock).mock.calls.map((c) => c[0]);
+      expect(hashedInputs).toHaveLength(2);
+      expect(hashedInputs).not.toContain('demo-password');
+      expect(hashedInputs[0]).not.toBe(hashedInputs[1]);
+      // 32 random bytes as hex.
+      for (const input of hashedInputs) {
+        expect(input).toMatch(/^[0-9a-f]{64}$/);
+      }
+    });
+
+    it('derives the demo email from a CSPRNG, not Math.random', async () => {
+      (bcrypt.hash as jest.Mock).mockResolvedValue('demo-hashed-password');
+
+      await service.demo();
+
+      const created = (userRepo.create as jest.Mock).mock.calls.at(-1)![0];
+      expect(created.email).toMatch(
+        /^demo-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}@porto\.app$/,
+      );
+    });
   });
 
   describe('validateUserById', () => {

@@ -15,6 +15,7 @@ import { Portfolio } from '../portfolios/entities/portfolio.entity';
 import { Liability } from '../liabilities/entities/liability.entity';
 import { NetWorthHistory } from '../net-worth/entities/net-worth-history.entity';
 import { SeedService } from '../seed/seed.service';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 @Injectable()
 export class AuthService {
@@ -100,10 +101,10 @@ export class AuthService {
     }
 
     // Generate an isolated demo user
-    const randomId = Math.random().toString(36).substring(2, 8);
+    const randomId = randomUUID();
     const email = `demo-${randomId}@porto.app`;
-    const name = `ผู้ใช้เดโม ${randomId}`;
-    const passwordHash = await bcrypt.hash('demo-password', 10);
+    const name = `ผู้ใช้เดโม ${randomId.slice(0, 6)}`;
+    const passwordHash = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
 
     const user = this.userRepo.create({
       email,
@@ -112,7 +113,7 @@ export class AuthService {
       isDemo: true,
     });
     const saved = await this.userRepo.save(user);
-    this.logger.log(`Demo user created id=${saved.id} email=${email}`);
+    this.logger.log(`Demo user created id=${saved.id}`);
 
     // Seed data
     await this.seedService.seedDemoUser(saved.id);
