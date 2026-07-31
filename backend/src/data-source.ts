@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { ENTITIES } from './entities';
+import { isLocalDatabaseUrl } from './config/env.validation';
 
 // CLI-only DataSource for generating/running migrations by hand:
 //   npm run migration:generate -- src/migrations/Name
@@ -16,10 +17,7 @@ export default new DataSource(
         url,
         entities: ENTITIES,
         migrations: ['src/migrations/*.ts'],
-        ssl:
-          url.includes('localhost') || url.includes('127.0.0.1')
-            ? false
-            : { rejectUnauthorized: false },
+        ssl: isLocalDatabaseUrl(url) ? false : { rejectUnauthorized: false },
       }
     : {
         type: 'postgres',

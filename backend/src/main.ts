@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { WinstonLogger } from './logger/winston-logger';
 
@@ -52,9 +53,14 @@ async function bootstrap() {
 
   // CORS: prod serves the SPA same-origin, so only allow explicitly configured
   // origins there; dev allows the Vite dev server.
+  //
+  // Read NODE_ENV through ConfigService, not process.env: env.validation.ts has
+  // already rejected an invalid value and applied the default by this point, so
+  // a typo can no longer quietly fall through to the dev branch.
+  const config = app.get(ConfigService);
   const allowedOrigins =
-    process.env.NODE_ENV === 'production'
-      ? (process.env.CORS_ORIGINS ?? '').split(',').filter(Boolean)
+    config.get<string>('NODE_ENV') === 'production'
+      ? (config.get<string>('CORS_ORIGINS') ?? '').split(',').filter(Boolean)
       : ['http://localhost:5174'];
   app.enableCors({
     origin: allowedOrigins,

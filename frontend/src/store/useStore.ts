@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { ThemeId } from '../utils/themes';
+import { queryClient } from '../api/queryClient';
 
 export type PageType = 'overview' | 'ports' | 'tx' | 'debt' | 'settings';
 export type CurrencyType = 'THB' | 'USD';
@@ -102,11 +103,20 @@ export const useStore = create<StoreState>((set) => {
       set({ theme });
     },
     login: (user, token) => {
+      // Query keys are not user-scoped, so the cache from a previous identity
+      // would otherwise be served to this one on first render. This matters most
+      // for "Try Demo", which calls login() while the real user is still signed
+      // in — without the clear, real financial data renders inside the demo
+      // session until the 2-minute refetch replaces it.
+      queryClient.clear();
       localStorage.setItem('porto-token-v1', token);
       localStorage.setItem('porto-user-v1', JSON.stringify(user));
       set({ user, token, page: 'overview' });
     },
     logout: () => {
+      // Logging out does not reload the page, so the in-memory cache survives
+      // into the next session unless it is dropped here.
+      queryClient.clear();
       localStorage.removeItem('porto-token-v1');
       localStorage.removeItem('porto-user-v1');
       set({
