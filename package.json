@@ -14,6 +14,6 @@
     "start": "npm run start:prod"
   },
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "concurrently": "^10.0.5"
   }
 }
