@@ -10,8 +10,6 @@ updates:
       time: '09:00'
       timezone: Asia/Bangkok
     open-pull-requests-limit: 3
-    labels:
-      - dependencies
     commit-message:
       prefix: chore
       include: scope
@@ -31,9 +29,6 @@ updates:
       time: '09:00'
       timezone: Asia/Bangkok
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - backend
     commit-message:
       prefix: chore
       include: scope
@@ -59,9 +54,6 @@ updates:
       time: '09:00'
       timezone: Asia/Bangkok
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - frontend
     commit-message:
       prefix: chore
       include: scope
