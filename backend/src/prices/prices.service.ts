@@ -139,6 +139,13 @@ export class PricesService {
           }
         }
 
+        // Nothing resolved anywhere (Binance batch, per-symbol, Yahoo fallback).
+        // Fail into the catch below so callers can apply their own fallback,
+        // and so an empty result never gets cached for 60s.
+        if (Object.keys(result).length === 0) {
+          throw new Error(`no prices resolved for symbols=${ids.join(',')}`);
+        }
+
         this.setCached(cacheKey, result, 60000); // 60s cache
         this.logger.log(`Successfully fetched crypto prices from Binance`);
         return result;
@@ -266,6 +273,10 @@ export class PricesService {
             return result;
           }
         }
+        // fetchYahooChart swallows its own failures and returns null, so reaching
+        // here means no usable quote. Fail into the catch below rather than
+        // returning undefined.
+        throw new Error(`Yahoo Finance returned no usable data for ${symbol}`);
       } catch (e) {
         this.logger.error(`Error fetching stock price: ${e.message}`);
         const stale = this.cache.get(cacheKey);
