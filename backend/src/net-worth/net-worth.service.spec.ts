@@ -90,7 +90,7 @@ describe('NetWorthService', () => {
           useValue: {
             getFxRate: jest.fn().mockResolvedValue(35),
             getCryptoPrices: jest.fn().mockResolvedValue({
-              bitcoin: { usd: 60000, usd_24h_change: 2.5 },
+              BTC: { usd: 60000, usd_24h_change: 2.5 },
             }),
             getStockPrice: jest.fn().mockResolvedValue({
               price: 150,

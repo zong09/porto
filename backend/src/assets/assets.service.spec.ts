@@ -89,7 +89,7 @@ describe('AssetsService', () => {
           provide: PricesService,
           useValue: {
             getCryptoPrices: jest.fn().mockResolvedValue({
-              bitcoin: {
+              BTC: {
                 usd: 60000,
                 usd_24h_change: 2.5,
                 thb: 2100000,

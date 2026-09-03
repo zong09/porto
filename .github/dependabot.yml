@@ -38,6 +38,12 @@ updates:
       prefix: chore
       include: scope
     groups:
+      # A dependency lands in the first group it matches, so this must stay
+      # above backend-minor-patch. No update-types, so majors group too —
+      # @nestjs/* has to move as a set or the install hits peer conflicts.
+      nestjs:
+        patterns:
+          - '@nestjs/*'
       backend-minor-patch:
         patterns:
           - '*'
