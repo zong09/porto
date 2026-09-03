@@ -24,3 +24,5 @@ jobs:
           cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
       - run: npm ci
       - run: npm run build
+      # frontend has no test script yet; --if-present keeps the matrix uniform
+      - run: npm run test --if-present
