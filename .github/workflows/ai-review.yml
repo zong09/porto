@@ -1,0 +1,54 @@
+# AI review บน PR — เรียก reusable workflow จาก zong09/agent-pr-review
+#
+# checklist เรียงตามความเสี่ยงจริงที่สำรวจจากโค้ดเมื่อ 2026-09-21 ไม่ใช่เรียงตามทฤษฎี:
+#   - asset.entity ใช้ @Column('numeric', {precision:20, scale:8}) แต่ transformer
+#     แปลงกลับเป็น number ของ JS (float64 แม่นราว 15-16 หลัก) = ชั้นเก็บแม่น ชั้นคำนวณไม่แม่น
+#     จึงเอาเรื่องความแม่นยำของเงินขึ้นเป็นข้อแรก
+#   - มี APP_GUARD -> JwtAuthGuard เป็น global guard แล้ว และใช้ @Public() ยกเว้นเป็นจุด ๆ
+#     ความเสี่ยงจึงไม่ใช่ "ลืมใส่ guard" แต่เป็น authorization ระดับแถว คือ query ที่ลืมกรอง userId
+#     (พบ query/queryBuilder 58 จุด และอ้าง userId 198 บรรทัด พลาดจุดเดียวคือข้อมูลรั่วข้ามบัญชี)
+#   - อ้างถึงการแปลงสกุลเงิน 84 บรรทัด จึงเป็นพื้นที่เสี่ยงอันดับต้น ๆ
+#   - backup.service ใช้ aes-256-gcm พร้อม getAuthTag/setAuthTag ครบแล้ว
+#     ข้อ AES จึงโฟกัสที่ IV ซ้ำกับการ derive key ไม่ใช่เรื่องลืมตรวจ auth tag
+#   - ฝั่งหน้ามี useEffect 11 จุด polling 1 จุด ความเสี่ยง React จึงมีแต่ไม่ใช่อันดับต้น
+
+name: AI Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  ai-review:
+    uses: zong09/agent-pr-review/.github/workflows/pr-review.yml@v1
+    secrets:
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+    with:
+      extra_instructions: |
+        โปรเจกต์นี้เป็น TypeScript full-stack ติดตามมูลค่าทรัพย์สินหลายผู้ใช้
+        ฝั่งหลัง NestJS + TypeORM + PostgreSQL ฝั่งหน้า React + TanStack Query
+        เงินเก็บใน DB เป็น numeric(20,8) แต่ถูก transformer แปลงเป็น number ของ JS
+        ตรวจตามรายการนี้ทีละข้อ รายงานเฉพาะข้อที่พบจริง พร้อมชื่อฟังก์ชันและบรรทัด:
+        (1) คำนวณเงินหรือจำนวนสินทรัพย์ด้วย number ของ JS (float64) โดยเฉพาะ
+            การคูณ quantity กับ price แล้วบวกสะสมหลายรายการ การเทียบเท่ากันด้วย ===
+            และการปัดเศษที่ทำหลายรอบระหว่างทางแทนที่จะปัดครั้งเดียวตอนแสดงผล
+        (2) query หรือ queryBuilder ที่ไม่ได้กรองด้วย userId ของผู้ใช้ที่ล็อกอินอยู่
+            หรือรับ id จาก request แล้วใช้ตรง ๆ โดยไม่ตรวจว่าเป็นของผู้ใช้คนนั้นจริง
+            ทำให้ผู้ใช้คนหนึ่งอ่านหรือแก้ข้อมูลของอีกคนได้
+        (3) endpoint ที่ติด @Public() ทั้งที่ควรต้องล็อกอิน
+        (4) แปลงสกุลเงินผิด — บวกค่าคนละสกุลโดยไม่แปลง แปลงซ้ำสองรอบ
+            หรือเก็บค่าที่แปลงแล้วลง DB จนไม่รู้ว่าค่านั้นเป็นสกุลอะไร
+        (5) เรียก async โดยไม่ใส่ await ก่อนนำผลไปใช้ และ promise ที่ไม่มีใครรอหรือไม่มี catch
+        (6) catch ที่กลืน error โดยไม่ log และไม่ rethrow โดยเฉพาะรอบการดึงราคา
+            ซึ่งจะทำให้ราคาเก่าถูกแสดงเหมือนเป็นราคาปัจจุบันโดยผู้ใช้ไม่รู้ตัว
+        (7) SQL ที่ประกอบด้วย template string หรือรับค่าจากผู้ใช้เข้า raw query โดยไม่ bind
+        (8) หารด้วยค่าที่อาจเป็นศูนย์ เช่น มูลค่ารวมพอร์ตตอนยังไม่มีรายการ
+            ในการคำนวณสัดส่วนหรือเปอร์เซ็นต์การเปลี่ยนแปลง
+        (9) AES-GCM ที่ใช้ IV ซ้ำกับคีย์เดิม หรือ derive คีย์จากรหัสผ่านโดยไม่มี salt
+            หรือใช้ iteration ต่ำเกินไป
+        (10) React: dependency ของ useEffect ผิดหรือขาดจนเกิด stale closure
+             effect ที่ไม่มี cleanup ทำให้ polling ซ้อนกัน และการ mutate state ตรง ๆ
