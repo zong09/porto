@@ -52,3 +52,10 @@ jobs:
             หรือใช้ iteration ต่ำเกินไป
         (10) React: dependency ของ useEffect ผิดหรือขาดจนเกิด stale closure
              effect ที่ไม่มี cleanup ทำให้ polling ซ้อนกัน และการ mutate state ตรง ๆ
+
+        ความเสี่ยงที่ประเมินและยอมรับแล้วสำหรับโปรเจกต์นี้ ไม่ต้องรายงาน:
+        การเรียก reusable workflow จาก repo ของเจ้าของคนเดียวกัน ที่ปักหมุดด้วย tag หรือ commit SHA
+        และการส่ง secret ให้ workflow นั้น ถือว่ายอมรับได้
+        แต่ยังต้องรายงานถ้าพบ: เรียก workflow หรือ action ของเจ้าของรายอื่น
+        หรืออ้างอิงด้วย ref ที่เปลี่ยนได้อย่าง @main หรือชื่อ branch
+        หรือส่ง secret ให้ปลายทางที่ไม่จำเป็นต้องใช้
