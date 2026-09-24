@@ -15,7 +15,7 @@ cd frontend && npm run dev              # Vite dev server (port 5174)
 # Build
 npm run build:all                       # frontend → backend → copy dist → backend/public/
 
-# Test
+# Test (Node ≥24.9 — NestJS 12 is ESM-only; Jest loads it via require(esm) + --experimental-vm-modules)
 cd backend && npm test                  # Jest unit tests
 cd backend && npm run test:e2e          # e2e tests
 ```
