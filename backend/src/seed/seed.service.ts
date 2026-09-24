@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { Portfolio } from '../portfolios/entities/portfolio.entity';
 import { Asset } from '../assets/entities/asset.entity';
 import { Transaction } from '../transactions/entities/transaction.entity';
@@ -144,7 +144,7 @@ export class SeedService {
     const savedAssets: Record<string, Asset> = {};
     for (const item of assetsData) {
       const { key, ...rest } = item;
-      const asset = this.assetRepo.create(rest as any) as any as Asset;
+      const asset = this.assetRepo.create(rest as DeepPartial<Asset>);
       const saved = await this.assetRepo.save(asset);
       savedAssets[key] = saved;
     }

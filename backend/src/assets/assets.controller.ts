@@ -9,7 +9,8 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AssetsService } from './assets.service';
-import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { UserPayload } from '../auth/current-user.decorator';
 import {
   IsNotEmpty,
   IsEnum,
@@ -78,20 +79,20 @@ export class AssetsController {
   constructor(private assetsService: AssetsService) {}
 
   @Get()
-  async findAll(@CurrentUser() user: any) {
+  async findAll(@CurrentUser() user: UserPayload) {
     return this.assetsService.findAll(user.userId);
   }
 
   @Get(':id')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     return this.assetsService.findOne(id, user.userId);
   }
 
   @Post()
-  async create(@Body() body: CreateAssetDto, @CurrentUser() user: any) {
+  async create(@Body() body: CreateAssetDto, @CurrentUser() user: UserPayload) {
     return this.assetsService.create(
       user.userId,
       body.portfolioId,
@@ -107,7 +108,10 @@ export class AssetsController {
   }
 
   @Patch('reorder')
-  async reorder(@Body() body: ReorderAssetsDto, @CurrentUser() user: any) {
+  async reorder(
+    @Body() body: ReorderAssetsDto,
+    @CurrentUser() user: UserPayload,
+  ) {
     await this.assetsService.reorder(user.userId, body.orderedIds);
     return { success: true };
   }
@@ -116,7 +120,7 @@ export class AssetsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateAssetDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     return this.assetsService.update(
       id,
@@ -129,7 +133,7 @@ export class AssetsController {
   @Delete(':id')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     await this.assetsService.remove(id, user.userId);
     return { success: true };

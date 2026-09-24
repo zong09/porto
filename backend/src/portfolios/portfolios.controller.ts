@@ -9,7 +9,8 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { PortfoliosService } from './portfolios.service';
-import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { UserPayload } from '../auth/current-user.decorator';
 import {
   IsNotEmpty,
   IsOptional,
@@ -53,25 +54,31 @@ export class PortfoliosController {
   constructor(private portfoliosService: PortfoliosService) {}
 
   @Get()
-  async findAll(@CurrentUser() user: any) {
+  async findAll(@CurrentUser() user: UserPayload) {
     return this.portfoliosService.findAll(user.userId);
   }
 
   @Get(':id')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     return this.portfoliosService.findOne(id, user.userId);
   }
 
   @Post()
-  async create(@Body() body: CreatePortfolioDto, @CurrentUser() user: any) {
+  async create(
+    @Body() body: CreatePortfolioDto,
+    @CurrentUser() user: UserPayload,
+  ) {
     return this.portfoliosService.create(user.userId, body.name, body.color);
   }
 
   @Patch('reorder')
-  async reorder(@Body() body: ReorderPortfolioDto, @CurrentUser() user: any) {
+  async reorder(
+    @Body() body: ReorderPortfolioDto,
+    @CurrentUser() user: UserPayload,
+  ) {
     await this.portfoliosService.reorder(user.userId, body.orderedIds);
     return { success: true };
   }
@@ -80,7 +87,7 @@ export class PortfoliosController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdatePortfolioDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     return this.portfoliosService.update(
       id,
@@ -93,7 +100,7 @@ export class PortfoliosController {
   @Delete(':id')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     await this.portfoliosService.remove(id, user.userId);
     return { success: true };

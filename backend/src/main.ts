@@ -16,4 +16,4 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`Porto backend listening on port ${port}`, 'Bootstrap');
 }
-bootstrap();
+void bootstrap();

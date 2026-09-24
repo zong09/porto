@@ -1,7 +1,9 @@
-import { Controller, Post, Get, Body, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
+import { CurrentUser } from './current-user.decorator';
+import type { UserPayload } from './current-user.decorator';
 import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
 
 class RegisterDto {
@@ -50,7 +52,7 @@ export class AuthController {
 
   @Public()
   @Get('config')
-  async getConfig() {
+  getConfig() {
     return {
       enableDemo: this.authService.isDemoEnabled(),
       enableRegister: this.authService.isRegisterEnabled(),
@@ -58,13 +60,13 @@ export class AuthController {
   }
 
   @Get('me')
-  async me(@Request() req) {
-    return req.user;
+  me(@CurrentUser() user: UserPayload) {
+    return user;
   }
 
   @Post('clear')
-  async clear(@Request() req) {
-    await this.authService.clear(req.user.userId);
+  async clear(@CurrentUser() user: UserPayload) {
+    await this.authService.clear(user.userId);
     return { success: true };
   }
 }

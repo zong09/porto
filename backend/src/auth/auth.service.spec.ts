@@ -32,7 +32,6 @@ describe('AuthService', () => {
   let portfolioRepo: Repository<Portfolio>;
   let liabilityRepo: Repository<Liability>;
   let netWorthHistoryRepo: Repository<NetWorthHistory>;
-  let jwtService: JwtService;
   let seedService: SeedService;
   let configService: ConfigService;
 
@@ -104,7 +103,6 @@ describe('AuthService', () => {
     netWorthHistoryRepo = module.get<Repository<NetWorthHistory>>(
       getRepositoryToken(NetWorthHistory),
     );
-    jwtService = module.get<JwtService>(JwtService);
     seedService = module.get<SeedService>(SeedService);
     configService = module.get<ConfigService>(ConfigService);
   });
@@ -214,7 +212,9 @@ describe('AuthService', () => {
       await service.demo();
       await service.demo();
 
-      const hashedInputs = (bcrypt.hash as jest.Mock).mock.calls.map((c) => c[0]);
+      const hashedInputs = (bcrypt.hash as jest.Mock).mock.calls.map(
+        (c) => c[0],
+      );
       expect(hashedInputs).toHaveLength(2);
       expect(hashedInputs).not.toContain('demo-password');
       expect(hashedInputs[0]).not.toBe(hashedInputs[1]);

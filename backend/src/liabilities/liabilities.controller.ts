@@ -9,7 +9,8 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { LiabilitiesService } from './liabilities.service';
-import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { UserPayload } from '../auth/current-user.decorator';
 import {
   IsNotEmpty,
   IsNumber,
@@ -65,12 +66,12 @@ export class LiabilitiesController {
   constructor(private liabilitiesService: LiabilitiesService) {}
 
   @Get()
-  async findAll(@CurrentUser() user: any) {
+  async findAll(@CurrentUser() user: UserPayload) {
     return this.liabilitiesService.findAll(user.userId);
   }
 
   @Get('transactions')
-  async findTransactions(@CurrentUser() user: any) {
+  async findTransactions(@CurrentUser() user: UserPayload) {
     return this.liabilitiesService.findTransactions(user.userId);
   }
 
@@ -78,7 +79,7 @@ export class LiabilitiesController {
   async adjust(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: AdjustLiabilityDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     return this.liabilitiesService.adjust(
       id,
@@ -90,7 +91,10 @@ export class LiabilitiesController {
   }
 
   @Post()
-  async create(@Body() body: CreateLiabilityDto, @CurrentUser() user: any) {
+  async create(
+    @Body() body: CreateLiabilityDto,
+    @CurrentUser() user: UserPayload,
+  ) {
     return this.liabilitiesService.create(
       user.userId,
       body.name,
@@ -103,7 +107,7 @@ export class LiabilitiesController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateLiabilityDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     return this.liabilitiesService.update(
       id,
@@ -117,7 +121,7 @@ export class LiabilitiesController {
   @Delete(':id')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     await this.liabilitiesService.remove(id, user.userId);
     return { success: true };

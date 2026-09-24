@@ -1,6 +1,7 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { BackupService } from './backup.service';
 import { CurrentUser } from '../auth/current-user.decorator';
+import type { UserPayload } from '../auth/current-user.decorator';
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 class PasswordDto {
@@ -25,7 +26,10 @@ export class BackupController {
   constructor(private readonly backupService: BackupService) {}
 
   @Post('export')
-  async exportData(@Body() body: PasswordDto, @CurrentUser() user: any) {
+  async exportData(
+    @Body() body: PasswordDto,
+    @CurrentUser() user: UserPayload,
+  ) {
     const buffer = await this.backupService.exportData(
       user.userId,
       body.password,
@@ -35,7 +39,7 @@ export class BackupController {
   }
 
   @Post('import')
-  async importData(@Body() body: ImportDto, @CurrentUser() user: any) {
+  async importData(@Body() body: ImportDto, @CurrentUser() user: UserPayload) {
     const buffer = Buffer.from(body.data, 'base64');
     await this.backupService.importData(user.userId, buffer, body.password);
     return { success: true };

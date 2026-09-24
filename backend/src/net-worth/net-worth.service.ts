@@ -7,6 +7,17 @@ import { Transaction } from '../transactions/entities/transaction.entity';
 import { NetWorthHistory } from './entities/net-worth-history.entity';
 import { PositionService } from '../position/position.service';
 import { PricesService } from '../prices/prices.service';
+import { errorMessage } from '../common/error-message';
+
+/** All amounts in THB (base currency); `fx` is THB per USD. */
+export interface NetWorthSummary {
+  totalAssetsThb: number;
+  totalLiabilitiesThb: number;
+  netWorthThb: number;
+  todayPlThb: number;
+  totalCostThb: number;
+  fx: number;
+}
 
 @Injectable()
 export class NetWorthService {
@@ -24,7 +35,7 @@ export class NetWorthService {
     private pricesService: PricesService,
   ) {}
 
-  async getSummary(userId: string): Promise<any> {
+  async getSummary(userId: string): Promise<NetWorthSummary> {
     this.logger.log(`Computing net-worth summary for user=${userId}`);
     // 1. Fetch assets and their transactions
     const assets = await this.assetRepo.find({
@@ -103,7 +114,7 @@ export class NetWorthService {
           // Fallback to manualPrice or position avg cost
           price = Number(asset.manualPrice || position.avgCost || 0);
           this.logger.warn(
-            `Failed to fetch price for asset ${asset.symbol}: ${e.message}`,
+            `Failed to fetch price for asset ${asset.symbol}: ${errorMessage(e)}`,
           );
         }
       }

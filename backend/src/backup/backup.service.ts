@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, DeepPartial } from 'typeorm';
 import * as crypto from 'crypto';
 
 import { Portfolio } from '../portfolios/entities/portfolio.entity';
@@ -9,6 +9,18 @@ import { Transaction } from '../transactions/entities/transaction.entity';
 import { Liability } from '../liabilities/entities/liability.entity';
 import { LiabilityTransaction } from '../liabilities/entities/liability-transaction.entity';
 import { NetWorthHistory } from '../net-worth/entities/net-worth-history.entity';
+import { errorMessage } from '../common/error-message';
+
+/**
+ * One record from a decrypted backup file. Entirely client-supplied: nothing in
+ * it is trusted until the import below has validated or replaced it.
+ */
+type BackupRecord = Record<string, unknown>;
+
+interface BackupFile {
+  version?: unknown;
+  data?: Record<string, unknown>;
+}
 
 @Injectable()
 export class BackupService {
@@ -35,19 +47,23 @@ export class BackupService {
     return crypto.scryptSync(password, salt, 32);
   }
 
-  private asArray(value: unknown): any[] {
-    return Array.isArray(value) ? value : [];
+  private asArray(value: unknown): BackupRecord[] {
+    // Elements are not checked here: takeOldId rejects non-objects for parent
+    // rows, and anything malformed elsewhere fails the transaction below.
+    return Array.isArray(value) ? (value as BackupRecord[]) : [];
   }
 
   /**
    * Reads a record's original id, which is only ever used as a lookup key for
    * the old->new maps below. It never reaches the database.
    */
-  private takeOldId(item: any): string {
-    if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !item.id) {
+  private takeOldId(item: unknown): string {
+    const id =
+      item && typeof item === 'object' ? (item as BackupRecord).id : undefined;
+    if (typeof id !== 'string' || !id) {
       throw new BadRequestException('ข้อมูลในไฟล์ Backup ไม่ถูกต้อง');
     }
-    return item.id;
+    return id;
   }
 
   /**
@@ -57,8 +73,8 @@ export class BackupService {
    * are left alone — TypeORM ignores anything that isn't a mapped column, and
    * keeping them means a column added later still round-trips.
    */
-  private stripIdentity(item: any, relations: string[]): Record<string, any> {
-    const clone = { ...item };
+  private stripIdentity(item: BackupRecord, relations: string[]): BackupRecord {
+    const clone: BackupRecord = { ...item };
     delete clone.id;
     for (const relation of relations) {
       delete clone[relation];
@@ -177,16 +193,16 @@ export class BackupService {
         decipher.final(),
       ]);
       decryptedData = decrypted.toString('utf8');
-    } catch (error) {
+    } catch {
       throw new BadRequestException(
         'รหัสผ่านไม่ถูกต้อง หรือไฟล์ Backup เสียหาย',
       );
     }
 
-    let parsed: any;
+    let parsed: BackupFile | null;
     try {
-      parsed = JSON.parse(decryptedData);
-    } catch (error) {
+      parsed = JSON.parse(decryptedData) as BackupFile | null;
+    } catch {
       throw new BadRequestException('ข้อมูลในไฟล์ Backup ไม่ถูกต้อง');
     }
 
@@ -236,7 +252,7 @@ export class BackupService {
       // NetWorthHistory has no children. @Unique(['userId', 'date']) means a
       // file carrying the same date twice would now collide instead of quietly
       // UPDATE-ing over itself, so keep the last entry per date.
-      const historyByDate = new Map<string, Record<string, any>>();
+      const historyByDate = new Map<string, DeepPartial<NetWorthHistory>>();
       for (const item of this.asArray(netWorthHistory)) {
         const row = this.stripIdentity(item, ['user']);
         historyByDate.set(String(row.date), {
@@ -252,7 +268,7 @@ export class BackupService {
       }
 
       // Insert Portfolios (parent of Asset)
-      const portfolioRows = this.asArray(portfolios).map((item: any) => {
+      const portfolioRows = this.asArray(portfolios).map((item) => {
         const id = crypto.randomUUID();
         portfolioIdMap.set(this.takeOldId(item), id);
         return { ...this.stripIdentity(item, ['user', 'assets']), id, userId };
@@ -262,7 +278,7 @@ export class BackupService {
       }
 
       // Insert Assets (parent of Transaction) — portfolioId remapped
-      const assetRows = this.asArray(assets).map((item: any) => {
+      const assetRows = this.asArray(assets).map((item) => {
         const id = crypto.randomUUID();
         assetIdMap.set(this.takeOldId(item), id);
         return {
@@ -276,7 +292,7 @@ export class BackupService {
       }
 
       // Insert Transactions — assetId remapped
-      const transactionRows = this.asArray(transactions).map((item: any) => ({
+      const transactionRows = this.asArray(transactions).map((item) => ({
         ...this.stripIdentity(item, ['asset']),
         id: crypto.randomUUID(),
         assetId: this.remapForeignKey(assetIdMap, item.assetId),
@@ -286,7 +302,7 @@ export class BackupService {
       }
 
       // Insert Liabilities (parent of LiabilityTransaction)
-      const liabilityRows = this.asArray(liabilities).map((item: any) => {
+      const liabilityRows = this.asArray(liabilities).map((item) => {
         const id = crypto.randomUUID();
         liabilityIdMap.set(this.takeOldId(item), id);
         return { ...this.stripIdentity(item, ['user']), id, userId };
@@ -297,7 +313,7 @@ export class BackupService {
 
       // Insert LiabilityTransactions — liabilityId remapped
       const liabilityTxRows = this.asArray(liabilityTransactions).map(
-        (item: any) => ({
+        (item) => ({
           ...this.stripIdentity(item, ['liability']),
           id: crypto.randomUUID(),
           userId,
@@ -320,8 +336,8 @@ export class BackupService {
       // The raw driver message leaks table, column and constraint names and
       // doubles as an existence oracle for guessed ids — log it, never return it.
       this.logger.error(
-        `Backup import failed userId=${userId}: ${error?.message}`,
-        error?.stack,
+        `Backup import failed userId=${userId}: ${errorMessage(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       // Our own validation errors already carry a safe, useful message.
       if (error instanceof BadRequestException) {

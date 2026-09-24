@@ -51,6 +51,11 @@ function isLocalHostname(host: string): boolean {
   return LOCAL_HOSTNAMES.has(host.trim());
 }
 
+/** Env values are strings in practice; anything else is shown as JSON. */
+function describe(value: unknown): string {
+  return typeof value === 'string' ? value : JSON.stringify(value);
+}
+
 function fail(message: string): never {
   throw new Error(`Invalid environment configuration: ${message}`);
 }
@@ -68,7 +73,7 @@ export function validateEnv(
     config.NODE_ENV = 'development';
   } else if (!NODE_ENVS.includes(rawNodeEnv as NodeEnv)) {
     fail(
-      `NODE_ENV must be one of ${NODE_ENVS.join(', ')} (received "${String(rawNodeEnv)}"). ` +
+      `NODE_ENV must be one of ${NODE_ENVS.join(', ')} (received "${describe(rawNodeEnv)}"). ` +
         'Casing and abbreviations are rejected on purpose, because synchronize, ' +
         'migrationsRun and the CORS allowlist all depend on this value.',
     );
@@ -112,7 +117,9 @@ export function validateEnv(
   const rawDbSync = config.DB_SYNC;
   if (rawDbSync !== undefined && rawDbSync !== '') {
     if (rawDbSync !== 'true' && rawDbSync !== 'false') {
-      fail(`DB_SYNC must be "true" or "false" (received "${String(rawDbSync)}")`);
+      fail(
+        `DB_SYNC must be "true" or "false" (received "${describe(rawDbSync)}")`,
+      );
     }
     if (rawDbSync === 'true' && isProd) {
       fail(
