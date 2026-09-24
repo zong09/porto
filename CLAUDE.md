@@ -17,7 +17,7 @@ npm run build:all                       # frontend → backend → copy dist →
 
 # Test (Node ≥24.9 — NestJS 12 is ESM-only; Jest loads it via require(esm) + --experimental-vm-modules)
 cd backend && npm test                  # Jest unit tests
-cd backend && npm run test:e2e          # e2e tests
+cd backend && npm run test:e2e        # e2e against real Postgres (needs DB + JWT_SECRET; CI job `e2e`)
 ```
 
 ## Architecture

@@ -16,8 +16,8 @@ jobs:
       run:
         working-directory: ${{ matrix.workspace }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 24
           cache: npm
@@ -26,3 +26,36 @@ jobs:
       - run: npm run build
       # frontend has no test script yet; --if-present keeps the matrix uniform
       - run: npm run test --if-present
+
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: porto_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # localhost URL => no TLS, and NODE_ENV=test => schema auto-sync
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/porto_e2e
+      NODE_ENV: test
+      JWT_SECRET: e2e-only-secret-not-used-anywhere-else-0123456789
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run test:e2e
