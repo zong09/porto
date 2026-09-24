@@ -23,6 +23,10 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
       - run: npm ci
+      # Backend lint is clean (0 errors, 0 warnings); keep it that way.
+      # Frontend lint still has open findings and is not gated yet.
+      - if: matrix.workspace == 'backend'
+        run: npm run lint -- --max-warnings=0
       - run: npm run build
       # frontend has no test script yet; --if-present keeps the matrix uniform
       - run: npm run test --if-present
