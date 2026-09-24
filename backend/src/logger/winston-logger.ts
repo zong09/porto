@@ -4,13 +4,25 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import * as path from 'path';
 
 /**
+ * JSON for log output that never throws: a log call must not fail because a
+ * field is circular or holds a BigInt.
+ */
+function safeJson(value: unknown, indent?: number): string {
+  try {
+    return JSON.stringify(value, null, indent);
+  } catch {
+    return '[unserializable]';
+  }
+}
+
+/**
  * Renders a log field for the printf formats. Strings pass through unchanged;
  * objects are JSON rather than "[object Object]".
  */
 function asText(value: unknown, indent?: number): string {
   if (typeof value === 'string') return value;
   if (typeof value === 'object' && value !== null) {
-    return JSON.stringify(value, null, indent);
+    return safeJson(value, indent);
   }
   return String(value);
 }
@@ -32,9 +44,7 @@ export class WinstonLogger implements LoggerService {
         ({ timestamp, level, message, context, stack, ...meta }) => {
           const ctx = context ? `[${asText(context)}] ` : '';
           const logMessage = asText(message);
-          const metaStr = Object.keys(meta).length
-            ? ` ${JSON.stringify(meta)}`
-            : '';
+          const metaStr = Object.keys(meta).length ? ` ${safeJson(meta)}` : '';
           const stackStr = stack ? `\n${asText(stack)}` : '';
           return `[${asText(timestamp)}] [${level.toUpperCase()}] ${ctx}${logMessage}${metaStr}${stackStr}`;
         },
@@ -49,9 +59,7 @@ export class WinstonLogger implements LoggerService {
         ({ timestamp, level, message, context, stack, ...meta }) => {
           const ctx = context ? `\x1b[36m[${asText(context)}]\x1b[39m ` : ''; // Cyan color for context
           const logMessage = asText(message, 2);
-          const metaStr = Object.keys(meta).length
-            ? ` ${JSON.stringify(meta)}`
-            : '';
+          const metaStr = Object.keys(meta).length ? ` ${safeJson(meta)}` : '';
           const stackStr = stack ? `\n${asText(stack)}` : '';
           return `[${asText(timestamp)}] ${level} ${ctx}${logMessage}${metaStr}${stackStr}`;
         },
