@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
@@ -101,7 +100,7 @@ export class TransactionsService {
     // 3. Validate quantity does not exceed position
     // For short assets: block buy (cover) exceeding short quantity
     // For long assets: block sell exceeding held quantity
-    const isShort = (asset as any).direction === 'short';
+    const isShort = asset.direction === 'short';
     const shouldValidate = isShort ? dbSide === 'buy' : dbSide === 'sell';
 
     if (shouldValidate) {
@@ -196,7 +195,7 @@ export class TransactionsService {
     }
 
     // 4. Validate quantity does not exceed position (excluding the current transaction being edited)
-    const isShort = (asset as any).direction === 'short';
+    const isShort = asset.direction === 'short';
     const shouldValidate = isShort ? dbSide === 'buy' : dbSide === 'sell';
 
     if (shouldValidate) {

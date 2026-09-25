@@ -67,7 +67,9 @@ import { BackupModule } from './backup/backup.module';
             // no CA bundle, so verification stays off (documented accepted
             // risk M2). The host check is hostname-based, not a substring
             // match, so `db.localhost.attacker.com` can't disable TLS.
-            ssl: isLocalDatabaseUrl(url) ? false : { rejectUnauthorized: false },
+            ssl: isLocalDatabaseUrl(url)
+              ? false
+              : { rejectUnauthorized: false },
           };
         }
         // Local-only defaults for the dev container. These are reachable only

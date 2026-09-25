@@ -1,41 +1,104 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { errorMessage } from '../common/error-message';
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   expiresAt: number;
+}
+
+/** Per-symbol quote: `usd`, `thb` and their `*_24h_change` percentages. */
+export interface CryptoQuote {
+  usd: number;
+  usd_24h_change: number;
+  thb: number;
+  thb_24h_change: number;
+  [key: string]: number;
+}
+export type CryptoPrices = Record<string, CryptoQuote>;
+
+export interface StockQuote {
+  price: number;
+  chg: number;
+}
+
+export interface CryptoHistory {
+  prices: [number, number][];
+}
+
+export interface StockHistoryPoint {
+  t: number;
+  p: number;
+}
+
+/** Binance GET /api/v3/ticker/24hr — only the fields we read. */
+interface BinanceTicker {
+  symbol: string;
+  lastPrice: string;
+  priceChangePercent: string;
+}
+
+/** Binance kline row: [openTime, open, high, low, close, ...]. */
+type BinanceKline = [number, string, string, string, string, ...unknown[]];
+
+/** Yahoo v8 chart response — only the fields we read. */
+interface YahooChart {
+  chart?: {
+    result?: {
+      meta?: {
+        regularMarketPrice?: number;
+        chartPreviousClose?: number;
+        previousClose?: number;
+      };
+      timestamp?: number[];
+      indicators?: { quote?: { close?: (number | null)[] }[] };
+    }[];
+  };
 }
 
 @Injectable()
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
   private cache = new Map<string, CacheEntry>();
-  private inFlightRequests = new Map<string, Promise<any>>();
+  private inFlightRequests = new Map<string, Promise<unknown>>();
   private yahooCookie: string | null = null;
   private yahooCrumb: string | null = null;
   private isFetchingCrumb = false;
 
-  private getCached(key: string): any | null {
+  private getCached<T>(key: string): T | null {
     const entry = this.cache.get(key);
     if (entry && entry.expiresAt > Date.now()) {
-      return entry.data;
+      return entry.data as T;
     }
     return null;
   }
 
-  private setCached(key: string, data: any, ttlMs: number) {
+  /** Expired entry kept as a fallback when the upstream fetch fails. */
+  private getStale<T>(key: string): T | undefined {
+    return this.cache.get(key)?.data as T | undefined;
+  }
+
+  private getInFlight<T>(key: string): Promise<T> | undefined {
+    return this.inFlightRequests.get(key) as Promise<T> | undefined;
+  }
+
+  private setCached(key: string, data: unknown, ttlMs: number) {
     this.cache.set(key, {
       data,
       expiresAt: Date.now() + ttlMs,
     });
   }
 
-  async getCryptoPrices(ids: string[], vsCurrencies: string[]): Promise<any> {
+  async getCryptoPrices(
+    ids: string[],
+    vsCurrencies: string[],
+  ): Promise<CryptoPrices> {
     const cacheKey = `crypto_${ids.sort().join(',')}_${vsCurrencies.sort().join(',')}`;
-    const cached = this.getCached(cacheKey);
+    const cached = this.getCached<CryptoPrices>(cacheKey);
     if (cached) return cached;
 
-    if (this.inFlightRequests.has(cacheKey)) {
-      return this.inFlightRequests.get(cacheKey);
+    const inFlight = this.getInFlight<CryptoPrices>(cacheKey);
+    if (inFlight) {
+      return inFlight;
     }
 
     const requestPromise = (async () => {
@@ -44,7 +107,7 @@ export class PricesService {
       );
       try {
         const fx = await this.getFxRate();
-        const result: any = {};
+        const result: CryptoPrices = {};
         const failedIds: string[] = [];
 
         // Try Binance batch request first
@@ -56,7 +119,7 @@ export class PricesService {
           const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${querySymbols}`;
           const response = await fetch(url);
           if (response.ok) {
-            const data: any[] = await response.json();
+            const data = (await response.json()) as BinanceTicker[];
             for (const item of data) {
               const id = item.symbol.replace('USDT', '');
               const usdPrice = parseFloat(item.lastPrice);
@@ -82,7 +145,7 @@ export class PricesService {
                 const singleUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${encodeURIComponent(id + 'USDT')}`;
                 const singleResp = await fetch(singleUrl);
                 if (singleResp.ok) {
-                  const item = await singleResp.json();
+                  const item = (await singleResp.json()) as BinanceTicker;
                   const usdPrice = parseFloat(item.lastPrice);
                   const usdChange = parseFloat(item.priceChangePercent);
                   result[id] = {
@@ -120,7 +183,7 @@ export class PricesService {
             }
           } catch (e) {
             this.logger.warn(
-              `Yahoo Finance fallback also failed for ${id}: ${e.message}`,
+              `Yahoo Finance fallback also failed for ${id}: ${errorMessage(e)}`,
             );
           }
         }
@@ -150,13 +213,13 @@ export class PricesService {
         this.logger.log(`Successfully fetched crypto prices from Binance`);
         return result;
       } catch (e) {
-        this.logger.error(`Error fetching crypto prices: ${e.message}`);
-        const stale = this.cache.get(cacheKey);
+        this.logger.error(`Error fetching crypto prices: ${errorMessage(e)}`);
+        const stale = this.getStale<CryptoPrices>(cacheKey);
         if (stale) {
           this.logger.warn(
             `Returning stale cache as fallback for crypto prices symbols=${ids.join(',')}`,
           );
-          return stale.data;
+          return stale;
         }
         throw new HttpException(
           'Failed to fetch crypto prices',
@@ -171,16 +234,16 @@ export class PricesService {
     return requestPromise;
   }
 
-  async getCryptoHistory(coinId: string, days: number): Promise<any> {
+  async getCryptoHistory(coinId: string, days: number): Promise<CryptoHistory> {
     const cacheKey = `crypto_history_${coinId}_${days}`;
-    const cached = this.getCached(cacheKey);
+    const cached = this.getCached<CryptoHistory>(cacheKey);
     if (cached) return cached;
 
     try {
       if (coinId === 'USDT') {
         const fx = await this.getFxRate();
         const now = Date.now();
-        const result = {
+        const result: CryptoHistory = {
           prices: [
             [now - 86400000 * days, fx],
             [now, fx],
@@ -213,25 +276,25 @@ export class PricesService {
       if (!response.ok) {
         throw new Error(`Binance history status ${response.status}`);
       }
-      const data = await response.json();
+      const data = (await response.json()) as BinanceKline[];
       const fx = await this.getFxRate();
 
-      const prices = data.map((k: any) => [
+      const prices = data.map((k): [number, number] => [
         k[0], // timestamp
         parseFloat(k[4]) * fx, // close price in THB
       ]);
 
-      const result = { prices };
+      const result: CryptoHistory = { prices };
       this.setCached(cacheKey, result, 300000); // 5 mins cache for history
       return result;
     } catch (e) {
-      this.logger.error(`Error fetching crypto history: ${e.message}`);
-      const stale = this.cache.get(cacheKey);
+      this.logger.error(`Error fetching crypto history: ${errorMessage(e)}`);
+      const stale = this.getStale<CryptoHistory>(cacheKey);
       if (stale) {
         this.logger.warn(
           `Returning stale cache as fallback for crypto history coinId=${coinId}`,
         );
-        return stale.data;
+        return stale;
       }
       throw new HttpException(
         'Failed to fetch crypto history',
@@ -240,13 +303,14 @@ export class PricesService {
     }
   }
 
-  async getStockPrice(symbol: string): Promise<any> {
+  async getStockPrice(symbol: string): Promise<StockQuote> {
     const cacheKey = `stock_${symbol}`;
-    const cached = this.getCached(cacheKey);
+    const cached = this.getCached<StockQuote>(cacheKey);
     if (cached) return cached;
 
-    if (this.inFlightRequests.has(cacheKey)) {
-      return this.inFlightRequests.get(cacheKey);
+    const inFlight = this.getInFlight<StockQuote>(cacheKey);
+    if (inFlight) {
+      return inFlight;
     }
 
     const requestPromise = (async () => {
@@ -262,7 +326,7 @@ export class PricesService {
               meta.chartPreviousClose ||
               meta.previousClose ||
               meta.regularMarketPrice;
-            const result = {
+            const result: StockQuote = {
               price: meta.regularMarketPrice,
               chg: prev ? (meta.regularMarketPrice / prev - 1) * 100 : 0,
             };
@@ -278,13 +342,13 @@ export class PricesService {
         // returning undefined.
         throw new Error(`Yahoo Finance returned no usable data for ${symbol}`);
       } catch (e) {
-        this.logger.error(`Error fetching stock price: ${e.message}`);
-        const stale = this.cache.get(cacheKey);
+        this.logger.error(`Error fetching stock price: ${errorMessage(e)}`);
+        const stale = this.getStale<StockQuote>(cacheKey);
         if (stale) {
           this.logger.warn(
             `Returning stale cache as fallback for stock price symbol=${symbol}`,
           );
-          return stale.data;
+          return stale;
         }
         throw new HttpException(
           `Failed to fetch stock price for ${symbol}`,
@@ -299,9 +363,12 @@ export class PricesService {
     return requestPromise;
   }
 
-  async getStockHistory(symbol: string, range: string): Promise<any> {
+  async getStockHistory(
+    symbol: string,
+    range: string,
+  ): Promise<StockHistoryPoint[]> {
     const cacheKey = `stock_history_${symbol}_${range}`;
-    const cached = this.getCached(cacheKey);
+    const cached = this.getCached<StockHistoryPoint[]>(cacheKey);
     if (cached) return cached;
 
     // Map range parameter
@@ -325,10 +392,11 @@ export class PricesService {
         if (res && res.timestamp) {
           const ts = res.timestamp;
           const cl = res.indicators?.quote?.[0]?.close || [];
-          const out: any[] = [];
+          const out: StockHistoryPoint[] = [];
           for (let i = 0; i < ts.length; i++) {
-            if (cl[i] !== null && cl[i] !== undefined) {
-              out.push({ t: ts[i] * 1000, p: cl[i] });
+            const close = cl[i];
+            if (close !== null && close !== undefined) {
+              out.push({ t: ts[i] * 1000, p: close });
             }
           }
           if (out.length > 0) {
@@ -338,15 +406,15 @@ export class PricesService {
         }
       }
     } catch (e) {
-      this.logger.error(`Error fetching stock history: ${e.message}`);
+      this.logger.error(`Error fetching stock history: ${errorMessage(e)}`);
     }
 
-    const stale = this.cache.get(cacheKey);
+    const stale = this.getStale<StockHistoryPoint[]>(cacheKey);
     if (stale) {
       this.logger.warn(
         `Returning stale cache as fallback for stock history symbol=${symbol}`,
       );
-      return stale.data;
+      return stale;
     }
     throw new HttpException(
       `Failed to fetch stock history for ${symbol}`,
@@ -356,7 +424,7 @@ export class PricesService {
 
   async getFxRate(): Promise<number> {
     const cacheKey = 'fx_rate';
-    const cached = this.getCached(cacheKey);
+    const cached = this.getCached<number>(cacheKey);
     if (cached) return cached;
 
     this.logger.log('Deriving live FX rate from Yahoo THB=X...');
@@ -370,7 +438,7 @@ export class PricesService {
       }
     } catch (e) {
       this.logger.warn(
-        `Failed to derive live FX rate, using fallback 35.84: ${e.message}`,
+        `Failed to derive live FX rate, using fallback 35.84: ${errorMessage(e)}`,
       );
     }
     return 35.84; // Fallback FX rate
@@ -380,14 +448,14 @@ export class PricesService {
     symbol: string,
     range: string,
     interval: string,
-  ): Promise<any> {
+  ): Promise<YahooChart | null> {
     // Try Direct Fetch first with browser User-Agent
     try {
       const result = await this.doYahooRequest(symbol, range, interval);
       if (result) return result;
     } catch (e) {
       this.logger.warn(
-        `Yahoo Finance direct query failed for ${symbol}: ${e.message}`,
+        `Yahoo Finance direct query failed for ${symbol}: ${errorMessage(e)}`,
       );
     }
 
@@ -409,7 +477,7 @@ export class PricesService {
       }
     } catch (e) {
       this.logger.error(
-        `Yahoo Finance query with crumb failed for ${symbol}: ${e.message}`,
+        `Yahoo Finance query with crumb failed for ${symbol}: ${errorMessage(e)}`,
       );
     }
 
@@ -422,7 +490,7 @@ export class PricesService {
     interval: string,
     crumb?: string,
     cookie?: string,
-  ): Promise<any> {
+  ): Promise<YahooChart> {
     let url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
     if (crumb) {
       url += `&crumb=${encodeURIComponent(crumb)}`;
@@ -441,7 +509,7 @@ export class PricesService {
     if (!response.ok) {
       throw new Error(`Yahoo Finance status ${response.status}`);
     }
-    return response.json();
+    return (await response.json()) as YahooChart;
   }
 
   private async refreshYahooCredentials() {
@@ -480,7 +548,7 @@ export class PricesService {
         );
       }
     } catch (e) {
-      this.logger.error(`Failed to get Yahoo crumb: ${e.message}`);
+      this.logger.error(`Failed to get Yahoo crumb: ${errorMessage(e)}`);
     } finally {
       this.isFetchingCrumb = false;
     }

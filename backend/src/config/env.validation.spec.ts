@@ -4,7 +4,8 @@ import {
   shouldSynchronize,
 } from './env.validation';
 
-const REMOTE_URL = 'postgres://user:pw@containers-us-west-1.railway.app:6543/railway';
+const REMOTE_URL =
+  'postgres://user:pw@containers-us-west-1.railway.app:6543/railway';
 const LOCAL_URL = 'postgres://porto:porto@localhost:5435/porto';
 
 describe('isLocalDatabaseUrl', () => {
@@ -23,10 +24,12 @@ describe('isLocalDatabaseUrl', () => {
   it('is not fooled by a hostname that merely contains "localhost"', () => {
     // The previous substring check (url.includes('localhost')) matched this and
     // disabled TLS entirely.
-    expect(isLocalDatabaseUrl('postgres://u:p@db.localhost.attacker.com:5432/db')).toBe(
-      false,
-    );
-    expect(isLocalDatabaseUrl('postgres://u:p@127.0.0.1.evil.com:5432/db')).toBe(false);
+    expect(
+      isLocalDatabaseUrl('postgres://u:p@db.localhost.attacker.com:5432/db'),
+    ).toBe(false);
+    expect(
+      isLocalDatabaseUrl('postgres://u:p@127.0.0.1.evil.com:5432/db'),
+    ).toBe(false);
   });
 
   it('treats an unparseable URL as remote, so TLS stays on', () => {
@@ -39,16 +42,21 @@ describe('validateEnv', () => {
     expect(validateEnv({}).NODE_ENV).toBe('development');
   });
 
-  it.each(['development', 'test', 'production'])('accepts NODE_ENV=%s', (value) => {
-    const env: Record<string, unknown> = { NODE_ENV: value };
-    if (value === 'production') env.DATABASE_URL = REMOTE_URL;
-    expect(validateEnv(env).NODE_ENV).toBe(value);
-  });
+  it.each(['development', 'test', 'production'])(
+    'accepts NODE_ENV=%s',
+    (value) => {
+      const env: Record<string, unknown> = { NODE_ENV: value };
+      if (value === 'production') env.DATABASE_URL = REMOTE_URL;
+      expect(validateEnv(env).NODE_ENV).toBe(value);
+    },
+  );
 
   it.each(['Production', 'prod', 'PRODUCTION', 'staging'])(
     'rejects the misspelled NODE_ENV=%s instead of silently treating it as dev',
     (value) => {
-      expect(() => validateEnv({ NODE_ENV: value })).toThrow(/NODE_ENV must be one of/);
+      expect(() => validateEnv({ NODE_ENV: value })).toThrow(
+        /NODE_ENV must be one of/,
+      );
     },
   );
 
@@ -76,7 +84,9 @@ describe('validateEnv', () => {
       // dev container defaults. That must keep working.
       expect(() => validateEnv({})).not.toThrow();
       expect(() => validateEnv({ DATABASE_URL: LOCAL_URL })).not.toThrow();
-      expect(() => validateEnv({ DB_HOST: 'localhost', DB_PORT: '5435' })).not.toThrow();
+      expect(() =>
+        validateEnv({ DB_HOST: 'localhost', DB_PORT: '5435' }),
+      ).not.toThrow();
     });
   });
 

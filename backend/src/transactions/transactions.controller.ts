@@ -9,9 +9,9 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
-import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { UserPayload } from '../auth/current-user.decorator';
 import {
-  IsNotEmpty,
   IsEnum,
   IsOptional,
   IsNumber,
@@ -53,12 +53,15 @@ export class TransactionsController {
   constructor(private transactionsService: TransactionsService) {}
 
   @Get()
-  async findAll(@CurrentUser() user: any) {
+  async findAll(@CurrentUser() user: UserPayload) {
     return this.transactionsService.findAll(user.userId);
   }
 
   @Post()
-  async create(@Body() body: CreateTransactionDto, @CurrentUser() user: any) {
+  async create(
+    @Body() body: CreateTransactionDto,
+    @CurrentUser() user: UserPayload,
+  ) {
     return this.transactionsService.create(
       user.userId,
       body.assetId,
@@ -74,7 +77,7 @@ export class TransactionsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: CreateTransactionDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     return this.transactionsService.update(
       id,
@@ -91,7 +94,7 @@ export class TransactionsController {
   @Delete(':id')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserPayload,
   ) {
     await this.transactionsService.remove(id, user.userId);
     return { success: true };

@@ -37,7 +37,10 @@ function sealBackup(data: any, password = PASSWORD, version = 1): Buffer {
   const key = crypto.scryptSync(password, salt, 32);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const encrypted = Buffer.concat([
-    cipher.update(JSON.stringify({ version, timestamp: '2026-07-31', data }), 'utf8'),
+    cipher.update(
+      JSON.stringify({ version, timestamp: '2026-07-31', data }),
+      'utf8',
+    ),
     cipher.final(),
   ]);
   return Buffer.concat([salt, iv, cipher.getAuthTag(), encrypted]);
@@ -47,25 +50,88 @@ function sealBackup(data: any, password = PASSWORD, version = 1): Buffer {
 function legitBackup() {
   return {
     portfolios: [
-      { id: 'p1', name: 'Crypto', color: 1, sortOrder: 0, userId: 'original-owner' },
-      { id: 'p2', name: 'Stocks', color: 2, sortOrder: 1, userId: 'original-owner' },
+      {
+        id: 'p1',
+        name: 'Crypto',
+        color: 1,
+        sortOrder: 0,
+        userId: 'original-owner',
+      },
+      {
+        id: 'p2',
+        name: 'Stocks',
+        color: 2,
+        sortOrder: 1,
+        userId: 'original-owner',
+      },
     ],
     assets: [
-      { id: 'a1', portfolioId: 'p1', type: 'crypto', symbol: 'BTC', name: 'Bitcoin', currency: 'USD' },
-      { id: 'a2', portfolioId: 'p2', type: 'us', symbol: 'VOO', name: 'Vanguard', currency: 'USD' },
+      {
+        id: 'a1',
+        portfolioId: 'p1',
+        type: 'crypto',
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        currency: 'USD',
+      },
+      {
+        id: 'a2',
+        portfolioId: 'p2',
+        type: 'us',
+        symbol: 'VOO',
+        name: 'Vanguard',
+        currency: 'USD',
+      },
     ],
     transactions: [
-      { id: 't1', assetId: 'a1', side: 'buy', quantity: 0.5, price: 60000, fee: 10, date: '2026-01-02' },
-      { id: 't2', assetId: 'a2', side: 'buy', quantity: 3, price: 500, fee: 1, date: '2026-02-03' },
+      {
+        id: 't1',
+        assetId: 'a1',
+        side: 'buy',
+        quantity: 0.5,
+        price: 60000,
+        fee: 10,
+        date: '2026-01-02',
+      },
+      {
+        id: 't2',
+        assetId: 'a2',
+        side: 'buy',
+        quantity: 3,
+        price: 500,
+        fee: 1,
+        date: '2026-02-03',
+      },
     ],
     liabilities: [
-      { id: 'l1', name: 'Mortgage', amount: 1000, currency: 'THB', userId: 'original-owner' },
+      {
+        id: 'l1',
+        name: 'Mortgage',
+        amount: 1000,
+        currency: 'THB',
+        userId: 'original-owner',
+      },
     ],
     liabilityTransactions: [
-      { id: 'lt1', liabilityId: 'l1', type: 'pay', amount: 100, date: '2026-03-04', userId: 'original-owner' },
+      {
+        id: 'lt1',
+        liabilityId: 'l1',
+        type: 'pay',
+        amount: 100,
+        date: '2026-03-04',
+        userId: 'original-owner',
+      },
     ],
     netWorthHistory: [
-      { id: 'h1', date: '2026-01-01', totalAssetsThb: 100, totalLiabilitiesThb: 10, netWorthThb: 90, fxRate: 35, userId: 'original-owner' },
+      {
+        id: 'h1',
+        date: '2026-01-01',
+        totalAssetsThb: 100,
+        totalLiabilitiesThb: 10,
+        netWorthThb: 90,
+        fxRate: 35,
+        userId: 'original-owner',
+      },
     ],
   };
 }
@@ -109,7 +175,10 @@ describe('BackupService', () => {
         { provide: getRepositoryToken(Asset), useValue: repoMock },
         { provide: getRepositoryToken(Transaction), useValue: repoMock },
         { provide: getRepositoryToken(Liability), useValue: repoMock },
-        { provide: getRepositoryToken(LiabilityTransaction), useValue: repoMock },
+        {
+          provide: getRepositoryToken(LiabilityTransaction),
+          useValue: repoMock,
+        },
         { provide: getRepositoryToken(NetWorthHistory), useValue: repoMock },
         {
           provide: DataSource,
@@ -148,7 +217,7 @@ describe('BackupService', () => {
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
     });
 
-    it('rejects an asset whose portfolioId is not in the file (another tenant\'s portfolio)', async () => {
+    it("rejects an asset whose portfolioId is not in the file (another tenant's portfolio)", async () => {
       // Asset has no userId column — its tenancy comes entirely from
       // portfolioId, so this is the unconditional cross-tenant write.
       const data = legitBackup();
@@ -175,7 +244,7 @@ describe('BackupService', () => {
       expect(rowsFor(Transaction)).toHaveLength(0);
     });
 
-    it("rejects a liability transaction whose liabilityId is not in the file", async () => {
+    it('rejects a liability transaction whose liabilityId is not in the file', async () => {
       const data = legitBackup();
       data.liabilityTransactions[0].liabilityId = VICTIM_LIABILITY_ID;
 
@@ -190,7 +259,12 @@ describe('BackupService', () => {
     it('forces userId to the caller and ignores the userId in the file', async () => {
       await service.importData(ATTACKER, sealBackup(legitBackup()), PASSWORD);
 
-      for (const entity of [Portfolio, Liability, LiabilityTransaction, NetWorthHistory]) {
+      for (const entity of [
+        Portfolio,
+        Liability,
+        LiabilityTransaction,
+        NetWorthHistory,
+      ]) {
         const rows = rowsFor(entity);
         expect(rows.length).toBeGreaterThan(0);
         for (const row of rows) {
@@ -270,8 +344,24 @@ describe('BackupService', () => {
     it('dedupes net-worth history by date, since fresh ids turn a repeat into a unique-constraint collision', async () => {
       const data = legitBackup();
       data.netWorthHistory = [
-        { id: 'h1', date: '2026-01-01', totalAssetsThb: 100, totalLiabilitiesThb: 10, netWorthThb: 90, fxRate: 35, userId: 'x' },
-        { id: 'h2', date: '2026-01-01', totalAssetsThb: 200, totalLiabilitiesThb: 20, netWorthThb: 180, fxRate: 36, userId: 'x' },
+        {
+          id: 'h1',
+          date: '2026-01-01',
+          totalAssetsThb: 100,
+          totalLiabilitiesThb: 10,
+          netWorthThb: 90,
+          fxRate: 35,
+          userId: 'x',
+        },
+        {
+          id: 'h2',
+          date: '2026-01-01',
+          totalAssetsThb: 200,
+          totalLiabilitiesThb: 20,
+          netWorthThb: 180,
+          fxRate: 36,
+          userId: 'x',
+        },
       ];
 
       await service.importData(ATTACKER, sealBackup(data), PASSWORD);
@@ -281,7 +371,7 @@ describe('BackupService', () => {
       expect(history[0].netWorthThb).toBe(180); // last entry wins
     });
 
-    it('clears only the caller\'s existing rows', async () => {
+    it("clears only the caller's existing rows", async () => {
       await service.importData(ATTACKER, sealBackup(legitBackup()), PASSWORD);
 
       for (const call of queryRunner.manager.delete.mock.calls) {
@@ -314,7 +404,11 @@ describe('BackupService', () => {
 
     it('rejects a wrong password without touching the database', async () => {
       await expect(
-        service.importData(ATTACKER, sealBackup(legitBackup()), 'wrong-password'),
+        service.importData(
+          ATTACKER,
+          sealBackup(legitBackup()),
+          'wrong-password',
+        ),
       ).rejects.toThrow(BadRequestException);
 
       expect(queryRunner.manager.save).not.toHaveBeenCalled();
@@ -322,7 +416,11 @@ describe('BackupService', () => {
 
     it('rejects an unsupported payload version', async () => {
       await expect(
-        service.importData(ATTACKER, sealBackup(legitBackup(), PASSWORD, 2), PASSWORD),
+        service.importData(
+          ATTACKER,
+          sealBackup(legitBackup(), PASSWORD, 2),
+          PASSWORD,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       expect(queryRunner.manager.save).not.toHaveBeenCalled();

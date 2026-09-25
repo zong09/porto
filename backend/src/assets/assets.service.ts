@@ -7,11 +7,30 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { Asset } from './entities/asset.entity';
 import { Portfolio } from '../portfolios/entities/portfolio.entity';
-import { PositionService } from '../position/position.service';
+import { PositionService, PositionSummary } from '../position/position.service';
 import { PricesService } from '../prices/prices.service';
+
+/** Asset row plus live price and computed position, as served by the API. */
+export interface EnrichedAsset {
+  id: string;
+  portfolioId: string;
+  type: Asset['type'];
+  symbol: string;
+  name: string;
+  currency: Asset['currency'];
+  cgId: string;
+  yahooSymbol: string;
+  manualPrice: number | null;
+  sortOrder: number;
+  direction: Asset['direction'];
+  portfolio: { id: string; name: string; color: number };
+  currentPrice: number;
+  change24h: number;
+  position: PositionSummary;
+}
 
 @Injectable()
 export class AssetsService implements OnModuleInit {
@@ -74,7 +93,7 @@ export class AssetsService implements OnModuleInit {
     }
   }
 
-  async findAll(userId: string): Promise<any[]> {
+  async findAll(userId: string): Promise<EnrichedAsset[]> {
     this.logger.log(`Fetching all assets for user=${userId}`);
     const assets = await this.assetRepo
       .createQueryBuilder('asset')
@@ -85,7 +104,7 @@ export class AssetsService implements OnModuleInit {
       .addOrderBy('asset.symbol', 'ASC')
       .getMany();
 
-    const enriched: any[] = [];
+    const enriched: EnrichedAsset[] = [];
     for (const asset of assets) {
       const simpleTxs = (asset.transactions || []).map((t) => ({
         quantity: Number(t.quantity),
@@ -131,7 +150,7 @@ export class AssetsService implements OnModuleInit {
               change24h = Number(data.chg || 0);
             }
           }
-        } catch (e) {
+        } catch {
           currentPrice = Number(asset.manualPrice || position.avgCost || 0);
         }
       }
@@ -165,7 +184,7 @@ export class AssetsService implements OnModuleInit {
     return enriched;
   }
 
-  async findOne(id: string, userId: string): Promise<any> {
+  async findOne(id: string, userId: string): Promise<EnrichedAsset> {
     const asset = await this.assetRepo
       .createQueryBuilder('asset')
       .innerJoinAndSelect('asset.portfolio', 'portfolio')
@@ -223,7 +242,7 @@ export class AssetsService implements OnModuleInit {
             change24h = Number(data.chg || 0);
           }
         }
-      } catch (e) {
+      } catch {
         currentPrice = Number(asset.manualPrice || position.avgCost || 0);
       }
     }
@@ -288,7 +307,7 @@ export class AssetsService implements OnModuleInit {
       manualPrice: manualPrice !== undefined ? manualPrice : null,
       direction: direction || 'long',
       sortOrder: count,
-    } as any) as any as Asset;
+    } as DeepPartial<Asset>);
 
     const saved = await this.assetRepo.save(asset);
     this.logger.log(`Asset created id=${saved.id} symbol=${symbol}`);

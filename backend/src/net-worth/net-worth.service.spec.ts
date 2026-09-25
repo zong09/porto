@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { NetWorthService } from './net-worth.service';
 import { Asset } from '../assets/entities/asset.entity';
 import { Liability } from '../liabilities/entities/liability.entity';
@@ -35,9 +34,6 @@ const mockNetWorthHistory = {
 
 describe('NetWorthService', () => {
   let service: NetWorthService;
-  let assetRepo: Repository<Asset>;
-  let liabilityRepo: Repository<Liability>;
-  let netWorthHistoryRepo: Repository<NetWorthHistory>;
   let pricesService: PricesService;
 
   beforeEach(async () => {
@@ -102,13 +98,6 @@ describe('NetWorthService', () => {
     }).compile();
 
     service = module.get<NetWorthService>(NetWorthService);
-    assetRepo = module.get<Repository<Asset>>(getRepositoryToken(Asset));
-    liabilityRepo = module.get<Repository<Liability>>(
-      getRepositoryToken(Liability),
-    );
-    netWorthHistoryRepo = module.get<Repository<NetWorthHistory>>(
-      getRepositoryToken(NetWorthHistory),
-    );
     pricesService = module.get<PricesService>(PricesService);
   });
 
