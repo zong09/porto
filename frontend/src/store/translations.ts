@@ -1,4 +1,9 @@
-export const translations: Record<string, any> = {
+/** Nested keys down to `{ th, en }` leaves. */
+export interface TranslationTree {
+  [key: string]: string | TranslationTree;
+}
+
+export const translations: TranslationTree = {
   common: {
     overview: { th: 'ภาพรวม', en: 'Overview' },
     ports: { th: 'พอร์ต', en: 'Portfolios' },

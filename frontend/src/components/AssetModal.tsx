@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { usePortfolios, useAssets, useTransactions } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { apiErrorMessage } from '../api/apiError';
 
 // Removed CG_ID_MAP
 
@@ -36,7 +37,17 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
 };
 
 export const AssetModal: React.FC = () => {
-  const { modals, closeModal, activePortfolioId, activeAssetId, openModal } = useStore();
+  const { modals, activeAssetId } = useStore();
+  const { data: assets = [] } = useAssets();
+  if (!modals.asset) return null;
+  // Mount a fresh form per open (and per edited asset) so it starts from its
+  // initial values. Keying on the found asset also re-mounts once assets load.
+  const editing = activeAssetId ? assets.find((a) => a.id === activeAssetId) : undefined;
+  return <AssetModalForm key={editing?.id ?? 'new'} />;
+};
+
+const AssetModalForm: React.FC = () => {
+  const { closeModal, activePortfolioId, activeAssetId, openModal } = useStore();
   const { data: portfolios = [] } = usePortfolios();
   const { data: assets = [], createAsset, updateAsset } = useAssets();
   const { createTransaction } = useTransactions();
@@ -46,76 +57,31 @@ export const AssetModal: React.FC = () => {
   const editing = activeAssetId ? assets.find((a) => a.id === activeAssetId) : undefined;
   const isEdit = !!editing;
 
-  // Basic Fields
-  const [portfolioId, setPortfolioId] = useState('');
-  const [type, setType] = useState<'crypto' | 'th' | 'us' | 'fund' | 'deposit'>('crypto');
-  const [symbol, setSymbol] = useState('');
-  const [name, setName] = useState('');
-  const [nav, setNav] = useState('');
+  // Basic Fields (prefilled from the asset being edited)
+  const [portfolioId, setPortfolioId] = useState(() => editing?.portfolioId ?? activePortfolioId ?? '');
+  // Until the user picks one, fall back to the first portfolio (it may load after the modal opens).
+  const selectedPortfolioId = portfolioId || portfolios[0]?.id || '';
+  const [type, setType] = useState<'crypto' | 'th' | 'us' | 'fund' | 'deposit'>(() => editing?.type ?? 'crypto');
+  const [symbol, setSymbol] = useState(() => editing?.symbol ?? '');
+  const [name, setName] = useState(() =>
+    editing?.name && editing.name !== editing.symbol ? editing.name : '',
+  );
+  const [nav, setNav] = useState(() => (editing?.manualPrice != null ? String(editing.manualPrice) : ''));
   // Native currency the asset is denominated in (stored on the asset; transactions are stored in this currency).
-  const [assetCcy, setAssetCcy] = useState<'THB' | 'USD'>('USD');
+  const [assetCcy, setAssetCcy] = useState<'THB' | 'USD'>(() => editing?.currency ?? 'USD');
   // Position direction: long (buy-to-open) or short (sell-to-open)
-  const [direction, setDirection] = useState<'long' | 'short'>('long');
+  const [direction, setDirection] = useState<'long' | 'short'>(() => editing?.direction || 'long');
 
   // Opening Transaction Fields
   const [oQty, setOQty] = useState('');
   const [oPrice, setOPrice] = useState('');
   const [oFee, setOFee] = useState('');
-  const [oDate, setODate] = useState(new Date().toISOString().slice(0, 10));
+  const [oDate, setODate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
-  useEffect(() => {
-    if (!modals.asset) {
-      setHasInitialized(false);
-      return;
-    }
-
-    if (hasInitialized) return;
-
-    setError(null);
-    if (editing) {
-      // Prefill from the asset being edited.
-      setPortfolioId(editing.portfolioId);
-      setType(editing.type);
-      setAssetCcy(editing.currency);
-      setDirection(editing.direction || 'long');
-      setSymbol(editing.symbol);
-      setName(editing.name && editing.name !== editing.symbol ? editing.name : '');
-      setNav(editing.manualPrice != null ? String(editing.manualPrice) : '');
-      setOQty('');
-      setOPrice('');
-      setOFee('');
-      setHasInitialized(true);
-    } else {
-      if (activePortfolioId) {
-        setPortfolioId(activePortfolioId);
-      } else if (portfolios.length > 0) {
-        setPortfolioId(portfolios[0].id);
-      }
-      setType('crypto');
-      setAssetCcy('USD');
-      setDirection('long');
-      setSymbol('');
-      setName('');
-      setNav('');
-      setOQty('');
-      setOPrice('');
-      setOFee('');
-      setODate(new Date().toISOString().slice(0, 10));
-      // Only mark initialized when portfolios are loaded (needed for fallback portfolioId)
-      if (portfolios.length > 0 || activePortfolioId) {
-        setHasInitialized(true);
-      }
-    }
-  }, [modals.asset, activeAssetId, activePortfolioId, editing, portfolios, hasInitialized]);
-
-  // Symbol mapping removed in favor of Binance symbols
-
-  if (!modals.asset) return null;
 
   const handleTypeChange = (newType: typeof type) => {
     setType(newType);
@@ -150,8 +116,8 @@ export const AssetModal: React.FC = () => {
             editing.type === 'fund' && nav ? Number.parseFloat(nav.replace(/[$,]/g, '')) : undefined,
         });
         closeModal('asset');
-      } catch (err: any) {
-        setError(err.response?.data?.message || t('common.error'));
+      } catch (err) {
+        setError(apiErrorMessage(err, t('common.error')));
       } finally {
         setLoading(false);
       }
@@ -159,7 +125,7 @@ export const AssetModal: React.FC = () => {
     }
 
     const trimSymbol = symbol.trim();
-    if (!portfolioId) {
+    if (!selectedPortfolioId) {
       setError(
         language === 'th'
           ? 'กรุณาเลือกพอร์ตการลงทุนก่อน — หากยังไม่มีให้สร้างพอร์ตก่อน'
@@ -217,7 +183,7 @@ export const AssetModal: React.FC = () => {
     try {
       // 1. Create asset
       const createdAsset = await createAsset.mutateAsync({
-        portfolioId,
+        portfolioId: selectedPortfolioId,
         type,
         symbol: trimSymbol.toUpperCase(),
         name: name.trim(),
@@ -245,8 +211,8 @@ export const AssetModal: React.FC = () => {
           openModal('tx', { assetId: createdAsset.id });
         }, 150);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || t('common.error'));
+    } catch (err) {
+      setError(apiErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }
@@ -293,7 +259,7 @@ export const AssetModal: React.FC = () => {
           <div>
             <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('modals.asset.portLabel')}</label>
             <select
-              value={portfolioId}
+              value={selectedPortfolioId}
               onChange={(e) => setPortfolioId(e.target.value)}
               disabled={isEdit}
               className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
@@ -312,7 +278,7 @@ export const AssetModal: React.FC = () => {
             <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('modals.asset.typeLabel')}</label>
             <select
               value={type}
-              onChange={(e) => handleTypeChange(e.target.value as any)}
+              onChange={(e) => handleTypeChange(e.target.value as typeof type)}
               disabled={isEdit}
               className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               id="select-asset-type"

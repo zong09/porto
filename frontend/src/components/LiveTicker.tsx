@@ -5,7 +5,7 @@ import { useStore } from '../store/useStore';
 
 export const LiveTicker: React.FC = () => {
   const { currency } = useStore();
-  const { data: assets, isLoading, isError, refetch: refetchAssets } = useAssets();
+  const { data: assets, isLoading, isError, refetch: refetchAssets, dataUpdatedAt } = useAssets();
   const { summary, takeSnapshot } = useNetWorth();
   const [isPending, startTransition] = useTransition();
   const { language } = useTranslation();
@@ -43,10 +43,12 @@ export const LiveTicker: React.FC = () => {
   }, [assets]);
 
   const fxRate = summary.data?.fx || 35.84;
+  // Time of the last successful price fetch.
   const lastUpdatedTime = React.useMemo(() => {
-    const d = new Date();
+    if (!dataUpdatedAt) return '';
+    const d = new Date(dataUpdatedAt);
     return d.toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-  }, [assets, language]);
+  }, [dataUpdatedAt, language]);
 
   return (
     <div className="flex flex-col">

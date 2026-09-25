@@ -21,6 +21,7 @@ import { apiClient } from './api/apiClient';
 import { useAuthConfig } from './hooks/useApi';
 import { useTranslation } from './hooks/useTranslation';
 import packageJson from '../../package.json';
+import { apiErrorMessage } from './api/apiError';
 
 function App() {
   const { user, page, theme } = useStore();
@@ -37,8 +38,8 @@ function App() {
       try {
         const res = await apiClient.post('/auth/demo');
         useStore.getState().login(res.data.user, res.data.token);
-      } catch (err: any) {
-        alert(err.response?.data?.message || t('footer.demoError'));
+      } catch (err) {
+        alert(apiErrorMessage(err, t('footer.demoError')));
       }
     }
   };

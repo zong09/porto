@@ -4,6 +4,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { THEMES, themeMeta, themeOrder } from '../utils/themes';
 import { Download, Upload, X } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
+import { apiErrorMessage } from '../api/apiError';
 
 export const Settings: React.FC = () => {
   const { theme, setTheme } = useStore();
@@ -57,8 +58,8 @@ export const Settings: React.FC = () => {
       URL.revokeObjectURL(url);
       
       resetModal();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Export failed');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Export failed'));
     } finally {
       setLoading(false);
     }
@@ -83,13 +84,13 @@ export const Settings: React.FC = () => {
           const base64String = (event.target?.result as string).split(',')[1];
           await apiClient.post('/backup/import', { password, data: base64String });
           window.location.reload(); // Refresh the app to load new data
-        } catch (err: any) {
-          setError(err.response?.data?.message || 'Import failed');
+        } catch (err) {
+          setError(apiErrorMessage(err, 'Import failed'));
           setLoading(false);
         }
       };
       reader.readAsDataURL(file);
-    } catch (err: any) {
+    } catch {
       setError('Failed to read file');
       setLoading(false);
     }
