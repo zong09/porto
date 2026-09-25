@@ -2,7 +2,7 @@ import { HelpCircle } from 'lucide-react';
 import React from 'react';
 import { apiClient } from '../api/apiClient';
 import { SankeyCard } from '../components/SankeyCard';
-import { useAssets, useAuthConfig, useLiabilities, useNetWorth, usePortfolios, useTransactions } from '../hooks/useApi';
+import { useAssets, useAuthConfig, useLiabilities, useNetWorth, usePortfolios, useTransactions, type Asset, type NetWorthHistoryItem } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 import { useStore } from '../store/useStore';
 import { computeSankey } from '../utils/sankey';
@@ -10,15 +10,17 @@ import { useThemePalette } from '../utils/themes';
 
 // --- Squarify Treemap algorithm ---
 interface Rect { x: number; y: number; w: number; h: number; }
-function squarify<T>(items: { area: number; data: T }[], rect: Rect): ({ x: number; y: number; w: number; h: number; data: T })[] {
-  const out: any[] = [];
+/** An item placed by squarify: its rectangle plus the original data. */
+type Laid<T> = Rect & { data: T };
+function squarify<T>(items: { area: number; data: T }[], rect: Rect): Laid<T>[] {
+  const out: Laid<T>[] = [];
   const worst = (areas: number[], side: number) => {
     let mx = -Infinity, mn = Infinity, sum = 0;
     for (const a of areas) { sum += a; if (a > mx) mx = a; if (a < mn) mn = a; }
     const s2 = side * side, sum2 = sum * sum;
     return Math.max((s2 * mx) / sum2, sum2 / (s2 * mn));
   };
-  const lay = (row: any[], r: Rect) => {
+  const lay = (row: { area: number; data: T }[], r: Rect) => {
     const sum = row.reduce((s, o) => s + o.area, 0);
     if (r.w <= r.h) {
       const rh = sum / r.w; let cx = r.x;
@@ -30,7 +32,8 @@ function squarify<T>(items: { area: number; data: T }[], rect: Rect): ({ x: numb
     return { x: r.x + rw, y: r.y, w: Math.max(0, r.w - rw), h: r.h };
   };
   let r = { ...rect };
-  let queue = [...items].sort((a, b) => b.area - a.area), row: any[] = [];
+  const queue = [...items].sort((a, b) => b.area - a.area);
+  let row: { area: number; data: T }[] = [];
   while (queue.length) {
     const next = queue[0], side = Math.max(0.01, Math.min(r.w, r.h)), cur = row.map(o => o.area);
     if (row.length === 0 || worst(cur, side) >= worst(cur.concat(next.area), side)) {
@@ -43,6 +46,19 @@ function squarify<T>(items: { area: number; data: T }[], rect: Rect): ({ x: numb
 
 // Give every item at least minFrac of totalArea so tiny slices stay legible;
 // the deficit is taken proportionally from the remaining (larger) items.
+/** A holding sized for the treemap (value in THB, shorts as absolute value). */
+type TreemapItem = Asset & { valueThb: number };
+interface TreemapGroup {
+  id: string;
+  name: string;
+  color: number;
+  hexColor: string;
+  tintColor: string;
+  items: TreemapItem[];
+  valueThb: number;
+}
+type TreemapLeaf = TreemapItem & Laid<TreemapItem> & { groupColor: string; groupTint: string };
+
 function redistributeAreas(values: number[], totalArea: number, minFrac: number): number[] {
   const total = values.reduce((s, v) => s + v, 0);
   const n = values.length;
@@ -150,6 +166,9 @@ export const Overview: React.FC = () => {
   const { data: config } = useAuthConfig();
   const { t, language } = useTranslation();
   const themeColors = useThemePalette();
+  // Render must stay pure, so "now" is read once per mount rather than on every
+  // render. It anchors the month-over-month cutoff and placeholder chart dates.
+  const [now] = React.useState(() => Date.now());
 
   const lastUpdatedTime = React.useMemo(() => {
     if (!summary.dataUpdatedAt) return '';
@@ -239,7 +258,7 @@ export const Overview: React.FC = () => {
   const historyData = history.data || [];
   if (historyData.length >= 2) {
     const dayMs = 86400000;
-    const cutoffDateStr = new Date(Date.now() - 28 * dayMs).toISOString().slice(0, 10);
+    const cutoffDateStr = new Date(now - 28 * dayMs).toISOString().slice(0, 10);
     let oldPoint = historyData[0];
     for (const p of historyData) {
       if (p.date <= cutoffDateStr) {
@@ -261,19 +280,19 @@ export const Overview: React.FC = () => {
   let nwDotY = 0;
   let xLabels: string[] = [];
 
-  let chartHistoryPoints = [...historyData].slice(-60);
+  let chartHistoryPoints: NetWorthHistoryItem[] = [...historyData].slice(-60);
   if (chartHistoryPoints.length === 0) {
     const todayStr = new Date().toISOString().slice(0, 10);
-    const prevDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const prevDate = new Date(now - 30 * 86400000).toISOString().slice(0, 10);
     chartHistoryPoints = [
-      { id: 'placeholder-1', date: prevDate, netWorthThb: 0, totalAssetsThb: 0, totalLiabilitiesThb: 0, fxRate: fx } as any,
-      { id: 'placeholder-2', date: todayStr, netWorthThb: netWorth, totalAssetsThb: totalAssets, totalLiabilitiesThb: totalLiabilities, fxRate: fx } as any
+      { id: 'placeholder-1', date: prevDate, netWorthThb: 0, totalAssetsThb: 0, totalLiabilitiesThb: 0, fxRate: fx },
+      { id: 'placeholder-2', date: todayStr, netWorthThb: netWorth, totalAssetsThb: totalAssets, totalLiabilitiesThb: totalLiabilities, fxRate: fx }
     ];
   } else if (chartHistoryPoints.length === 1) {
-    const prevDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const prevDate = new Date(now - 30 * 86400000).toISOString().slice(0, 10);
     const onlyPoint = chartHistoryPoints[0];
     chartHistoryPoints = [
-      { id: 'placeholder-1', date: prevDate, netWorthThb: 0, totalAssetsThb: 0, totalLiabilitiesThb: 0, fxRate: onlyPoint.fxRate || fx } as any,
+      { id: 'placeholder-1', date: prevDate, netWorthThb: 0, totalAssetsThb: 0, totalLiabilitiesThb: 0, fxRate: onlyPoint.fxRate || fx },
       onlyPoint
     ];
   }
@@ -377,16 +396,16 @@ export const Overview: React.FC = () => {
     });
     // Sort descending by value
     return ports.sort((a, b) => b.valueThb - a.valueThb);
-  }, [portfolios, assets, totalAssets, fx, language]);
+  }, [portfolios, assets, totalAssets, fx, t]);
 
   // 5. Treemap data calculations
   const treemapData = React.useMemo(() => {
     const palette = themeColors.palette;
     const tints = themeColors.tints;
 
-    const portGroups = portfolios.map(p => {
+    const portGroups = portfolios.map((p): TreemapGroup => {
       const pAssets = assets.filter(a => a.portfolioId === p.id && a.position && a.position.quantity > 0);
-      const items = pAssets.map(a => {
+      const items = pAssets.map((a): TreemapItem => {
         const multiplier = a.currency === 'USD' ? fx : 1;
         const isShort = (a.direction || 'long') === 'short';
         const val = a.position!.quantity * (a.currentPrice || 0) * multiplier;
@@ -411,14 +430,14 @@ export const Overview: React.FC = () => {
     const W = 100;
     const H = 100;
     
-    let groupRects: any[] = [];
+    let groupRects: Laid<TreemapGroup>[] = [];
     if (globalTotal > 0) {
       const gAreas = redistributeAreas(portGroups.map(g => g.valueThb), W * H, 0.06);
       const gItems = portGroups.map((g, i) => ({ area: gAreas[i], data: g }));
       groupRects = squarify(gItems, { x: 0, y: 0, w: W, h: H });
     }
     
-    const allLeaves: any[] = [];
+    const allLeaves: TreemapLeaf[] = [];
     for (const grp of groupRects) {
       const gData = grp.data;
       // Calculate leaves inside this group rect
@@ -434,8 +453,8 @@ export const Overview: React.FC = () => {
       if (gData.valueThb > 0) {
 
         // Setup rank map for color gradients
-        const sortedItems = [...gData.items].sort((a: any, b: any) => b.valueThb - a.valueThb);
-        const rankMap = new Map();
+        const sortedItems = [...gData.items].sort((a, b) => b.valueThb - a.valueThb);
+        const rankMap = new Map<TreemapItem, number>();
         sortedItems.forEach((r, idx) => rankMap.set(r, idx));
         const gcount = sortedItems.length;
 
@@ -445,8 +464,8 @@ export const Overview: React.FC = () => {
           return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * amt).toString(16).padStart(2, '0')).join(''); 
         };
 
-        const lAreas = redistributeAreas(gData.items.map((it: { valueThb: number }) => it.valueThb), innerRect.w * innerRect.h, 0.03);
-        const lItems = gData.items.map((it: any, i: number) => ({ area: lAreas[i], data: it }));
+        const lAreas = redistributeAreas(gData.items.map((it) => it.valueThb), innerRect.w * innerRect.h, 0.03);
+        const lItems = gData.items.map((it, i) => ({ area: lAreas[i], data: it }));
         const leafRects = squarify(lItems, innerRect);
         
         allLeaves.push(...leafRects.map(l => {
@@ -467,7 +486,7 @@ export const Overview: React.FC = () => {
 
   // Sankey: portfolio (left) → asset type (right)
   const typeSankey = React.useMemo(() => {
-    const groups = treemapData.groups as any[];
+    const groups = treemapData.groups;
     if (!groups.length) return null;
     const typeColor: Record<string, string> = themeColors.typeColor;
     const typeLabels: Record<string, string> = {
@@ -478,7 +497,7 @@ export const Overview: React.FC = () => {
       deposit: t('common.assetTypes.deposit'),
     };
     const typeAgg: Record<string, number> = {};
-    groups.forEach((g) => (g.items as any[]).forEach((it) => { typeAgg[it.type] = (typeAgg[it.type] || 0) + it.valueThb; }));
+    groups.forEach((g) => g.items.forEach((it) => { typeAgg[it.type] = (typeAgg[it.type] || 0) + it.valueThb; }));
     const typeItems = Object.keys(typeAgg).map((ty) => ({ ty, v: typeAgg[ty] })).sort((a, b) => b.v - a.v);
     if (!typeItems.length) return null;
     const total = groups.reduce((s, g) => s + g.valueThb, 0);
@@ -492,7 +511,7 @@ export const Overview: React.FC = () => {
     const flows: { leftIndex: number; rightIndex: number; value: number }[] = [];
     groups.forEach((g, li) => {
       const byType: Record<string, number> = {};
-      (g.items as any[]).forEach((it) => { byType[it.type] = (byType[it.type] || 0) + it.valueThb; });
+      g.items.forEach((it) => { byType[it.type] = (byType[it.type] || 0) + it.valueThb; });
       typeItems.forEach((it, ri) => { const v = byType[it.ty]; if (v) flows.push({ leftIndex: li, rightIndex: ri, value: v }); });
     });
     return computeSankey({ left, right, flows, SW: 1000, SH: 460, LX: 132, RX: 1000 - 132 - 13 });

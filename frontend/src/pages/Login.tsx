@@ -3,23 +3,20 @@ import { useStore } from '../store/useStore';
 import { apiClient } from '../api/apiClient';
 import { useAuthConfig } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { apiErrorMessage } from '../api/apiError';
 
 export const Login: React.FC = () => {
   const login = useStore((state) => state.login);
   const { data: config } = useAuthConfig();
   const { t, language, setLanguage } = useTranslation();
-  const [isSignup, setIsSignup] = useState(false);
+  const [wantsSignup, setWantsSignup] = useState(false);
+  // Signup mode is unavailable while registration is disabled on the server.
+  const isSignup = wantsSignup && config?.enableRegister !== false;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  React.useEffect(() => {
-    if (config?.enableRegister === false) {
-      setIsSignup(false);
-    }
-  }, [config]);
 
   const handleDemo = async () => {
     setError(null);
@@ -27,8 +24,8 @@ export const Login: React.FC = () => {
     try {
       const res = await apiClient.post('/auth/demo');
       login(res.data.user, res.data.token);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่โหมดเดโม');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'เกิดข้อผิดพลาดในการเข้าสู่โหมดเดโม'));
     } finally {
       setLoading(false);
     }
@@ -65,8 +62,8 @@ export const Login: React.FC = () => {
         const res = await apiClient.post('/auth/login', { email, pass: password });
         login(res.data.user, res.data.token);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || t('common.error'));
+    } catch (err) {
+      setError(apiErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }
@@ -209,7 +206,7 @@ export const Login: React.FC = () => {
               <span>{isSignup ? t('login.hasAccount') : t('login.noAccount')}</span>{' '}
               <span
                 onClick={() => {
-                  setIsSignup(!isSignup);
+                  setWantsSignup(!isSignup);
                   setError(null);
                 }}
                 className="text-terracotta font-bold cursor-pointer underline hover:text-terracotta-hover"

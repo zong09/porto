@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { useTransactions, useNetWorth, useLiabilityTransactions } from '../hooks/useApi';
 import type { LiabilityTransaction } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { apiErrorMessage } from '../api/apiError';
 
 export const Transactions: React.FC = () => {
   const { openModal, currency } = useStore();
@@ -71,7 +72,7 @@ export const Transactions: React.FC = () => {
     try {
       const d = new Date(dateStr + 'T00:00:00');
       return d.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' });
-    } catch (e) {
+    } catch {
       return dateStr;
     }
   };
@@ -80,8 +81,8 @@ export const Transactions: React.FC = () => {
     if (confirm(t('transactions.confirmDeleteTx'))) {
       try {
         await deleteTransaction.mutateAsync(id);
-      } catch (err: any) {
-        alert(err.response?.data?.message || t('common.error'));
+      } catch (err) {
+        alert(apiErrorMessage(err, t('common.error')));
       }
     }
   };
@@ -105,7 +106,6 @@ export const Transactions: React.FC = () => {
       return 0;
     });
     return rows;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, liabilityTxns]);
 
   if (isLoading) {
@@ -207,7 +207,7 @@ export const Transactions: React.FC = () => {
                   );
                 }
                 const txn = row.txn;
-                const asset = txn.asset || { symbol: '?', type: 'crypto', currency: 'THB', portfolio: { name: '—' } };
+                const asset = txn.asset || { symbol: '?', type: 'crypto' as const, currency: 'THB' as const, portfolio: { name: '—' } };
                 const isDep = asset.type === 'deposit';
                 const isBuy = txn.side === 'buy';
                 const typeLabel = isDep
@@ -251,14 +251,14 @@ export const Transactions: React.FC = () => {
                           <span className="font-semibold text-muted text-xs.5">—</span>
                         ) : (
                           <>
-                            <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(Number(txn.price), asset.currency as any)}</span>
-                            <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(Number(txn.price), asset.currency as any)}</span>
+                            <span className="font-semibold text-muted text-xs.5">{formatNativePrimary(Number(txn.price), asset.currency)}</span>
+                            <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(Number(txn.price), asset.currency)}</span>
                           </>
                         )}
                       </td>
                     )}
                     <td className="text-right tabular-nums flex flex-col items-end justify-center">
-                      <span className="font-bold text-dark text-sm leading-none">{formatNativePrimary(totalValue, asset.currency as any)}</span>
+                      <span className="font-bold text-dark text-sm leading-none">{formatNativePrimary(totalValue, asset.currency)}</span>
                       {isMobile && (
                         <span
                           className={`text-[9px] font-bold px-1.5 py-0.5 mt-1 rounded-full select-none ${
@@ -268,7 +268,7 @@ export const Transactions: React.FC = () => {
                           {typeLabel}
                         </span>
                       )}
-                      {!isMobile && <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(totalValue, asset.currency as any)}</span>}
+                      {!isMobile && <span className="text-[10.5px] text-faint font-bold mt-0.5">{formatNativeSecondary(totalValue, asset.currency)}</span>}
                     </td>
                     <td className={`flex ${isMobile ? 'flex-col gap-1 items-end' : 'gap-2 justify-center items-center'}`}>
                       <button

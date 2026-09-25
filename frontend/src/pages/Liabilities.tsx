@@ -5,6 +5,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { computeSankey } from '../utils/sankey';
 import { SankeyCard } from '../components/SankeyCard';
 import { useThemePalette } from '../utils/themes';
+import { apiErrorMessage } from '../api/apiError';
 
 export const Liabilities: React.FC = () => {
   const { currency, openModal } = useStore();
@@ -78,8 +79,8 @@ export const Liabilities: React.FC = () => {
     ) {
       try {
         await deleteLiability.mutateAsync(id);
-      } catch (err: any) {
-        alert(err.response?.data?.message || t('common.error'));
+      } catch (err) {
+        alert(apiErrorMessage(err, t('common.error')));
       }
     }
   };

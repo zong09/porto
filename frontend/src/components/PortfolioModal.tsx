@@ -2,28 +2,29 @@ import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { usePortfolios } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { apiErrorMessage } from '../api/apiError';
 
 export const PortfolioModal: React.FC = () => {
-  const { modals, closeModal, activePortfolioId } = useStore();
+  const { modals, activePortfolioId } = useStore();
+  const { data: portfolios = [] } = usePortfolios();
+  if (!modals.portfolio) return null;
+  // A fresh form per open (and per edited portfolio) starts from its initial values.
+  const editing = activePortfolioId ? portfolios.find((p) => p.id === activePortfolioId) : undefined;
+  return <PortfolioModalForm key={editing?.id ?? 'new'} />;
+};
+
+const PortfolioModalForm: React.FC = () => {
+  const { closeModal, activePortfolioId } = useStore();
   const { data: portfolios = [], createPortfolio, updatePortfolio } = usePortfolios();
   const { t, language } = useTranslation();
-  const [name, setName] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const editing = activePortfolioId ? portfolios.find((p) => p.id === activePortfolioId) : undefined;
   const isEdit = !!editing;
 
-  // Prefill name when opening in edit mode
-  React.useEffect(() => {
-    if (modals.portfolio) {
-      setName(editing?.name ?? '');
-      setError(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modals.portfolio, activePortfolioId]);
-
-  if (!modals.portfolio) return null;
+  // Prefilled with the current name in edit mode
+  const [name, setName] = useState(() => editing?.name ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +45,8 @@ export const PortfolioModal: React.FC = () => {
       }
       setName('');
       closeModal('portfolio');
-    } catch (err: any) {
-      setError(err.response?.data?.message || t('common.error'));
+    } catch (err) {
+      setError(apiErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { useLiabilities } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { apiErrorMessage } from '../api/apiError';
 
 type EditMode = 'set' | 'pay' | 'add';
 
@@ -18,7 +19,16 @@ const selectStyle = {
 } as const;
 
 export const LiabilityModal: React.FC = () => {
-  const { modals, closeModal, activeLiabilityId, activeLiabilityMode } = useStore();
+  const { modals, activeLiabilityId } = useStore();
+  const { data: liabilities = [] } = useLiabilities();
+  if (!modals.liability) return null;
+  // A fresh form per open (and per edited liability) starts from its initial values.
+  const editing = liabilities.find((l) => l.id === activeLiabilityId);
+  return <LiabilityModalForm key={editing?.id ?? 'new'} />;
+};
+
+const LiabilityModalForm: React.FC = () => {
+  const { closeModal, activeLiabilityId, activeLiabilityMode } = useStore();
   const { data: liabilities = [], createLiability, updateLiability, adjustLiability } = useLiabilities();
   const { t, language } = useTranslation();
 
@@ -26,32 +36,13 @@ export const LiabilityModal: React.FC = () => {
   const isEdit = !!editing;
   const th = language === 'th';
 
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState<'THB' | 'USD'>('THB');
-  const [mode, setMode] = useState<EditMode>('set');
+  const [name, setName] = useState(() => editing?.name ?? '');
+  const [amount, setAmount] = useState(() => (editing ? String(editing.amount) : ''));
+  const [currency, setCurrency] = useState<'THB' | 'USD'>(() => editing?.currency ?? 'THB');
+  const [mode, setMode] = useState<EditMode>(() => (editing ? activeLiabilityMode : 'set'));
   const [delta, setDelta] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!modals.liability) return;
-    if (editing) {
-      setName(editing.name);
-      setAmount(String(editing.amount));
-      setCurrency(editing.currency);
-    } else {
-      setName('');
-      setAmount('');
-      setCurrency('THB');
-    }
-    setMode(editing ? activeLiabilityMode : 'set');
-    setDelta('');
-    setError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modals.liability, activeLiabilityId]);
-
-  if (!modals.liability) return null;
 
   const close = () => closeModal('liability');
 
@@ -75,8 +66,8 @@ export const LiabilityModal: React.FC = () => {
           date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
         });
         close();
-      } catch (err: any) {
-        setError(err.response?.data?.message || t('common.error'));
+      } catch (err) {
+        setError(apiErrorMessage(err, t('common.error')));
       } finally {
         setLoading(false);
       }
@@ -102,8 +93,8 @@ export const LiabilityModal: React.FC = () => {
         await createLiability.mutateAsync({ name: trimName, amount: parsedAmount, currency });
       }
       close();
-    } catch (err: any) {
-      setError(err.response?.data?.message || t('common.error'));
+    } catch (err) {
+      setError(apiErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }

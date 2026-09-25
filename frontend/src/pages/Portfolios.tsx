@@ -1,6 +1,7 @@
 import React from 'react';
-import { useStore } from '../store/useStore';
-import { usePortfolios, useAssets, useNetWorth } from '../hooks/useApi';
+import { useStore, type OpenModalFn } from '../store/useStore';
+import { usePortfolios, useAssets, useNetWorth, type Asset, type Portfolio } from '../hooks/useApi';
+import { apiErrorMessage } from '../api/apiError';
 import { GripVertical } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import { useThemePalette } from '../utils/themes';
@@ -22,9 +23,35 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+type DragListeners = ReturnType<typeof useSortable>['listeners'];
+type Sensors = ReturnType<typeof useSensors>;
+
+/** An asset row with its position and valuation resolved (values in THB). */
+type Holding = Omit<Asset, 'currentPrice'> & {
+  quantity: number;
+  avgCost: number;
+  currentPrice: number;
+  valueThb: number;
+  plThb: number;
+  returnPct: number;
+  isShort: boolean;
+};
+
+/** A portfolio card: its holdings plus totals and allocation display data. */
+type PortfolioSection = Portfolio & {
+  holdings: Holding[];
+  valueThb: number;
+  returnPct: number;
+  hasHoldings: boolean;
+  hasAllocation: boolean;
+  allocationSegments: { width: string; color: string }[];
+  allocationLegend: { symbol: string; pct: number; color: string }[];
+  colorHex: string;
+};
+
 // ─── Sortable Portfolio Card ───────────────────────────────────────────────────
 interface SortablePortfolioProps {
-  portfolio: any;
+  portfolio: { id: string };
   children: React.ReactNode;
 }
 const SortablePortfolioCard: React.FC<SortablePortfolioProps> = ({ portfolio, children }) => {
@@ -44,7 +71,9 @@ const SortablePortfolioCard: React.FC<SortablePortfolioProps> = ({ portfolio, ch
     <div ref={setNodeRef} style={style} {...attributes}>
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
-          ? React.cloneElement(child as React.ReactElement<any>, { dragListeners: listeners })
+          ? React.cloneElement(child as React.ReactElement<{ dragListeners?: DragListeners }>, {
+              dragListeners: listeners,
+            })
           : child,
       )}
     </div>
@@ -53,7 +82,7 @@ const SortablePortfolioCard: React.FC<SortablePortfolioProps> = ({ portfolio, ch
 
 // ─── Sortable Asset Row ────────────────────────────────────────────────────────
 interface SortableAssetRowProps {
-  asset: any;
+  asset: { id: string };
   isMobile: boolean;
   children: React.ReactNode;
 }
@@ -77,7 +106,9 @@ const SortableAssetRow: React.FC<SortableAssetRowProps> = ({ asset, isMobile, ch
     >
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
-          ? React.cloneElement(child as React.ReactElement<any>, { dragListeners: listeners })
+          ? React.cloneElement(child as React.ReactElement<{ dragListeners?: DragListeners }>, {
+              dragListeners: listeners,
+            })
           : child,
       )}
     </tr>
@@ -110,7 +141,7 @@ export const Portfolios: React.FC = () => {
 
   // Drag overlay state
   const [activePortfolioId, setActivePortfolioId] = React.useState<string | null>(null);
-  const [_activeAssetId, setActiveAssetId] = React.useState<string | null>(null);
+  const [, setActiveAssetId] = React.useState<string | null>(null);
 
   const formatMoneyPrimary = (val: number, nativeCcy?: 'THB' | 'USD') => {
     const usd = val / fx;
@@ -240,8 +271,8 @@ export const Portfolios: React.FC = () => {
     ) {
       try {
         await deletePortfolio.mutateAsync(id);
-      } catch (err: any) {
-        alert(err.response?.data?.message || t('common.error'));
+      } catch (err) {
+        alert(apiErrorMessage(err, t('common.error')));
       }
     }
   };
@@ -256,8 +287,8 @@ export const Portfolios: React.FC = () => {
     ) {
       try {
         await deleteAsset.mutateAsync(id);
-      } catch (err: any) {
-        alert(err.response?.data?.message || t('common.error'));
+      } catch (err) {
+        alert(apiErrorMessage(err, t('common.error')));
       }
     }
   };
@@ -310,7 +341,7 @@ export const Portfolios: React.FC = () => {
     );
   }
 
-  const portfolioSections = portfolios.map((p) => {
+  const portfolioSections = portfolios.map((p): PortfolioSection => {
     const palette = themeColors.palette;
     const pAssets = assets.filter((a) => a.portfolioId === p.id);
 
@@ -318,7 +349,7 @@ export const Portfolios: React.FC = () => {
     let pValueThb = 0;
     let pCostThb = 0;
     let pPlThb = 0;
-    const holdings = pAssets.map((a) => {
+    const holdings = pAssets.map((a): Holding => {
       const multiplier = a.currency === 'USD' ? fx : 1;
       const quantity = a.position?.quantity || 0;
       const currentPrice = a.currentPrice || 0;
@@ -435,7 +466,6 @@ export const Portfolios: React.FC = () => {
                 <PortfolioCardContent
                   p={p}
                   isMobile={isMobile}
-                  assets={assets}
                   sensors={sensors}
                   language={language}
                   t={t}
@@ -476,10 +506,9 @@ export const Portfolios: React.FC = () => {
 
 // ─── Portfolio Card Content (extracted for SortablePortfolioCard) ───────────────
 interface PortfolioCardContentProps {
-  p: any;
+  p: PortfolioSection;
   isMobile: boolean;
-  assets: any[];
-  sensors: any;
+  sensors: Sensors;
   language: string;
   t: (key: string) => string;
   formatMoney: (val: number) => React.ReactNode;
@@ -488,18 +517,17 @@ interface PortfolioCardContentProps {
   formatNativePrimary: (val: number, ccy: 'THB' | 'USD') => string;
   formatNativeSecondary: (val: number, ccy: 'THB' | 'USD') => string;
   formatQty: (qty: number, type: string) => string;
-  openModal: (...args: any[]) => void;
+  openModal: OpenModalFn;
   handleDeletePortfolio: (id: string, name: string) => void;
   handleDeleteAsset: (id: string, symbol: string) => void;
   onAssetDragStart: (event: DragStartEvent) => void;
   onAssetDragEnd: (event: DragEndEvent) => void;
-  dragListeners?: any;
+  dragListeners?: DragListeners;
 }
 
 const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
   p,
   isMobile,
-  assets: _assets,
   sensors,
   language,
   t,
@@ -516,7 +544,7 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
   onAssetDragEnd,
   dragListeners,
 }) => {
-  const assetIds = p.holdings.map((h: any) => h.id);
+  const assetIds = p.holdings.map((h) => h.id);
 
   return (
     <div className="bg-white rounded-[22px] p-5 border border-inputBorder/20 shadow-sm flex flex-col gap-[18px]">
@@ -574,12 +602,12 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
       {p.hasAllocation && (
         <div className="flex flex-col gap-2 border-t border-inputBorder/10 pt-4">
           <div className="flex h-3 rounded-full overflow-hidden bg-inputBorder/40">
-            {p.allocationSegments.map((s: any, idx: number) => (
+            {p.allocationSegments.map((s, idx) => (
               <div key={idx} className="h-full" style={{ width: s.width, backgroundColor: s.color }}></div>
             ))}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1.5">
-            {p.allocationLegend.map((legend: any, idx: number) => (
+            {p.allocationLegend.map((legend, idx) => (
               <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold select-none">
                 <div className="w-2.5 h-2.5 rounded-[2px]" style={{ backgroundColor: legend.color }}></div>
                 <span className="text-dark/95">{legend.symbol}</span>
@@ -617,7 +645,7 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
                   </tr>
                 </thead>
                 <tbody className="flex flex-col gap-1 mt-1">
-                  {p.holdings.map((h: any) => (
+                  {p.holdings.map((h) => (
                     <SortableAssetRow key={h.id} asset={h} isMobile={isMobile}>
                       <AssetRowContent
                         h={h}
@@ -646,7 +674,7 @@ const PortfolioCardContent: React.FC<PortfolioCardContentProps> = ({
 
 // ─── Asset Row Content (extracted for SortableAssetRow) ─────────────────────────
 interface AssetRowContentProps {
-  h: any;
+  h: Holding;
   isMobile?: boolean;
   language: string;
   t: (key: string) => string;
@@ -655,9 +683,9 @@ interface AssetRowContentProps {
   formatNativePrimary: (val: number, ccy: 'THB' | 'USD') => string;
   formatNativeSecondary: (val: number, ccy: 'THB' | 'USD') => string;
   formatQty: (qty: number, type: string, ccy?: string) => string;
-  openModal: (...args: any[]) => void;
+  openModal: OpenModalFn;
   handleDeleteAsset: (id: string, symbol: string) => void;
-  dragListeners?: any;
+  dragListeners?: DragListeners;
 }
 
 const AssetRowContent: React.FC<AssetRowContentProps> = ({

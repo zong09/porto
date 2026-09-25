@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { useAssets } from '../hooks/useApi';
+import { useAssets, type Asset } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { apiErrorMessage } from '../api/apiError';
 
 const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
   if (val === '') return '';
@@ -34,23 +35,22 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
 };
 
 export const PriceModal: React.FC = () => {
-  const { modals, closeModal, activeAssetId } = useStore();
-  const { data: assets = [], updateAsset } = useAssets();
+  const { modals, activeAssetId } = useStore();
+  const { data: assets = [] } = useAssets();
+  const activeAsset = assets.find((a) => a.id === activeAssetId);
+  if (!modals.price || !activeAsset) return null;
+  // A fresh form per open (and per asset) starts from the asset's current price.
+  return <PriceModalForm key={activeAsset.id} activeAsset={activeAsset} />;
+};
+
+const PriceModalForm: React.FC<{ activeAsset: Asset }> = ({ activeAsset }) => {
+  const { closeModal } = useStore();
+  const { updateAsset } = useAssets();
   const { t, language } = useTranslation();
-  const [price, setPrice] = useState('');
+  const [price, setPrice] = useState(() => activeAsset.manualPrice?.toString() || '');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-
-  const activeAsset = assets.find((a) => a.id === activeAssetId);
-
-  useEffect(() => {
-    if (activeAsset) {
-      setPrice(activeAsset.manualPrice?.toString() || '');
-    }
-  }, [activeAsset]);
-
-  if (!modals.price || !activeAsset) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,8 +70,8 @@ export const PriceModal: React.FC = () => {
       });
       setPrice('');
       closeModal('price');
-    } catch (err: any) {
-      setError(err.response?.data?.message || t('common.error'));
+    } catch (err) {
+      setError(apiErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }

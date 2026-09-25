@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { useAssets, useTransactions } from '../hooks/useApi';
+import { useAssets, useTransactions, type Asset, type Transaction } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
+import { apiErrorMessage } from '../api/apiError';
 
 const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) => {
   if (val === '') return '';
@@ -33,89 +34,100 @@ const formatInputWithCommas = (val: string, minDecimals = 0, maxDecimals = 8) =>
   return hasDollar ? '$' + formatted : formatted;
 };
 
+/** Default price and fee when an asset is picked for a new transaction. */
+const defaultPriceAndFee = (asset: Asset | undefined): { price: string; fee: string } => {
+  if (!asset) return { price: '', fee: '' };
+  if (asset.type === 'deposit') return { price: '1', fee: '0' };
+  const val = asset.currentPrice || 0;
+  return { price: val ? Number(val.toFixed(8)).toString() : '', fee: '' };
+};
+
+/**
+ * Initial form values: the transaction being edited, or a new one for `assetId`.
+ * `asset` may be missing when the id is for an asset created a moment ago that
+ * the list has not refetched yet; the id is kept so it selects once it loads.
+ */
+const initialForm = (
+  activeTransaction: Transaction | undefined,
+  assetId: string,
+  asset: Asset | undefined,
+) => {
+  if (activeTransaction) {
+    const prefilledQty = Number(activeTransaction.quantity);
+    const prefilledPrice = Number(activeTransaction.price);
+    const prefilledFee = Number(activeTransaction.fee || 0);
+    return {
+      assetId: activeTransaction.assetId,
+      side: (asset?.type === 'deposit'
+        ? activeTransaction.side === 'buy'
+          ? 'buy'
+          : 'sell'
+        : activeTransaction.side) as 'buy' | 'sell',
+      quantity: prefilledQty ? Number(prefilledQty.toFixed(8)).toString() : '',
+      price: prefilledPrice ? Number(prefilledPrice.toFixed(8)).toString() : Number(activeTransaction.price) === 0 ? '0' : '',
+      fee: prefilledFee ? Number(prefilledFee.toFixed(8)).toString() : Number(activeTransaction.fee) === 0 ? '0' : '',
+      date: activeTransaction.date.slice(0, 10),
+    };
+  }
+  // New transaction: default to the opening side of the chosen asset's position.
+  return {
+    assetId,
+    side: ((asset?.direction || 'long') === 'short' ? 'sell' : 'buy') as 'buy' | 'sell',
+    quantity: '',
+    ...defaultPriceAndFee(asset),
+    date: new Date().toISOString().slice(0, 10),
+  };
+};
+
 export const TransactionModal: React.FC = () => {
-  const { modals, closeModal, activeAssetId, activeTransactionId, openModal } = useStore();
+  const { modals, activeTransactionId } = useStore();
+  const { data: assets = [] } = useAssets();
+  const { data: transactions = [] } = useTransactions();
+  if (!modals.tx) return null;
+  // A fresh form per open (and per edited transaction) starts from its initial
+  // values. It also re-mounts once assets load, since defaults depend on them.
+  const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
+  const formKey = `${activeTransaction?.id ?? 'new'}:${assets.length > 0 ? 'ready' : 'loading'}`;
+  return <TransactionModalForm key={formKey} />;
+};
+
+const TransactionModalForm: React.FC = () => {
+  const { closeModal, activeAssetId, activeTransactionId, openModal } = useStore();
   const { data: assets = [] } = useAssets();
   const { data: transactions = [], createTransaction, updateTransaction } = useTransactions();
   const { t, language } = useTranslation();
 
-  const [assetId, setAssetId] = useState('');
-  const [side, setSide] = useState<'buy' | 'sell'>('buy'); // Buy/Deposit -> 'buy', Sell/Withdraw -> 'sell'
-  const [quantity, setQuantity] = useState('');
-  const [price, setPrice] = useState('');
-  const [fee, setFee] = useState('');
-  const [date, setDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
+  const [initial] = useState(() => {
+    const initialAssetId = activeTransaction?.assetId ?? (activeAssetId || assets[0]?.id || '');
+    return initialForm(activeTransaction, initialAssetId, assets.find((a) => a.id === initialAssetId));
   });
+
+  const [assetId, setAssetId] = useState(initial.assetId);
+  const [side, setSide] = useState<'buy' | 'sell'>(initial.side); // Buy/Deposit -> 'buy', Sell/Withdraw -> 'sell'
+  const [quantity, setQuantity] = useState(initial.quantity);
+  const [price, setPrice] = useState(initial.price);
+  const [fee, setFee] = useState(initial.fee);
+  const [date, setDate] = useState(initial.date);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
-  const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
   const selectedAsset = assets.find((a) => a.id === assetId);
   const isDeposit = selectedAsset?.type === 'deposit';
   const isShort = (selectedAsset?.direction || 'long') === 'short';
   const assetCcy = selectedAsset?.currency || 'USD';
 
-  useEffect(() => {
-    if (!modals.tx) {
-      setHasInitialized(false);
-      return;
-    }
-
-    if (modals.tx && !hasInitialized && assets.length > 0) {
-      if (activeTransactionId && activeTransaction) {
-        setAssetId(activeTransaction.assetId);
-        
-        const asset = assets.find((a) => a.id === activeTransaction.assetId);
-        const isDep = asset?.type === 'deposit';
-        if (isDep) {
-          setSide(activeTransaction.side === 'buy' ? 'buy' : 'sell');
-        } else {
-          setSide(activeTransaction.side as 'buy' | 'sell');
-        }
-        
-        let prefilledQty = Number(activeTransaction.quantity);
-        setQuantity(prefilledQty ? Number(prefilledQty.toFixed(8)).toString() : '');
-
-        let prefilledPrice = Number(activeTransaction.price);
-        let prefilledFee = Number(activeTransaction.fee || 0);
-        
-        setPrice(prefilledPrice ? Number(prefilledPrice.toFixed(8)).toString() : (Number(activeTransaction.price) === 0 ? '0' : ''));
-        setFee(prefilledFee ? Number(prefilledFee.toFixed(8)).toString() : (Number(activeTransaction.fee) === 0 ? '0' : ''));
-        setDate(activeTransaction.date.slice(0, 10));
-      } else {
-        if (activeAssetId) {
-          setAssetId(activeAssetId);
-        } else if (assets.length > 0) {
-          setAssetId(assets[0].id);
-        }
-        setSide(isShort ? 'sell' : 'buy');
-        setQuantity('');
-        setFee('');
-        setDate(new Date().toISOString().slice(0, 10));
-      }
-      setHasInitialized(true);
-    }
-  }, [modals.tx, hasInitialized, activeTransactionId, activeAssetId]);
-
-  useEffect(() => {
-    const asset = assets.find((a) => a.id === assetId);
+  const handleAssetChange = (id: string) => {
+    setAssetId(id);
+    // New transactions pick up the selected asset's current price.
+    const asset = assets.find((a) => a.id === id);
     if (asset && !activeTransactionId) {
-      if (asset.type === 'deposit') {
-        setPrice('1');
-        setFee('0');
-      } else {
-        let val = asset.currentPrice || 0;
-        setPrice(val ? Number(val.toFixed(8)).toString() : '');
-        setFee('');
-      }
+      const defaults = defaultPriceAndFee(asset);
+      setPrice(defaults.price);
+      setFee(defaults.fee);
     }
-  }, [assetId, activeTransactionId]);
-
-  if (!modals.tx) return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,9 +159,9 @@ export const TransactionModal: React.FC = () => {
       return;
     }
 
-    let q = qInput;
-    let p = pInput;
-    let f = fInput;
+    const q = qInput;
+    const p = pInput;
+    const f = fInput;
 
     // Verify quantity limit
     if (selectedAsset) {
@@ -210,8 +222,8 @@ export const TransactionModal: React.FC = () => {
       }
       // Reset & close
       closeModal('tx');
-    } catch (err: any) {
-      setError(err.response?.data?.message || t('common.error'));
+    } catch (err) {
+      setError(apiErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }
@@ -243,7 +255,7 @@ export const TransactionModal: React.FC = () => {
             <label className="block text-[12.5px] font-semibold text-muted mb-[6px]">{t('transactions.colAsset')}</label>
             <select
               value={assetId}
-              onChange={(e) => setAssetId(e.target.value)}
+              onChange={(e) => handleAssetChange(e.target.value)}
               disabled={!!activeTransactionId}
               className="w-full py-[10px] px-[14px] rounded-[12px] border border-inputBorder bg-white text-[14px] text-dark focus:outline-none focus:border-terracotta transition-colors outline-none cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               id="select-txn-asset"

@@ -51,6 +51,8 @@ interface StoreState {
   closeAllModals: () => void;
 }
 
+export type OpenModalFn = StoreState['openModal'];
+
 export const useStore = create<StoreState>((set) => {
   // Try to load initial auth from localStorage
   const savedToken = localStorage.getItem('porto-token-v1');
