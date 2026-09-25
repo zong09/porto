@@ -11,6 +11,11 @@ export const Login: React.FC = () => {
   const { t, language, setLanguage } = useTranslation();
   const [wantsSignup, setWantsSignup] = useState(false);
   // Signup mode is unavailable while registration is disabled on the server.
+  // Drop a pending signup choice then too (adjusting state during render, not
+  // in an effect), so re-enabling registration later doesn't switch the form.
+  if (config?.enableRegister === false && wantsSignup) {
+    setWantsSignup(false);
+  }
   const isSignup = wantsSignup && config?.enableRegister !== false;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
