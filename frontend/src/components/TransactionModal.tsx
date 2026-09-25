@@ -80,14 +80,19 @@ const initialForm = (
 };
 
 export const TransactionModal: React.FC = () => {
-  const { modals, activeTransactionId } = useStore();
+  const { modals, activeAssetId, activeTransactionId } = useStore();
   const { data: assets = [] } = useAssets();
   const { data: transactions = [] } = useTransactions();
   if (!modals.tx) return null;
   // A fresh form per open (and per edited transaction) starts from its initial
-  // values. It also re-mounts once assets load, since defaults depend on them.
+  // values. Defaults depend on the target asset, so the form also re-mounts
+  // once that asset is in the list: assets may still be loading, or the asset
+  // was created a moment ago and the list has not refetched yet.
   const activeTransaction = transactions.find((t) => t.id === activeTransactionId);
-  const formKey = `${activeTransaction?.id ?? 'new'}:${assets.length > 0 ? 'ready' : 'loading'}`;
+  const targetAssetId = activeTransaction?.assetId ?? activeAssetId;
+  const assetsReady =
+    assets.length > 0 && (!targetAssetId || assets.some((a) => a.id === targetAssetId));
+  const formKey = `${activeTransaction?.id ?? 'new'}:${assetsReady ? 'ready' : 'loading'}`;
   return <TransactionModalForm key={formKey} />;
 };
 
